@@ -41,7 +41,7 @@ const App = () => {
   return (
     <div className="page">
       <Cursor />
-      <Nav />
+      <Nav theme={theme} />
 
       <Hero theme={theme} />
       <Features />

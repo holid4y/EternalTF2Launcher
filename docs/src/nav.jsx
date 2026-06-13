@@ -1,9 +1,11 @@
 /* Top nav and theme switcher. */
 
-const Nav = () => (
+const Nav = ({ theme }) => {
+  const t = (window.ETERNAL_THEMES.find(x => x.id === theme) || window.ETERNAL_THEMES[0]);
+  return (
   <nav className="nav" aria-label="primary">
     <a className="nav-brand" href="#top">
-      <span className="dot" />
+      <img className="nav-logo" src={t.logo} alt="" draggable={false} />
       <span>ETERNAL</span>
     </a>
     <div className="nav-links">
@@ -19,7 +21,8 @@ const Nav = () => (
       Get it
     </a>
   </nav>
-);
+  );
+};
 
 const ThemeSwitcher = ({ active, onPick }) => {
   const [open, setOpen] = React.useState(false);

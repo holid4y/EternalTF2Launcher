@@ -127,7 +127,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   letter-spacing: 0.02em;
   font-size: 15px;
 }
-.nav-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--glow); }
+.nav-logo { width: 26px; height: 26px; object-fit: contain; filter: drop-shadow(0 0 8px var(--glow-soft)); }
 .nav-links { display: flex; gap: 6px; }
 .nav-link {
   padding: 8px 14px;
