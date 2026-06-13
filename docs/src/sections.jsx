@@ -176,7 +176,7 @@ const CTA = () => (
               <p>Portable build, no install. Runs next to your existing TF2. Drop it anywhere.</p>
             </div>
             <div className="cta-actions">
-              <a className="btn btn--primary" href="https://github.com/UnusualHatter/EternalLauncher/releases" target="_blank" rel="noreferrer">
+              <a className="btn btn--primary" href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/tag/v1.0.0" target="_blank" rel="noreferrer">
                 <span>↓</span> Download installer <span className="kbd">.exe</span>
               </a>
               <a className="btn btn--ghost" href="https://github.com/UnusualHatter/EternalLauncher/releases" target="_blank" rel="noreferrer">

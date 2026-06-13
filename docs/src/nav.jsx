@@ -13,7 +13,7 @@ const Nav = () => (
     </div>
     <a
       className="nav-cta"
-      href="https://github.com/UnusualHatter/EternalLauncher/releases"
+      href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/tag/v1.0.0"
       target="_blank" rel="noreferrer"
     >
       Get it
