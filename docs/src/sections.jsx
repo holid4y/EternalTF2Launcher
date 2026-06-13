@@ -176,10 +176,10 @@ const CTA = () => (
               <p>Portable build, no install. Runs next to your existing TF2. Drop it anywhere.</p>
             </div>
             <div className="cta-actions">
-              <a className="btn btn--primary" href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/tag/v1.0.0" target="_blank" rel="noreferrer">
+              <a className="btn btn--primary" href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/" target="_blank" rel="noreferrer">
                 <span>↓</span> Download installer <span className="kbd">.exe</span>
               </a>
-              <a className="btn btn--ghost" href="https://github.com/UnusualHatter/EternalLauncher/releases" target="_blank" rel="noreferrer">
+              <a className="btn btn--ghost" href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/" target="_blank" rel="noreferrer">
                 <span>◌</span> Portable build (.zip)
               </a>
             </div>
@@ -228,7 +228,7 @@ const Footer = ({ theme }) => {
           <h4>Project</h4>
           <ul>
             <li><a href="https://github.com/UnusualHatter/EternalLauncher" target="_blank" rel="noreferrer">GitHub repo</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalLauncher/releases" target="_blank" rel="noreferrer">Releases</a></li>
+            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/" target="_blank" rel="noreferrer">Releases</a></li>
             <li><a href="https://github.com/UnusualHatter/EternalLauncher#readme" target="_blank" rel="noreferrer">README</a></li>
             <li><a href="https://github.com/UnusualHatter/EternalLauncher/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT license</a></li>
           </ul>
