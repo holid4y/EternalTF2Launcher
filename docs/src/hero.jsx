@@ -89,7 +89,7 @@ const Hero = ({ theme }) => {
         </a>
         <a
           className="btn btn--ghost"
-          href="https://github.com/UnusualHatter/EternalTF2Launcher"
+          href="https://github.com/UnusualHatter/EternalTF2Launcher/releases"
           target="_blank" rel="noreferrer"
         >
           <span>★</span>

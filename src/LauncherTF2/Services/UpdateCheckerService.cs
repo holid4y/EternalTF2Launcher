@@ -10,7 +10,7 @@ public record UpdateInfo(string LatestVersion, string HtmlUrl);
 public class UpdateCheckerService
 {
     private const string ApiUrl =
-        "https://api.github.com/repos/UnusualHatter/EternalLauncher/releases/latest";
+        "https://api.github.com/repos/UnusualHatter/EternalTF2Launcher/releases/latest";
 
     private static readonly HttpClient _http = AppHttpClient.Instance;
 

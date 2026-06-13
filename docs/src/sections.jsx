@@ -227,10 +227,10 @@ const Footer = ({ theme }) => {
         <div className="footer-col">
           <h4>Project</h4>
           <ul>
-            <li><a href="https://github.com/UnusualHatter/EternalLauncher" target="_blank" rel="noreferrer">GitHub repo</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases/" target="_blank" rel="noreferrer">Releases</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalLauncher#readme" target="_blank" rel="noreferrer">README</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalLauncher/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT license</a></li>
+            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">GitHub repo</a></li>
+            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">Releases</a></li>
+            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">README</a></li>
+            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">MIT license</a></li>
           </ul>
         </div>
 
