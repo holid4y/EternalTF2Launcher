@@ -1,0 +1,204 @@
+from valve_parsers import PCFElement, PCFFile, AttributeType
+
+from core.constants import ATTRIBUTE_DEFAULTS, ELEMENT_DEFAULTS
+
+
+
+def get_element_hash(element: PCFElement):
+    sorted_attrs = tuple(
+        (name, attr_type, value if not isinstance(value, list) else tuple(value))
+        for name, (attr_type, value) in sorted(element.attributes.items())
+    )
+    return hash(sorted_attrs)
+
+
+def find_duplicate_array_elements(pcf: PCFFile):
+    # find duplicate elements referenced in array attributes
+    hash_to_indices = {}
+
+    for element in pcf.elements:
+        for attr_name, (attr_type, value) in element.attributes.items():
+            if attr_type == AttributeType.ELEMENT_ARRAY:
+                for idx in value:
+                    if idx < len(pcf.elements):
+                        referenced_element = pcf.elements[idx]
+                        ref_type_name = pcf.string_dictionary[referenced_element.type_name_index].decode('ascii')
+                        if ref_type_name not in ('DmeElement','DmElement', 'DmeParticleSystemDefinition'):
+                            element_hash = get_element_hash(referenced_element)
+                            if element_hash not in hash_to_indices:
+                                hash_to_indices[element_hash] = []
+                            hash_to_indices[element_hash].append(idx)
+
+    return {hash_: indices for hash_, indices in hash_to_indices.items() if len(indices) > 1}
+
+
+def update_array_indices(pcf: PCFFile, duplicates):
+    # update ELEMENT_ARRAY indices to reuse the first occurrence of duplicate elements.
+    # create a mapping of old indices to their replacement
+    index_map = {}
+    for indices in duplicates.values():
+        # deduplicate the indices list first
+        unique_indices = list(dict.fromkeys(indices))
+        first_index = unique_indices[0]
+        for idx in unique_indices[1:]:
+            index_map[idx] = first_index
+
+    # update all ELEMENT_ARRAY attributes in the PCF
+    for element in pcf.elements:
+        for attr_name, (attr_type, value) in element.attributes.items():
+            if attr_type == AttributeType.ELEMENT_ARRAY:
+                # update indices in the array
+                new_value = [index_map.get(idx, idx) for idx in value]
+                element.attributes[attr_name] = (attr_type, new_value)
+
+
+def reorder_elements(pcf: PCFFile, duplicates):
+    # deduplicate indices lists and build mapping
+    # same index can appear multiple times if referenced from multiple arrays
+    duplicate_indices = set()
+    duplicate_to_first = {}
+
+    for indices in duplicates.values():
+        unique_indices = list(dict.fromkeys(indices))
+        first_idx = unique_indices[0]
+        for dup_idx in unique_indices[1:]:
+            duplicate_indices.add(dup_idx)
+            duplicate_to_first[dup_idx] = first_idx
+
+    # create new list without duplicates and mapping of old to new indices
+    new_elements = []
+    old_to_new = {}
+    new_index = 0
+
+    for old_index, element in enumerate(pcf.elements):
+        if old_index not in duplicate_indices:
+            old_to_new[old_index] = new_index
+            new_elements.append(element)
+            new_index += 1
+
+    # update all references in every element
+    for element in new_elements:
+        for attr_name, (attr_type, value) in element.attributes.items():
+            if attr_type == AttributeType.ELEMENT_ARRAY:
+                # map each index to its new position
+                new_value = []
+                for idx in value:
+                    # if it's a duplicate, use the first occurrence
+                    if idx in duplicate_to_first:
+                        idx = duplicate_to_first[idx]
+                    # only add if valid index
+                    if idx in old_to_new:
+                        new_value.append(old_to_new[idx])
+                element.attributes[attr_name] = (attr_type, new_value)
+            elif attr_type == AttributeType.ELEMENT:
+                # handle single element references
+                if value in duplicate_to_first:
+                    value = duplicate_to_first[value]
+                # only update if valid index, otherwise leave alone
+                if value in old_to_new:
+                    element.attributes[attr_name] = (attr_type, old_to_new[value])
+
+    # replace the elements list with our reordered version
+    pcf.elements = new_elements
+
+
+def optimize_string_dictionary(pcf: PCFFile):
+    # collect used strings in one pass
+    used_strings = set()
+    for element in pcf.elements:
+        # add type name
+        used_strings.add(pcf.string_dictionary[element.type_name_index])
+        # add attribute names
+        used_strings.update(element.attributes.keys())
+
+    # create new minimal dictionary
+    new_dictionary = sorted(list(used_strings))  # sort for consistency
+    old_to_new = {old_str: i for i, old_str in enumerate(new_dictionary)}
+
+    # update element type name indices
+    for element in pcf.elements:
+        old_type = pcf.string_dictionary[element.type_name_index]
+        element.type_name_index = old_to_new[old_type]
+
+    # set new dictionary
+    pcf.string_dictionary = new_dictionary
+
+    return pcf
+
+
+def _remove_default_attributes(element: PCFElement, defaults_dict: dict):
+    # helper
+    attributes_to_remove = []
+    for attr_name, (attr_type, value) in element.attributes.items():
+        attr_name_str = attr_name.decode('ascii')
+        if attr_name_str in defaults_dict:
+            default_value = defaults_dict[attr_name_str]
+            matches_default = False
+            if isinstance(default_value, (int, float, bool)):
+                matches_default = value == default_value
+            elif isinstance(default_value, tuple) and len(default_value) in (3, 4):
+                matches_default = value == default_value
+            elif isinstance(default_value, bytes):
+                matches_default = value == default_value
+            if matches_default:
+                attributes_to_remove.append(attr_name)
+
+    for attr_name in attributes_to_remove:
+        del element.attributes[attr_name]
+
+
+def combined_cleanup_pass(pcf: PCFFile):
+    # convert defaults lists to dicts for O(1) lookup
+    attribute_defaults_dict = {name: value for name, value in ATTRIBUTE_DEFAULTS}
+    element_defaults_dict = {name: value for name, value in ELEMENT_DEFAULTS}
+
+    # first build system indices map for child reference fixing
+    system_indices = {}
+    system_defs = pcf.get_elements_by_type('DmeParticleSystemDefinition')
+    for element in system_defs:
+        name = element.element_name.decode('ascii')
+        system_indices[name] = pcf.elements.index(element)
+
+    # single pass over all elements
+    for element in pcf.elements:
+        type_name = pcf.string_dictionary[element.type_name_index].decode('ascii')
+
+        # fix child references
+        if type_name == 'DmeParticleChild':
+            child_value = pcf.get_attribute_value(element, 'child')
+            if child_value == 4294967295:  # invalid reference
+                name = element.element_name.decode('ascii')
+                if name in system_indices:
+                    attr_type, _ = element.attributes[b'child']
+                    element.attributes[b'child'] = (attr_type, system_indices[name])
+
+        # clean children arrays + check defaults for system definitions
+        elif type_name == 'DmeParticleSystemDefinition':
+            children_value = pcf.get_attribute_value(element, 'children')
+            if children_value is not None:
+                unique_indices = list(dict.fromkeys(children_value))
+                if len(unique_indices) != len(children_value):
+                    attr_type, _ = element.attributes[b'children']
+                    element.attributes[b'children'] = (attr_type, unique_indices)
+
+            _remove_default_attributes(element, element_defaults_dict)
+
+        # rename operators + check defaults
+        elif type_name == 'DmeParticleOperator':
+            element.element_name = str('').encode('ascii')
+            _remove_default_attributes(element, attribute_defaults_dict)
+
+
+def remove_duplicate_elements(pcf: PCFFile) -> PCFFile:
+    combined_cleanup_pass(pcf)
+
+    # find duplicates
+    duplicates = find_duplicate_array_elements(pcf)
+
+    if duplicates:
+        update_array_indices(pcf, duplicates)
+        reorder_elements(pcf, duplicates)
+
+    final_result = optimize_string_dictionary(pcf)
+
+    return final_result

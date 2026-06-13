@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+
+    <!-- Friendly name shown in file properties / taskbar. AssemblyName is left
+         as LauncherTF2 so run.bat / debugging paths keep working. -->
+    <AssemblyTitle>Eternal TF2 Launcher</AssemblyTitle>
+    <Product>Eternal TF2 Launcher</Product>
+    <Company>Eternal TF2 Launcher</Company>
+    <ApplicationIcon>..\..\resources\Assets\logo64_classic.ico</ApplicationIcon>
+    <Version>1.1.0</Version>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="SharpCompress" Version="0.48.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\resources\Assets\**\*.png" LinkBase="Resources\Assets" />
+    <Resource Include="..\..\resources\Assets\**\*.ico" LinkBase="Resources\Assets" />
+    <EmbeddedResource Include="Resources\Profiles\*.json" />
+    <Content Include="Resources\**" Exclude="Resources\Assets\**\*.png;Resources\Assets\**\*.ico;Resources\Profiles\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

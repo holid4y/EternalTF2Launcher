@@ -1,0 +1,32 @@
+{
+  "id": "builtin-stability",
+  "name": "Stability",
+  "description": "Balanced performance and visuals with forgiving network settings. Good default for most players on typical pub servers.",
+  "category": "balanced",
+  "isUserCreated": false,
+  "version": 1,
+  "lastModified": "2025-05-12T00:00:00Z",
+  "launchOptions": "-dxlevel 90 -console -novid",
+  "settings": {
+    "Interp": 0.0152,
+    "InterpRatio": 2,
+    "Rate": 196608,
+    "CmdRate": 66,
+    "UpdateRate": 66,
+    "FpsMax": 240,
+    "ViewmodelFov": 75,
+    "MatPhong": true,
+    "MatSpecular": true,
+    "MatBumpmap": true,
+    "ModelLod": 1,
+    "Ragdolls": false,
+    "DetailDistance": 1200,
+    "RemoveGibs": true,
+    "RemoveSprays": true,
+    "DisableJiggleBones": false,
+    "DisableFacialAnims": false,
+    "DisableDynamicLights": false,
+    "Bloom": true,
+    "MotionBlurStrength": 0.0
+  }
+}

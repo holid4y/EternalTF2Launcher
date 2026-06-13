@@ -1,0 +1,101 @@
+import logging
+import subprocess
+from enum import Enum
+from pathlib import Path
+from sys import platform
+
+from core.folder_setup import folder_setup
+
+log = logging.getLogger()
+
+
+class StudioMDLVersion(Enum):
+    MISSING = ""
+    STUDIOMDL32 = "bin/studiomdl.exe"
+    BUNDLED_SDK = "bundled"
+
+
+class StudioMDL:
+    def __init__(self, game_path: str):
+        self.game_path = Path(game_path)
+        self.bundled_studiomdl_path = folder_setup.install_dir / "core" / "quickprecache" / "studio" / "studiomdl.exe"
+        self.studio_mdl_version = self._get_studio_mdl_version()
+
+        if self.studio_mdl_version == StudioMDLVersion.MISSING:
+            raise RuntimeError(
+                "StudioMDL.exe not found in game directory or bundled SDK location.\n"
+                "Please ensure TF2 is properly installed or check the installation."
+            )
+
+    def _get_studio_mdl_version(self) -> StudioMDLVersion:
+        # detect which version of StudioMDL is available
+        if self._check_studio_mdl_version(StudioMDLVersion.STUDIOMDL32):
+            return StudioMDLVersion.STUDIOMDL32
+
+        # check for bundled SDK version as fallback
+        if self.bundled_studiomdl_path.exists():
+            log.info(f"Using bundled SDK studiomdl.exe from {self.bundled_studiomdl_path}")
+            return StudioMDLVersion.BUNDLED_SDK
+
+        return StudioMDLVersion.MISSING
+
+    def _check_studio_mdl_version(self, version: StudioMDLVersion) -> bool:
+        if version == StudioMDLVersion.MISSING:
+            return False
+
+        studio_mdl_file = self.game_path / version.value
+        if studio_mdl_file.exists():
+            log.info(f"{version.value} found.")
+            return True
+        return False
+
+    def make_model(self, qc_file: str) -> bool:
+        # compile a QC file using StudioMDL
+        if self.studio_mdl_version == StudioMDLVersion.MISSING:
+            return False
+
+        if self.studio_mdl_version == StudioMDLVersion.BUNDLED_SDK:
+            exe_path = str(self.bundled_studiomdl_path)
+        else:
+            exe_path = str(self.game_path / self.studio_mdl_version.value)
+
+        tf_path = str(Path(self.game_path) / 'tf')
+
+        # use wine on not windows
+        if platform != "win32":
+            # for wine, use shell=True and use Z:path maybe ???
+            cmd_str = f'wine "{exe_path}" -game "Z:{tf_path}" -nop4 -verbose "Z:{qc_file}"'
+            log.info(f"Executing with wine: {cmd_str}")
+            process = subprocess.Popen(
+                cmd_str,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+        else:
+            # windows
+            cmd_args = [
+                exe_path,
+                "-game", tf_path,
+                "-nop4",
+                "-verbose",
+                qc_file
+            ]
+            log.info(f"Executing: {' '.join(cmd_args)}")
+            process = subprocess.Popen(
+                cmd_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+
+        while True:
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+            if line:
+                log.info(line.strip())
+
+        return_code = process.poll()
+        return return_code == 0

@@ -1,0 +1,119 @@
+<Window x:Class="LauncherTF2.Views.ImageCropDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Crop Thumbnail" Height="520" Width="720"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        Foreground="White"
+        FontFamily="Segoe UI"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Corner resize handle. Tag identifies the corner for the code-behind. -->
+        <Style x:Key="HandleStyle" TargetType="Rectangle">
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Fill" Value="White"/>
+            <Setter Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" CornerRadius="12" Background="{DynamicResource BackgroundBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header (draggable) -->
+            <Grid Grid.Row="0" Margin="20,20,20,10" Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <TextBlock Text="Crop Thumbnail" FontSize="20" FontWeight="Bold"/>
+                <TextBlock Text="Drag the box to move it; drag a corner to resize. The 16:9 shape is kept automatically."
+                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12" Margin="0,28,0,0"/>
+            </Grid>
+
+            <!-- Image area: the Viewbox scales the pixel-sized canvas uniformly,
+                 so all mouse math happens in image pixel coordinates. -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceInsetBrush}" Margin="20,0" CornerRadius="8">
+                <Viewbox Stretch="Uniform" Margin="10">
+                    <Grid x:Name="CanvasGrid">
+
+                        <!-- Source image, forced to exactly PixelWidth × PixelHeight DIPs -->
+                        <Image x:Name="SourceImage" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
+                        <!-- Dark overlay with an even-odd "hole" over the selection.
+                             No background here: the hole must stay undarkened. -->
+                        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False"/>
+
+                        <!-- Interaction layer -->
+                        <Canvas x:Name="DragCanvas" Background="Transparent"
+                                MouseDown="DragCanvas_MouseDown" MouseMove="DragCanvas_MouseMove" MouseUp="DragCanvas_MouseUp">
+                            <Border x:Name="SelectionBorder" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="2" Cursor="SizeAll"
+                                    Background="Transparent">
+                                <Grid>
+                                    <Rectangle Style="{StaticResource HandleStyle}" Tag="TL" HorizontalAlignment="Left"  VerticalAlignment="Top"    Margin="-6,-6,0,0" Cursor="SizeNWSE"/>
+                                    <Rectangle Style="{StaticResource HandleStyle}" Tag="TR" HorizontalAlignment="Right" VerticalAlignment="Top"    Margin="0,-6,-6,0" Cursor="SizeNESW"/>
+                                    <Rectangle Style="{StaticResource HandleStyle}" Tag="BL" HorizontalAlignment="Left"  VerticalAlignment="Bottom" Margin="-6,0,0,-6" Cursor="SizeNESW"/>
+                                    <Rectangle Style="{StaticResource HandleStyle}" Tag="BR" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6" Cursor="SizeNWSE"/>
+                                </Grid>
+                            </Border>
+                        </Canvas>
+
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Footer -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="20">
+                <Button Content="Cancel" Style="{StaticResource ActionButtonStyle}" Margin="0,0,10,0" Click="BtnCancel_Click"/>
+                <Button Content="Save Thumbnail" Style="{StaticResource AccentActionButtonStyle}" Click="BtnSave_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

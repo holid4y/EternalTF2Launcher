@@ -1,0 +1,194 @@
+<Window x:Class="LauncherTF2.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:LauncherTF2.ViewModels"
+        xmlns:invvm="clr-namespace:LauncherTF2.ViewModels.Inventory"
+        xmlns:views="clr-namespace:LauncherTF2.Views"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        mc:Ignorable="d"
+        Title="Eternal TF2 Launcher" Height="720" Width="1280"
+        MinWidth="1280" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BackgroundBrush}">
+
+    <!-- WindowChrome gives us a custom title bar + native rounded corners (Win11)
+         WITHOUT the AllowsTransparency=True layered-window hack, which was breaking
+         drag-and-drop (WPF doesn't support drag-drop on transparent windows). -->
+    <WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="30"
+            CornerRadius="12"
+            GlassFrameThickness="0"
+            UseAeroCaptionButtons="False"
+            ResizeBorderThickness="4"
+            NonClientFrameEdges="None"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+            <views:HomeView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type invvm:BackpackViewModel}">
+            <views:InventoryView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ModsViewModel}">
+            <views:ModsView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+            <views:SettingsView/>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource BackgroundBrush}" BorderBrush="#333" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"/> <!-- Top Bar -->
+                <RowDefinition Height="*"/>  <!-- Main Content -->
+            </Grid.RowDefinitions>
+
+            <!-- Custom Top Bar — WindowChrome handles dragging the caption area natively -->
+            <Grid Grid.Row="0" Background="{DynamicResource SurfaceInsetBrush}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Eternal TF2" Foreground="#8B94A9" VerticalAlignment="Center" Margin="15,0,0,0" FontWeight="SemiBold" IsHitTestVisible="False"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Content="—" Width="40" Background="Transparent" Foreground="#A7B0C5" BorderThickness="0" Click="MinimizeButton_Click"/>
+                    <Button Content="X" Width="40" Background="Transparent" Foreground="#A7B0C5" BorderThickness="0" Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Main Split -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- System Tray Icon -->
+        <tb:TaskbarIcon x:Name="TrayIcon" IconSource="{Binding Theme.CurrentIconSource, NotifyOnTargetUpdated=True}" ToolTipText="Eternal TF2 Launcher" DoubleClickCommand="{Binding RestoreWindowCommand}">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Open" Command="{Binding RestoreWindowCommand}"/>
+                    <MenuItem Header="Exit" Command="{Binding QuitCommand}"/>
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
+
+        <!-- Sidebar -->
+        <Grid Grid.Column="0">
+            <!-- Home Background (Default Visible) -->
+            <Border x:Name="HomeBackground" Opacity="1">
+                <Border.Background>
+                    <DynamicResource ResourceKey="SidebarBrush"/>
+                </Border.Background>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHome}" Value="False">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.4"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.4"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+
+            <!-- Normal Background (Default Hidden) -->
+            <Border x:Name="NormalBackground" Background="{DynamicResource SidebarBrush}" Opacity="0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHome}" Value="False">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.4"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.4"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+
+            <StackPanel>
+                <!-- Logo Area — bound to ThemeManager so it crossfades on theme swap.
+                     The DropShadow color reads AccentColor via DynamicResource so the
+                     glow tracks the active accent (theme or custom override). -->
+                <Image x:Name="LogoImage"
+                       Source="{Binding Theme.CurrentLogoSource, NotifyOnTargetUpdated=True}"
+                       Height="60" Margin="0,30,0,50" HorizontalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Effect>
+                        <DropShadowEffect Color="{DynamicResource AccentGlowColor}" BlurRadius="14" ShadowDepth="0"/>
+                    </Image.Effect>
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Style.Triggers>
+                                <!-- Quick fade whenever the bound logo source changes. -->
+                                <EventTrigger RoutedEvent="Binding.TargetUpdated">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0" To="1" Duration="0:0:0.45"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Navigation -->
+                <RadioButton Content="Home" Style="{StaticResource SidebarButtonStyle}" Command="{Binding HomeViewCommand}" IsChecked="True"/>
+                <RadioButton Content="Inventory" Style="{StaticResource SidebarButtonStyle}" Command="{Binding InventoryViewCommand}"/>
+                <RadioButton Content="Mods" Style="{StaticResource SidebarButtonStyle}" Command="{Binding ModsViewCommand}"/>
+
+                <RadioButton Content="Settings" Style="{StaticResource SidebarButtonStyle}" Command="{Binding SettingsViewCommand}"/>
+                
+                <Separator Background="#333" Margin="20,20"/>
+                
+                <RadioButton Content="Quit" Style="{StaticResource SidebarButtonStyle}" Command="{Binding QuitCommand}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content -->
+        <ContentControl x:Name="MainContentControl" Grid.Column="1" Content="{Binding CurrentView}" Margin="0" Opacity="1" RenderTransformOrigin="0.5,0.5">
+            <ContentControl.RenderTransform>
+                <TranslateTransform Y="0"/>
+            </ContentControl.RenderTransform>
+        </ContentControl>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

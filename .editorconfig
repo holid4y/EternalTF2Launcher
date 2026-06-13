@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+[*.xaml]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+root = true
+
+[*]
+end_of_line = CRLF
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+[*.{cs,xaml}]
+indent_size = 4
+
+[*.{json,xml,yml,yaml}]
+indent_size = 2
+
+[*.{ps1,bat,cmd}]
+indent_size = 2
