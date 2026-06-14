@@ -132,23 +132,59 @@ def derive_stage(message: str) -> str:
     return "Working"
 
 
+def _make_file_handler(path: Path) -> logging.FileHandler:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handler = logging.FileHandler(path, mode="a", encoding="utf-8")
+    handler.setFormatter(JsonLogFormatter())
+    return handler
+
+
 def setup_logging(log_file: str | None, verbose: bool):
+    """Configure logging, never raising even if the requested log path is
+    unwritable (e.g. the launcher is installed under Program Files and this
+    process has no write access there).
+
+    Tries, in order: the caller-supplied --log-file, the engine's own log path
+    (folder_setup.log_file), then stderr-only. A crash here before logging
+    exists would otherwise exit with no diagnostics at all (Python's default
+    unhandled-exception behaviour: print to stderr, exit code 1). When every
+    file target fails we still log to stderr, which the launcher captures.
+    """
     from core.folder_setup import folder_setup
 
-    target = Path(log_file) if log_file else folder_setup.log_file
-    target.parent.mkdir(parents=True, exist_ok=True)
-
-    file_handler = logging.FileHandler(target, mode="a", encoding="utf-8")
-    file_handler.setFormatter(JsonLogFormatter())
-
+    level = logging.DEBUG if verbose else logging.INFO
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    handlers: list[logging.Handler] = [stderr_handler]
 
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO,
-        handlers=[file_handler, stderr_handler],
-        force=True,
-    )
+    requested = Path(log_file) if log_file else folder_setup.log_file
+    candidates = [requested]
+    if requested != folder_setup.log_file:
+        candidates.append(folder_setup.log_file)
+
+    used_target: Path | None = None
+    last_error: OSError | None = None
+    for candidate in candidates:
+        try:
+            handlers.append(_make_file_handler(candidate))
+            used_target = candidate
+            break
+        except OSError as e:
+            last_error = e
+
+    logging.basicConfig(level=level, handlers=handlers, force=True)
+
+    if used_target is None:
+        log.warning(
+            "Could not open any log file (last error opening %s: %s); "
+            "file logging is disabled for this run",
+            candidates[-1], last_error,
+        )
+    elif used_target != requested:
+        log.warning(
+            "Could not open log file %s (%s); falling back to %s",
+            requested, last_error, used_target,
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:

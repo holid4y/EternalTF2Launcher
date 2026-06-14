@@ -361,17 +361,24 @@ public class PreloaderService : IPreloaderService
             }
 
             await process.WaitForExitAsync(timeoutCts.Token);
-            var stderr = await stderrTask;
-
-            if (!string.IsNullOrWhiteSpace(stderr))
-                Logger.LogDebug($"[Preloader] stderr:\n{stderr.Trim()}");
+            var stderr = (await stderrTask).Trim();
 
             if (result == null)
             {
-                Logger.LogWarning($"[Preloader] Process exited (code {process.ExitCode}) without a result event");
+                // No result event means the engine died early; stderr is then the
+                // only record of why. Log it at Warning (not Debug) so the cause
+                // isn't dropped, and fold a tail into the user-facing error.
+                Logger.LogWarning(
+                    $"[Preloader] Process exited (code {process.ExitCode}) without a result event." +
+                    (stderr.Length > 0 ? $" stderr:\n{stderr}" : " (no stderr output)"));
+
+                var detail = stderr.Length > 0 ? $"\n\n{LastLines(stderr, 8)}" : string.Empty;
                 return Fail(args, process.ExitCode,
-                    $"The preloader exited (code {process.ExitCode}) without reporting a result. See logs/preloader.log.");
+                    $"The preloader exited (code {process.ExitCode}) without reporting a result.{detail}");
             }
+
+            if (stderr.Length > 0)
+                Logger.LogDebug($"[Preloader] stderr:\n{stderr}");
 
             return new PreloaderResult
             {
@@ -410,6 +417,17 @@ public class PreloaderService : IPreloaderService
         ExitCode = exitCode,
         Errors   = [error],
     };
+
+    /// <summary>Returns the last <paramref name="count"/> non-empty lines of
+    /// <paramref name="text"/> — used to keep an engine traceback's most relevant
+    /// tail in a user-facing error without dumping the whole thing.</summary>
+    private static string LastLines(string text, int count)
+    {
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return lines.Length <= count
+            ? string.Join('\n', lines)
+            : string.Join('\n', lines[^count..]);
+    }
 
     private static void TryKill(Process process)
     {
