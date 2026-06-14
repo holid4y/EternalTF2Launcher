@@ -52,7 +52,7 @@ Mods load in Casual matchmaking because they are pre-baked into `tf/custom` by t
 
 The launcher includes an edited copy of [cueki's Casual Preloader](https://github.com/cueki/casual-pre-loader) located in the `external/` directory. The original GUI was stripped out and replaced with a headless CLI that the launcher communicates with, along with some defensive improvements like broken-model detection and archive handling. Release builds include this engine next to the launcher in the `preloader/` folder. The CLI protocol is documented in `docs/preloader-integration-contract.md`.
 
-The engine runs on Python 3.10+. The installer version bundles a Python installer and sets it up automatically if your PC does not have it. The portable build cannot install Python automatically, but if it is missing, the Mods tab will show a convenient prompt to download it. If you are running from the source code, you can install the dependencies with `pip install -r external/requirements.txt`.
+The engine runs on Python 3.10+ and depends on the packages listed in `external/requirements.txt` (including `valve-parsers`). The installer version bundles a Python installer and sets it up automatically if your PC does not have it. The portable build cannot install Python automatically, so mod support only works if Python 3.10+ is already installed and the engine dependencies are present. If you are running from the source code, you can install them with `pip install -r external/requirements.txt`.
 
 ## Settings and Configuration Handling
 

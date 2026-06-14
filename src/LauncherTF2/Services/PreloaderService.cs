@@ -17,7 +17,8 @@ namespace LauncherTF2.Services;
 ///   2. {exe dir}\preloader\preloader-cli.exe   (packaged release layout)
 ///   3. {exe dir}\preloader\cli\main.py         (engine sources shipped next to the launcher)
 ///   4. {repo}\external\cli\main.py             (development checkout, walking up from the exe)
-/// Python sources are run through the "py" launcher or "python" from PATH.
+/// Python sources are run through the same Python 3.11 runtime the installer
+/// provisions first, then fall back to "py" or "python" from PATH.
 /// </summary>
 public class PreloaderService : IPreloaderService
 {
@@ -127,12 +128,61 @@ public class PreloaderService : IPreloaderService
 
     private static string? FindPython()
     {
+        var candidates = new List<string>();
+        var bundledPython = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs", "Python", "Python311", "python.exe");
+
+        if (File.Exists(bundledPython))
+            candidates.Add(bundledPython);
+
         foreach (var name in new[] { "py.exe", "python.exe" })
         {
             var found = SearchPath(name);
-            if (found != null) return found;
+            if (found != null && !candidates.Contains(found, StringComparer.OrdinalIgnoreCase))
+                candidates.Add(found);
         }
+
+        foreach (var candidate in candidates)
+        {
+            if (CanImportValveParsers(candidate))
+                return candidate;
+        }
+
         return null;
+    }
+
+    private static bool CanImportValveParsers(string pythonExe)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = pythonExe,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            psi.ArgumentList.Add("-c");
+            psi.ArgumentList.Add("import valve_parsers");
+
+            using var process = Process.Start(psi);
+            if (process == null)
+                return false;
+
+            if (!process.WaitForExit((int)TimeSpan.FromSeconds(10).TotalMilliseconds))
+            {
+                TryKill(process);
+                return false;
+            }
+
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string? SearchPath(string fileName)
