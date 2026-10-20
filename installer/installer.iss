@@ -41,13 +41,13 @@
 ; =============================================================================
 
 ; -- Version — bump this before every release ----------------------------------
-#define AppVersion     "1.1.0"
+#define AppVersion     "1.1.1"
 
 ; -- Identity ------------------------------------------------------------------
 #define AppName        "Eternal TF2 Launcher"
 #define AppExeName     "LauncherTF2.exe"
 #define AppPublisher   "Project Eternal"
-#define AppURL         "https://github.com/UnusualHatter/EternalTF2Launcher"
+#define AppURL         "https://github.com/holid4y/EternalTF2Launcher"
 #define AppMutexName   "ProjectEternalLauncher_Mutex"
 
 ; IMPORTANT: Never change AppId after the first public release.

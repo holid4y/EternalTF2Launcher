@@ -15,7 +15,7 @@ const Nav = ({ theme }) => {
     </div>
     <a
       className="nav-cta"
-      href="https://github.com/UnusualHatter/EternalTF2Launcher/releases"
+      href="https://github.com/holid4y/EternalTF2Launcher/releases/latest"
       target="_blank" rel="noreferrer"
     >
       Get it

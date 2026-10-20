@@ -80,7 +80,7 @@ const Hero = ({ theme }) => {
       <Reveal className="hero-cta" delay={3}>
         <a
           className="btn btn--primary"
-          href="https://github.com/UnusualHatter/EternalTF2Launcher/releases"
+          href="https://github.com/holid4y/EternalTF2Launcher/releases/latest"
           target="_blank" rel="noreferrer"
         >
           <span>↓</span>
@@ -89,7 +89,7 @@ const Hero = ({ theme }) => {
         </a>
         <a
           className="btn btn--ghost"
-          href="https://github.com/UnusualHatter/EternalTF2Launcher/releases"
+          href="https://github.com/holid4y/EternalTF2Launcher/releases/latest"
           target="_blank" rel="noreferrer"
         >
           <span>★</span>

@@ -176,10 +176,10 @@ const CTA = () => (
               <p>Portable build, no install. Runs next to your existing TF2. Drop it anywhere.</p>
             </div>
             <div className="cta-actions">
-              <a className="btn btn--primary" href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">
+              <a className="btn btn--primary" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" target="_blank" rel="noreferrer">
                 <span>↓</span> Download installer <span className="kbd">.exe</span>
               </a>
-              <a className="btn btn--ghost" href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">
+              <a className="btn btn--ghost" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" target="_blank" rel="noreferrer">
                 <span>◌</span> Portable build (.zip)
               </a>
             </div>
@@ -227,10 +227,10 @@ const Footer = ({ theme }) => {
         <div className="footer-col">
           <h4>Project</h4>
           <ul>
-            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">GitHub repo</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">Releases</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">README</a></li>
-            <li><a href="https://github.com/UnusualHatter/EternalTF2Launcher/releases" target="_blank" rel="noreferrer">MIT license</a></li>
+            <li><a href="https://github.com/holid4y/EternalTF2Launcher" target="_blank" rel="noreferrer">GitHub repo</a></li>
+            <li><a href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" target="_blank" rel="noreferrer">Releases</a></li>
+            <li><a href="https://github.com/holid4y/EternalTF2Launcher#readme" target="_blank" rel="noreferrer">README</a></li>
+            <li><a href="https://github.com/holid4y/EternalTF2Launcher/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT license</a></li>
           </ul>
         </div>
 
@@ -254,7 +254,7 @@ const Footer = ({ theme }) => {
       </div>
 
       <div className="footer-bottom">
-        <span>© 2026 UnusualHatter · MIT</span>
+        <span>© 2026 holid4y · MIT</span>
         <span>Built with React · Press · for cursor reveal</span>
       </div>
     </div>

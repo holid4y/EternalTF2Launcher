@@ -14,7 +14,7 @@
     <Product>Eternal TF2 Launcher</Product>
     <Company>Eternal TF2 Launcher</Company>
     <ApplicationIcon>..\..\resources\Assets\logo64_classic.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
