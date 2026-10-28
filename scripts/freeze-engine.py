@@ -36,11 +36,14 @@ def main() -> None:
         (VENDOR / "backup", "backup"),
         (VENDOR / "data", "data"),
         (VENDOR / "core" / "quickprecache" / "_QuickPrecache.vpk", "core/quickprecache"),
-        (VENDOR / "core" / "quickprecache" / "studio", "core/quickprecache/studio"),
         (VENDOR / "UPSTREAM", "."),
         (VENDOR / ".noportable", "."),
         (VENDOR / "LICENSE", "."),
     ]
+    # Room for an optional studiomdl.exe fallback; empty upstream, and git keeps no empty folders.
+    studio = VENDOR / "core" / "quickprecache" / "studio"
+    if studio.is_dir() and any(studio.iterdir()):
+        data.append((studio, "core/quickprecache/studio"))
     command = [
         sys.executable, "-m", "PyInstaller", str(ENGINE / "run.py"),
         "--name", "eternal-engine",
