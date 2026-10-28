@@ -10,3 +10,9 @@
 
 # Markdown files should use LF
 *.md text eol=lf
+
+# Run on Linux and in CI, where CRLF breaks the shebang line
+*.sh text eol=lf
+*.py text eol=lf
+*.desktop text eol=lf
+*.yml text eol=lf

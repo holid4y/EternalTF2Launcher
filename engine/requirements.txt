@@ -1,0 +1,7 @@
+# Runtime dependencies of the vendored casual-pre-loader core plus the adapter.
+# Upstream's GUI-only packages (PyQt6, PyGithub, rich) are not needed headless.
+valve-parsers>=1.2.2
+cappa~=0.33.0
+more-itertools~=11.2
+packaging~=26.3
+platformdirs~=4.13

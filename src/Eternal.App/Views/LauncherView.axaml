@@ -1,0 +1,231 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             xmlns:core="using:Eternal.Core"
+             x:Class="Eternal.App.Views.LauncherView"
+             x:DataType="vm:LauncherViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Border.swatch">
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="3" />
+    </Style>
+    <Style Selector="ListBox.themes ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,10,10" />
+      <Setter Property="CornerRadius" Value="3" />
+    </Style>
+    <Style Selector="ListBox.themes ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.themes ListBoxItem:selected Border.swatch">
+      <Setter Property="BorderBrush" Value="{DynamicResource InkBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <Grid ColumnDefinitions="3*,2*" ColumnSpacing="20" RowDefinitions="Auto,*" RowSpacing="18" Margin="0,0,14,0">
+      <StackPanel Grid.ColumnSpan="2" Spacing="2">
+        <TextBlock Classes="display" Text="LAUNCHER" />
+        <TextBlock Classes="muted" Text="Make it yours. Everything here applies immediately." />
+      </StackPanel>
+      <StackPanel Grid.Row="1" Spacing="20">
+
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="heading" Text="GAME" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="meta" Text="TF2 folder (the tf folder inside Team Fortress 2)" />
+              <TextBlock Text="{Binding TfPath}" TextWrapping="Wrap" />
+              <TextBlock Classes="meta" Text="{Binding TfStatus}" Classes.danger="{Binding !TfValid}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button Classes="ghost" Content="Find it" Command="{Binding DetectTf2Command}" />
+              <Button Content="Browse" Command="{Binding BrowseTf2Command}" />
+            </StackPanel>
+          </Grid>
+          <StackPanel Spacing="2">
+            <TextBlock Classes="meta" Text="Steam account" />
+            <TextBlock Text="{Binding Account}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="16">
+          <TextBlock Classes="heading" Text="LOOK" />
+          <ListBox Classes="themes" ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" Background="Transparent">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:ThemeChoice">
+                <Border Classes="swatch" Width="132">
+                  <StackPanel>
+                    <Border Height="54" Background="{Binding Ground}" CornerRadius="2,2,0,0">
+                      <Grid ColumnDefinitions="*,Auto" Margin="10">
+                        <Border Width="34" Height="12" Background="{Binding Surface}" CornerRadius="2" VerticalAlignment="Top" HorizontalAlignment="Left" />
+                        <Border Grid.Column="1" Width="30" Height="18" Background="{Binding Accent}" CornerRadius="2" VerticalAlignment="Bottom" />
+                      </Grid>
+                    </Border>
+                    <TextBlock Text="{Binding Name}" Margin="10,6" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="title" Text="Accent colour" />
+              <TextBlock Classes="muted" FontSize="13" Text="Used on Play, prices and progress. Pick any colour or keep the theme's." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <ColorPicker Color="{Binding Accent}" IsAlphaEnabled="False" />
+              <Button Classes="ghost" Content="Theme default" Command="{Binding ResetAccentCommand}" IsVisible="{Binding HasCustomAccent}" />
+            </StackPanel>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="title" Text="Background" />
+              <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" Text="{Binding ScreenshotNote}" IsVisible="{Binding UsesScreenshots}" />
+              <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" IsVisible="{Binding UsesPicture}"
+                         Text="{Binding BackgroundImage, TargetNullValue='Pick any image. It is blurred once and kept behind everything.'}" />
+              <TextBlock Classes="muted" FontSize="13" Text="A plain background." IsVisible="{Binding !HasBackground}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <ComboBox ItemsSource="{Binding BackgroundModes}" SelectedItem="{Binding BackgroundMode}" MinWidth="170">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="core:BackgroundMode">
+                    <TextBlock Text="{Binding Converter={x:Static views:Converters.BackgroundModeName}}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Content="Another one" Command="{Binding NextScreenshotCommand}" IsVisible="{Binding CanCycleScreenshots}" />
+              <Button Content="Choose picture" Command="{Binding ChooseBackgroundCommand}" IsVisible="{Binding UsesPicture}" />
+            </StackPanel>
+          </Grid>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="24" IsVisible="{Binding HasBackground}">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="meta" Text="Darken" />
+              <Slider Minimum="0.3" Maximum="0.95" Value="{Binding BackgroundDim}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Classes="meta" Text="Blur" />
+              <Slider Minimum="0" Maximum="40" Value="{Binding BackgroundBlur}" />
+            </StackPanel>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="24">
+            <StackPanel Spacing="4">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="title" Text="Interface size" />
+                <TextBlock Classes="meta figure" Text="{Binding ScaleText}" VerticalAlignment="Center" />
+              </StackPanel>
+              <Slider Minimum="0.8" Maximum="1.4" Value="{Binding UiScale}" SmallChange="0.05" LargeChange="0.1"
+                      TickFrequency="0.05" IsSnapToTickEnabled="True" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Classes="title" Text="Density" />
+              <ToggleSwitch IsChecked="{Binding Compact}" OnContent="Compact rows" OffContent="Comfortable rows" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      </StackPanel>
+      <StackPanel Grid.Row="1" Grid.Column="1" Spacing="20">
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="heading" Text="TABS" />
+          <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" Text="Hide the tabs you don't use and put the rest in your order. This tab can't be hidden." />
+          <ItemsControl ItemsSource="{Binding Tabs}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:TabPreferenceViewModel">
+                <Border Classes="raised" Padding="12,6" Margin="0,0,0,2">
+                  <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding Visible}" IsEnabled="{Binding CanHide}" OnContent="Shown" OffContent="Hidden" />
+                    <Button Grid.Column="2" Classes="ghost" Padding="6" ToolTip.Tip="Move up"
+                            Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).MoveTabUpCommand}" CommandParameter="{Binding}">
+                      <PathIcon Data="{StaticResource IconUp}" Width="14" Height="14" />
+                    </Button>
+                    <Button Grid.Column="3" Classes="ghost" Padding="6" ToolTip.Tip="Move down"
+                            Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).MoveTabDownCommand}" CommandParameter="{Binding}">
+                      <PathIcon Data="{StaticResource IconDown}" Width="14" Height="14" />
+                    </Button>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Classes="meta" Text="Open on" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding StartTabs}" SelectedItem="{Binding StartTab}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding Converter={x:Static views:Converters.TabTitle}}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="heading" Text="BEHAVIOUR" />
+          <ToggleSwitch IsChecked="{Binding MinimizeOnLaunch}" OnContent="Minimise the launcher when TF2 starts" OffContent="Minimise the launcher when TF2 starts" />
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding CloseToTray}" OnContent="Closing the window keeps the launcher in the tray" OffContent="Closing the window keeps the launcher in the tray" />
+            <TextBlock Classes="meta" Text="{Binding TrayNote}" TextWrapping="Wrap" IsVisible="{Binding !TraySupported}" />
+          </StackPanel>
+          <ToggleSwitch IsChecked="{Binding CheckForUpdates}" OnContent="Check for launcher updates" OffContent="Check for launcher updates" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Classes="meta" Text="Steam Market currency" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding Currencies}" SelectedItem="{Binding Currency}" MinWidth="100" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="heading" Text="MOD ENGINE" />
+          <TextBlock Classes="muted" FontSize="13" Text="{Binding EngineSummary}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Check again" Command="{Binding RecheckEngineCommand}" />
+            <Button Classes="ghost" Content="Use another Python" Command="{Binding ChoosePythonCommand}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Classes="meta" Text="Log detail" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding LogLevels}" SelectedItem="{Binding LogLevel}" MinWidth="120" />
+            <ToggleSwitch IsChecked="{Binding ClearLogsOnStart}" OnContent="Clear logs on start" OffContent="Clear logs on start" Margin="12,0,0,0" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Button Classes="link" Content="Logs folder" Command="{Binding OpenLogsCommand}" />
+            <Button Classes="link" Content="Data folder" Command="{Binding OpenDataCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" Margin="0,0,0,24">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="heading" Text="ABOUT" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="13">
+            <Run Text="{Binding Version, StringFormat='Eternal TF2 Launcher {0}.'}" />
+            <Run Text="Mod preloading by cueki's casual-pre-loader (GPL-3.0), bundled unmodified. Prices from backpack.tf through pricedb.io. Mod feed from GameBanana. Barlow typeface by Jeremy Tribby (SIL Open Font License). Not affiliated with Valve." />
+          </TextBlock>
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Button Classes="link" Content="Launcher on GitHub" Command="{Binding OpenRepoCommand}" />
+            <Button Classes="link" Content="casual-pre-loader" Command="{Binding OpenPreloaderCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

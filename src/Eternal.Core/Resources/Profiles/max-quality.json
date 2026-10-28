@@ -1,0 +1,30 @@
+{
+  "format": "eternal-profile",
+  "version": 2,
+  "id": "max-quality",
+  "name": "Max Quality",
+  "description": "All effects on, 8x anti-aliasing, 16x filtering and the highest rendering level.",
+  "complete": false,
+  "modified": "2026-10-28T00:00:00Z",
+  "values": {
+    "MatPhong": true,
+    "MatSpecular": true,
+    "MatBumpmap": true,
+    "ModelLod": 0,
+    "Ragdolls": true,
+    "DetailDistance": 2000,
+    "RemoveGibs": false,
+    "RemoveSprays": false,
+    "DisableJiggleBones": false,
+    "DisableFacialAnims": false,
+    "DisableDynamicLights": false,
+    "DisableDecals": false,
+    "DisableWeather": false,
+    "Bloom": true,
+    "AntiAliasing": 8,
+    "AnisotropicFiltering": 16,
+    "HudPlayerClassModel": true,
+    "SoftParticlesOff": false,
+    "DxLevel": 100
+  }
+}

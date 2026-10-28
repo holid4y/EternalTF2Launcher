@@ -1,4 +1,0 @@
-# headless engine (CLI) dependencies
-more-itertools~=11.0
-platformdirs~=4.9
-valve-parsers>=1.2.2

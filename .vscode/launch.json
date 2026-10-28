@@ -1,26 +1,15 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            // Use IntelliSense to find out which attributes exist for C# debugging
-            // Use hover for the description of the existing attributes
-            // For further information visit https://github.com/dotnet/vscode-csharp/blob/main/debugger-launchjson.md
-            "name": ".NET Core Launch (console)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/LauncherTF2/bin/Debug/net8.0-windows/LauncherTF2.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/LauncherTF2",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Eternal Launcher",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Eternal.App/bin/Debug/net10.0/EternalLauncher.dll",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
 }

@@ -1,0 +1,97 @@
+import logging
+from pathlib import Path
+
+from valve_parsers import PCFElement, PCFFile, VPKFile
+
+from core.config import config
+from core.util.vpk import get_vpk_name
+
+log = logging.getLogger()
+
+
+def restore_particle_files(tf_path: Path) -> int:
+    backup_particles_dir = config.backup_dir / "particles"
+    if not backup_particles_dir.is_dir():
+        raise FileNotFoundError(backup_particles_dir)
+
+    vpk_name = get_vpk_name(tf_path)
+    vpk_path = tf_path / vpk_name
+    if not vpk_path.exists():
+        log.error(f"missing {vpk_name}, is the path correct?")
+        return 0
+
+    vpk = VPKFile(vpk_path)
+    patched_count = 0
+
+    for pcf_file in backup_particles_dir.glob("*.pcf"):
+        file_name = pcf_file.name
+
+        try:
+            file_path = f"particles/{file_name}"
+
+            with open(pcf_file, 'rb') as f:
+                original_content = f.read()
+
+            if vpk.patch_file(file_path, original_content, create_backup=False):
+                patched_count += 1
+
+        except Exception:
+            log.exception(f"Error patching particle file {file_name}")
+
+    return patched_count
+
+
+def get_parent_elements(pcf: PCFFile) -> set[str]:
+    # get all system definitions
+    system_defs = pcf.get_elements_by_type('DmeParticleSystemDefinition')
+    system_definitions = {elem.element_name.decode('ascii') for elem in system_defs}
+
+    # get all child elements
+    child_elems = pcf.get_elements_by_type('DmeParticleChild')
+    child_elements = {elem.element_name.decode('ascii') for elem in child_elems}
+
+    # parent elements are those that aren't also children
+    parent_elements = system_definitions - child_elements
+    return parent_elements
+
+
+def check_parents(pcf: PCFFile, parents: set[str]) -> bool:
+    # get all system definitions
+    system_defs = pcf.get_elements_by_type('DmeParticleSystemDefinition')
+    for element in system_defs:
+        element_name = element.element_name.decode('ascii')
+        if element_name in parents:
+            return True
+    return False
+
+
+def update_materials(base: PCFFile, mod: PCFFile) -> PCFFile:
+    # build map of element name to material
+    mod_materials = {}
+    for element in mod.elements:
+        element_name = element.element_name.decode('ascii')
+        if b'material' in element.attributes:
+            mod_materials[element_name] = element.attributes[b'material']
+
+    result = PCFFile(base.input_file)
+    result.version = base.version
+    result.string_dictionary = base.string_dictionary.copy()
+    result.elements = []
+
+    for element in base.elements:
+        # create copy
+        new_element = PCFElement(
+            type_name_index=element.type_name_index,
+            element_name=element.element_name,
+            data_signature=element.data_signature,
+            attributes=element.attributes.copy()
+        )
+
+        # update material
+        element_name = element.element_name.decode('ascii')
+        if element_name in mod_materials:
+            new_element.attributes[b'material'] = mod_materials[element_name]
+
+        result.elements.append(new_element)
+
+    return result

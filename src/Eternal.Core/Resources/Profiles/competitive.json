@@ -1,0 +1,32 @@
+{
+  "format": "eternal-profile",
+  "version": 2,
+  "id": "competitive",
+  "name": "Competitive",
+  "description": "Clarity and responsiveness: max FOV, quick switch, flat lighting, null-movement and tight network rates.",
+  "complete": false,
+  "modified": "2026-10-28T00:00:00Z",
+  "values": {
+    "Interp": 0,
+    "InterpRatio": 1,
+    "Rate": 196608,
+    "CmdRate": 66,
+    "UpdateRate": 66,
+    "Fov": 90,
+    "HudFastSwitch": true,
+    "FpsMax": 240,
+    "ViewmodelFov": 75,
+    "MinViewmodels": true,
+    "MedicAutocall": true,
+    "MedicAutocallThreshold": 59,
+    "MatPhong": false,
+    "NullMovement": true,
+    "AutoReload": true,
+    "HitSound": true,
+    "DamageNumbers": true,
+    "RemoveGibs": true,
+    "RemoveSprays": true,
+    "DisableJiggleBones": true,
+    "SkipIntro": true
+  }
+}

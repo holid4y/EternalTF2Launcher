@@ -1,0 +1,28 @@
+{
+  "format": "eternal-profile",
+  "version": 2,
+  "id": "balanced",
+  "name": "Balanced",
+  "description": "Good looks with the heaviest effects trimmed and forgiving network settings for pubs.",
+  "complete": false,
+  "modified": "2026-10-28T00:00:00Z",
+  "values": {
+    "Interp": 0.0152,
+    "InterpRatio": 2,
+    "Rate": 196608,
+    "CmdRate": 66,
+    "UpdateRate": 66,
+    "FpsMax": 240,
+    "ViewmodelFov": 75,
+    "MatPhong": true,
+    "MatSpecular": true,
+    "MatBumpmap": true,
+    "ModelLod": -1,
+    "Ragdolls": false,
+    "DetailDistance": 1200,
+    "RemoveGibs": true,
+    "RemoveSprays": true,
+    "Bloom": true,
+    "MotionBlur": false
+  }
+}

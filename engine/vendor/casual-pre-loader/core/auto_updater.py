@@ -1,0 +1,133 @@
+import logging
+import os
+import re
+import sys
+from collections import defaultdict
+from operator import attrgetter
+from zipfile import Path as ZipFilePath
+
+from github.GithubException import RateLimitExceededExceedsMaxWait
+from packaging.version import Version
+
+from core.config import config
+from core.constants import BUILD_DIRS, BUILD_FILES, REMOTE_REPO
+from core.util.file import copyfile, delete
+from core.util.net import download_file
+from core.util.repo import Update
+from core.util.repo.github_api import get_releases_with_asset
+from core.util.zip import FilterPredicate, extract
+from core.version import VERSION
+
+log = logging.getLogger()
+
+"""
+This module handles all the logic related to auto-updating.
+One can assume that any functions in this file will only run if the application is installed portably.
+"""
+
+# TODO: what is needad for auto updates to be fully auto?
+# - be able to tell if we were ran with a wrapper script [scripts/run.sh] (simplest method would be to use an envvar)
+# - programatically get min python version (pyproject.toml)
+# - programatically get dependency information (pyproject.toml)
+# - be able to determine if there are pending updates before running the main app (extract them to a tmpdir, check that on startup, apply them one by one, execing each time to relaod the runscript/interpreter)
+
+
+def check_for_updates() -> tuple[Update, ...]:
+    """
+    Check the source repository for new releases.
+
+    Returns:
+        A tuple of updates sorted by ascending chronological order.
+    """
+
+     # get the latest version of each minor release that we are behind of
+    platform_name = 'linux' if sys.platform == 'linux' else 'win'
+
+    try:
+        releases = list(get_releases_with_asset(REMOTE_REPO, re.compile(fr'^casual-pre-?loader(-{platform_name})?.*\.zip')))
+    except RateLimitExceededExceedsMaxWait:
+        log.exception('Github ratelimit exceeed, not checking for updates')
+        return ()
+    except Exception:
+        log.exception('Could not connect to github, not checking for updates')
+        return ()
+
+    # sort by descending chronological order, so we only store the latest patch release for every minor release
+    releases.sort(key=attrgetter('version'), reverse=True)
+
+    updates = defaultdict(dict)
+    current = Version(VERSION)
+    for update in releases:
+        if update.version > current:
+            updates[update.version.major].setdefault(update.version.minor, update)
+
+    return tuple(update for major_updates in updates.values() for update in major_updates.values())[::-1] # reverse the tuple so it's sorted by ascending chronological order
+
+
+def perform_updates(updates: tuple[Update, ...] | None = None) -> None:
+    """
+    Download and apply all available updates.
+
+    Args:
+        updates: An optional tuple of updates. If this is not supplied, the output of `check_for_updates()` is used.
+    """
+
+    updates = updates or check_for_updates()
+
+    # TODO: update this once we can update multiple at a time
+    for update in updates:
+        archive_path = config.temp_dir / 'update' / f'{update.release.tag_name}.zip'
+
+        try:
+            log.info(f'Downloading application update ({update.release.tag_name})')
+            download_file(update.asset.browser_download_url, archive_path, 30)
+        except Exception:
+            log.exception(f'Error downloading update {update.release.tag_name}')
+            break
+
+        match sys.platform:
+            case 'win32':
+                renamed_runme = config.install_dir.parent / 'RUNME.tmp.bat'
+
+                try:
+                    extract(archive_path, config.install_dir.parent / '.tmp_update', 0, False, None)
+                    copyfile(config.install_dir.parent / 'RUNME.bat', renamed_runme) # INFO: we need to rename RUNME to avoid file lock issues
+                except Exception:
+                    log.exception(f'Error extracting update {update.release.tag_name}')
+
+                    delete(config.install_dir.parent / '.tmp_update')
+                    delete(renamed_runme)
+
+                    break
+                finally:
+                    delete(archive_path)
+
+                os.chdir('..')
+                os.execvpe('cmd.exe', ['cmd.exe', '/c', '.\\' + renamed_runme.name] + sys.argv[1:], os.environ) # NOTE: quits the interpreter and executes renamed RUNME
+
+            case 'linux':
+                def _filter(root: ZipFilePath) -> FilterPredicate:
+                    include = (*BUILD_FILES, *BUILD_DIRS)
+                    def __filter(path: ZipFilePath) -> bool:
+                        rel = path.relative_to(root)
+                        return any(rel.startswith(x) for x in include)
+
+                    return __filter
+
+                try:
+                    extract(archive_path, config.install_dir, 1, False, _filter)
+                except Exception:
+                    log.exception(f'Error extracting update {update.release.tag_name}')
+
+                    break
+                finally:
+                    delete(archive_path)
+
+                # users that are using system python should not be auto updating anyway
+                # (i.e. assume we're running in a venv and using the runscript)
+                # we also need to remove the first item in argv, since `./main.py` actually executes `python3 ./main.py`
+                run_script = config.install_dir / 'scripts/run.sh'
+                os.execve(run_script, [run_script] + sys.argv[1:], os.environ) # NOTE: calls `exec()` and restarts the program
+
+            case _:
+                raise NotImplementedError

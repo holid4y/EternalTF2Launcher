@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             x:Class="Eternal.App.Views.SettingInfo"
+             x:DataType="vm:SettingRowViewModel">
+  <StackPanel Spacing="3" VerticalAlignment="Center">
+    <WrapPanel Orientation="Horizontal">
+      <TextBlock Classes="title" Text="{Binding Title}" Margin="0,0,8,0" VerticalAlignment="Center" />
+      <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center"
+               IsVisible="{Binding IsTouched}" ToolTip.Tip="Set by Eternal" />
+      <ItemsControl ItemsSource="{Binding Tags}" VerticalAlignment="Center">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border Classes="pill" Padding="7,1"><TextBlock Text="{Binding}" FontSize="11" /></Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </WrapPanel>
+    <TextBlock Classes="muted" FontSize="13" Text="{Binding Summary}" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="10">
+      <TextBlock Classes="meta" FontFamily="monospace" FontSize="11" Text="{Binding Cvar}"
+                 IsVisible="{Binding Cvar, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Classes="meta" FontSize="11" Text="{Binding Origin}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

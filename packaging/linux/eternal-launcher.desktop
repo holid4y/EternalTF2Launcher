@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Eternal TF2 Launcher
+GenericName=Game Launcher
+Comment=Mods, settings and backpack for Team Fortress 2
+Exec=eternal-launcher
+Icon=eternal-launcher
+Terminal=false
+Categories=Game;
+Keywords=tf2;team fortress;mods;preloader;
+StartupWMClass=eternal-launcher

@@ -1,0 +1,253 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             xmlns:settings="using:Eternal.Core.Settings"
+             xmlns:profiles="using:Eternal.Core.Profiles"
+             x:Class="Eternal.App.Views.ConfigView"
+             x:DataType="vm:ConfigViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Grid.setting">
+      <Setter Property="Margin" Value="0,0,0,2" />
+    </Style>
+    <Style Selector="Grid.setting:disabled">
+      <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Button.reset">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <DataTemplate DataType="vm:ToggleRowViewModel">
+      <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+          <views:SettingInfo />
+          <ToggleSwitch Grid.Column="1" IsChecked="{Binding Value}" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+            <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
+          </Button>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate DataType="vm:SliderRowViewModel">
+      <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+          <views:SettingInfo />
+          <Panel Grid.Column="1" VerticalAlignment="Center">
+            <NumericUpDown Width="150" Value="{Binding BoxValue}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                           Increment="{Binding Increment}" FormatString="{Binding FormatString}" IsVisible="{Binding UsesBox}" />
+            <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding !UsesBox}">
+              <Slider Width="200" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding Value}"
+                      SmallChange="{Binding Step}" LargeChange="{Binding Step}" VerticalAlignment="Center" />
+              <TextBlock Classes="figure" Width="84" Text="{Binding Display}" VerticalAlignment="Center" TextAlignment="Right" />
+            </StackPanel>
+          </Panel>
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+            <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
+          </Button>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate DataType="vm:ChoiceRowViewModel">
+      <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+          <views:SettingInfo />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+            <ComboBox Width="230" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate DataType="settings:ChoiceOption">
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="meta" Width="230" TextWrapping="Wrap" Text="{Binding Hint}"
+                       IsVisible="{Binding Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+            <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
+          </Button>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate DataType="vm:TextRowViewModel">
+      <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+          <views:SettingInfo />
+          <TextBox Grid.Column="1" Width="230" Text="{Binding Value}" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+            <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
+          </Button>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="display" Text="CONFIG" />
+        <TextBlock Classes="muted" Text="{Binding ProfileMatch}" />
+      </StackPanel>
+      <TextBox Grid.Column="1" Width="300" Watermark="Search settings or cvars" Text="{Binding Search}" VerticalAlignment="Bottom">
+        <TextBox.InnerLeftContent>
+          <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
+        </TextBox.InnerLeftContent>
+      </TextBox>
+    </Grid>
+
+    <Border Grid.Row="1" Classes="card" Padding="14,10">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Classes="meta" Text="Profile" VerticalAlignment="Center" />
+          <ComboBox Width="220" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate DataType="profiles:Profile">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Classes="primary" Content="Apply" Command="{Binding ApplyProfileCommand}" />
+          <Button Content="Save as new" Command="{Binding SaveAsProfileCommand}" />
+          <Button Classes="ghost" Content="Update" Command="{Binding UpdateProfileCommand}" IsEnabled="{Binding CanEditProfile}"
+                  ToolTip.Tip="Overwrite the selected profile with your current setup" />
+          <Button Classes="ghost" Content="More">
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="Rename" Command="{Binding RenameProfileCommand}" IsEnabled="{Binding CanEditProfile}" />
+                <MenuItem Header="Delete" Command="{Binding DeleteProfileCommand}" IsEnabled="{Binding CanEditProfile}" />
+                <Separator />
+                <MenuItem Header="Import a profile file" Command="{Binding ImportProfileCommand}" />
+                <MenuItem Header="Export the selected profile" Command="{Binding ExportProfileCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+        <TextBlock Grid.Column="1" Classes="meta" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"
+                   Text="{Binding SelectedProfile.Description}" />
+        <ToggleSwitch Grid.Column="2" IsChecked="{Binding ShowAdvanced}" OnContent="Show advanced" OffContent="Show advanced" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="210,*" ColumnSpacing="24">
+      <ListBox Classes="subnav" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" IsEnabled="{Binding !IsSearching}">
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="vm:SettingCategoryViewModel">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding ChangedCount}" ToolTip.Tip="Settings changed by you"
+                         IsVisible="{Binding ChangedCount}" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <Panel Grid.Column="1">
+        <ScrollViewer IsVisible="{Binding IsSearching}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="heading" Text="{Binding SearchResults.Count, StringFormat='{}{0} MATCHES'}" />
+            <ItemsControl ItemsSource="{Binding SearchResults}" />
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer IsVisible="{Binding ShowsSettings}">
+          <StackPanel Spacing="12" DataContext="{Binding SelectedCategory}" x:DataType="vm:SettingCategoryViewModel">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="heading" FontSize="22" Text="{Binding Title}" />
+              <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding VisibleRows}" />
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer IsVisible="{Binding ShowsBinds}">
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="heading" FontSize="22" Text="Binds" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Click the key button, then press a key, mouse button or scroll. Commands can't contain double quotes; use an alias in your own autoexec for anything that needs them." />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Binds}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:BindRowViewModel">
+                  <Border Classes="card" Padding="12,10" Margin="0,0,0,2">
+                    <Grid ColumnDefinitions="130,180,*,Auto,Auto" ColumnSpacing="10">
+                      <Button Content="{Binding KeyText}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                              Command="{Binding $parent[UserControl].((vm:ConfigViewModel)DataContext).CaptureKeyCommand}" CommandParameter="{Binding}"
+                              Classes.primary="{Binding Capturing}" />
+                      <TextBox Grid.Column="1" Watermark="Label (optional)" Text="{Binding Label}" />
+                      <TextBox Grid.Column="2" Watermark="Command, e.g. voicemenu 0 0" Text="{Binding Command}" />
+                      <PathIcon Grid.Column="3" Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}"
+                                IsVisible="{Binding !IsValid}" ToolTip.Tip="This bind is incomplete or contains a double quote, so it isn't written." />
+                      <Button Grid.Column="4" Classes="ghost" ToolTip.Tip="Remove bind"
+                              Command="{Binding $parent[UserControl].((vm:ConfigViewModel)DataContext).RemoveBindCommand}" CommandParameter="{Binding}">
+                        <PathIcon Data="{StaticResource IconTrash}" Width="14" Height="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button HorizontalAlignment="Left" Command="{Binding AddBindCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+                <TextBlock Text="Add bind" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer IsVisible="{Binding ShowsLaunch}">
+          <StackPanel Spacing="16">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="heading" FontSize="22" Text="Launch Options" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Anything extra you want TF2 to start with, such as -console. Resolution, window mode and the other launch settings live in their own sections." />
+            </StackPanel>
+            <StackPanel Spacing="6">
+              <TextBox Text="{Binding ExtraArgs}" Watermark="-console +map cp_badlands" />
+              <TextBlock Classes="warning" FontSize="13" TextWrapping="Wrap" Text="{Binding ExtraArgsProblem}"
+                         IsVisible="{Binding ExtraArgsProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="title" Text="TF2 starts with" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Classes="ghost" Command="{Binding CopyLaunchLineCommand}" ToolTip.Tip="Copy">
+                    <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" />
+                  </Button>
+                </Grid>
+                <SelectableTextBlock FontFamily="monospace" FontSize="13" Text="{Binding LaunchLine}" TextWrapping="Wrap" />
+                <TextBlock Classes="meta" TextWrapping="Wrap"
+                           Text="+exec w/config.cfg is added while mods are applied; it runs the preloader's setup when TF2 boots. If you start TF2 from Steam instead of here, copy this line into TF2's launch options in Steam." />
+              </StackPanel>
+            </Border>
+            <StackPanel Spacing="8">
+              <ToggleSwitch IsChecked="{Binding ShowPreview}" OnContent="Show what goes into autoexec.cfg" OffContent="Show what goes into autoexec.cfg" />
+              <Border Classes="card" IsVisible="{Binding ShowPreview}">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="meta" Text="{Binding AutoexecPath}" />
+                  <SelectableTextBlock FontFamily="monospace" FontSize="12" Text="{Binding AutoexecPreview}" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Read my autoexec.cfg again" Command="{Binding ImportAutoexecCommand}" />
+              <Button Classes="ghost" Content="Open cfg folder" Command="{Binding OpenCfgFolderCommand}" />
+              <Button Classes="ghost danger" Content="Reset every setting" Command="{Binding ResetAllCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Panel>
+    </Grid>
+
+    <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <PathIcon Data="{StaticResource IconWarning}" Width="14" Height="14" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding SaveProblem}" />
+      <TextBlock Grid.Column="1" Classes="meta" Text="{Binding SaveStatus}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                 Classes.danger="{Binding SaveProblem}" />
+      <Button Grid.Column="2" Classes="link" Content="Retry" Command="{Binding RetrySaveCommand}" IsVisible="{Binding SaveProblem}" />
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,0 +1,218 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             x:Class="Eternal.App.Views.ModsView"
+             x:DataType="vm:ModsViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="18">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="display" Text="MODS" />
+        <TextBlock Classes="muted" Text="{Binding Summary}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" IsEnabled="{Binding EngineReady}">
+        <Button Classes="ghost" Command="{Binding ImportFolderCommand}" Content="Import folder" />
+        <Button Classes="primary" Command="{Binding ImportFilesCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+            <TextBlock Text="Import mods" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="8">
+      <Border Classes="card" Padding="16,12" IsVisible="{Binding EngineReady}">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <PathIcon Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}" IsVisible="{Binding StatusProblem}" />
+          <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
+            <ProgressBar Classes="thin" Value="{Binding BuildProgress}" Maximum="100" IsVisible="{Binding Building}" />
+          </StackPanel>
+          <Button Grid.Column="2" Content="Apply now" Command="{Binding SyncNowCommand}" IsVisible="{Binding StatusProblem}" />
+        </Grid>
+      </Border>
+      <Border Classes="notice" IsVisible="{Binding HasWarnings}">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="warning" FontWeight="SemiBold" Text="The last build finished with warnings" />
+          <ItemsControl ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="13" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+      <Border Classes="notice" IsVisible="{Binding Importing}" Background="{DynamicResource SurfaceBrush}">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding ImportMessage}" />
+          <ProgressBar Classes="thin" Value="{Binding ImportProgress}" Maximum="100" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <Border Grid.Row="2" Classes="card" VerticalAlignment="Top" IsVisible="{Binding !EngineReady}">
+      <StackPanel Spacing="14" MaxWidth="640" HorizontalAlignment="Left">
+        <TextBlock Classes="heading" FontSize="24" Text="MOD ENGINE" />
+        <TextBlock Text="{Binding EngineMessage}" TextWrapping="Wrap" Classes="muted" />
+        <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding EngineChecking}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Classes="primary" Content="Set up the engine" Command="{Binding SetupEngineCommand}" IsVisible="{Binding EngineNeedsSetup}" IsEnabled="{Binding !SettingUp}" />
+          <Button Content="Get Python" Command="{Binding GetPythonCommand}" IsVisible="{Binding EngineBroken}" />
+          <Button Classes="ghost" Content="Check again" Command="{Binding RecheckEngineCommand}" IsEnabled="{Binding !SettingUp}" />
+          <Button Classes="ghost" Content="Open logs" Command="{Binding OpenEngineLogCommand}" />
+        </StackPanel>
+        <TextBox Text="{Binding SetupLog}" IsReadOnly="True" TextWrapping="Wrap" Height="160" FontFamily="monospace" FontSize="12"
+                 IsVisible="{Binding SetupLog, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,340" ColumnSpacing="24" IsVisible="{Binding EngineReady}">
+      <DockPanel>
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,10">
+          <TextBox Watermark="Search mods" Text="{Binding Search}">
+            <TextBox.InnerLeftContent>
+              <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
+            </TextBox.InnerLeftContent>
+          </TextBox>
+          <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" />
+        </Grid>
+        <TextBlock DockPanel.Dock="Top" Classes="meta" Margin="2,0,0,8"
+                   Text="Load order: the mod at the top wins when two mods change the same file. Drag to reorder." />
+
+        <Border Classes="card" IsVisible="{Binding IsEmpty}" VerticalAlignment="Top">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="title" Text="Your library is empty" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Drop a VPK, a folder or a ZIP/RAR/7z download anywhere on this window, or use Import mods. Fresh mods from GameBanana can be imported from the Home tab." />
+          </StackPanel>
+        </Border>
+
+        <ListBox Name="ModList" Classes="rows" ItemsSource="{Binding Visible}" SelectedItem="{Binding Selected}"
+                 DragDrop.AllowDrop="True">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:ModRowViewModel">
+              <Grid ColumnDefinitions="30,28,Auto,*,Auto,Auto" ColumnSpacing="10" Height="66" Margin="4,0,14,0" Background="Transparent">
+                <Border Name="Grip" Background="Transparent" Cursor="SizeNorthSouth" ToolTip.Tip="Drag to change priority">
+                  <PathIcon Data="{StaticResource IconGrip}" Foreground="{DynamicResource FaintBrush}" Width="14" Height="14" />
+                </Border>
+                <TextBlock Grid.Column="1" Classes="figure meta" Text="{Binding Rank}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="14" />
+                <Border Grid.Column="2" Width="88" Height="50" Background="{DynamicResource GroundBrush}" CornerRadius="2" ClipToBounds="True">
+                  <Panel>
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                    <TextBlock Classes="meta" Text="{Binding Kind}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" />
+                  </Panel>
+                </Border>
+                <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="3">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Classes="title" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                    <Border Classes="pill"><TextBlock Text="{Binding Kind}" /></Border>
+                  </StackPanel>
+                  <TextBlock Classes="meta" Text="{Binding ConflictSummary}" IsVisible="{Binding HasConflicts}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="meta" Text="{Binding Files}" IsVisible="{Binding !HasConflicts}" />
+                </StackPanel>
+                <PathIcon Grid.Column="4" Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}"
+                          IsVisible="{Binding HasIssues}" ToolTip.Tip="{Binding IssueText}" />
+                <ToggleSwitch Grid.Column="5" IsChecked="{Binding Enabled}" OnContent="" OffContent="" MinWidth="0"
+                              ToolTip.Tip="Enable or disable this mod" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <ScrollViewer Grid.Column="1">
+        <StackPanel Spacing="16">
+          <Border Classes="card" IsVisible="{Binding HasSelection}">
+            <StackPanel Spacing="12" DataContext="{Binding Selected}" x:DataType="vm:ModRowViewModel">
+              <Border Height="166" Background="{DynamicResource RaisedBrush}" CornerRadius="2" ClipToBounds="True">
+                <Panel>
+                  <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                  <TextBlock Classes="muted" Text="No picture" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" />
+                </Panel>
+              </Border>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Padding="10,5" Content="Change picture"
+                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ChangeThumbnailCommand}" CommandParameter="{Binding}" />
+                <Button Classes="ghost" Padding="10,5" Content="Remove picture"
+                        IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveThumbnailCommand}" CommandParameter="{Binding}" />
+              </StackPanel>
+              <StackPanel Spacing="2">
+                <TextBlock Classes="heading" FontSize="22" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                <TextBlock Classes="meta" Text="{Binding Kind}" />
+                <TextBlock Classes="meta" Text="{Binding Files}" />
+              </StackPanel>
+              <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap"
+                         IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <ToggleSwitch IsChecked="{Binding Enabled}" OnContent="Enabled" OffContent="Disabled" />
+              <StackPanel Spacing="6">
+                <TextBlock Classes="meta" Text="Priority" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Padding="8,6" ToolTip.Tip="Move to top"
+                          Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).MoveTopCommand}" CommandParameter="{Binding}">
+                    <PathIcon Data="{StaticResource IconTop}" Width="14" Height="14" />
+                  </Button>
+                  <Button Padding="8,6" ToolTip.Tip="Move up"
+                          Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).MoveUpCommand}" CommandParameter="{Binding}">
+                    <PathIcon Data="{StaticResource IconUp}" Width="14" Height="14" />
+                  </Button>
+                  <Button Padding="8,6" ToolTip.Tip="Move down"
+                          Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).MoveDownCommand}" CommandParameter="{Binding}">
+                    <PathIcon Data="{StaticResource IconDown}" Width="14" Height="14" />
+                  </Button>
+                  <Button Padding="8,6" ToolTip.Tip="Move to bottom"
+                          Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).MoveBottomCommand}" CommandParameter="{Binding}">
+                    <PathIcon Data="{StaticResource IconBottom}" Width="14" Height="14" />
+                  </Button>
+                </StackPanel>
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding ConflictLines}" IsVisible="{Binding HasConflicts}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Classes="meta" Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Border Classes="notice" IsVisible="{Binding HasIssues}">
+                <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" FontSize="13" />
+              </Border>
+              <Button Classes="danger" Content="Remove from library"
+                      Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card">
+            <StackPanel Spacing="12">
+              <TextBlock Classes="heading" Text="PRELOADER" />
+              <ToggleSwitch IsChecked="{Binding ShowConsole}" OnContent="Open the console on game start" OffContent="Open the console on game start" />
+              <ToggleSwitch IsChecked="{Binding FixModelPaths}" OnContent="Fix model material paths" OffContent="Fix model material paths" />
+              <ToggleSwitch IsChecked="{Binding DisablePaintColors}" OnContent="Hide paint colours" OffContent="Hide paint colours" />
+              <ToggleSwitch IsChecked="{Binding SkipQuickPrecache}" OnContent="Skip QuickPrecache" OffContent="Skip QuickPrecache" />
+              <TextBlock Classes="meta" TextWrapping="Wrap"
+                         Text="QuickPrecache keeps custom models loaded on map props. Skipping it builds faster." />
+              <Border Classes="notice" IsVisible="{Binding WineMissing}">
+                <TextBlock TextWrapping="Wrap" FontSize="13"
+                           Text="Wine isn't installed, so QuickPrecache is skipped on Linux. Install wine with your package manager to enable it." />
+              </Border>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Restore vanilla" Command="{Binding RestoreVanillaCommand}" />
+                <Button Classes="ghost" Content="Enable all" Command="{Binding EnableAllCommand}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <Button Classes="link" Content="Library folder" Command="{Binding OpenLibraryCommand}" />
+                <Button Classes="link" Content="tf/custom" Command="{Binding OpenCustomFolderCommand}" />
+              </StackPanel>
+              <TextBlock Classes="meta" Text="{Binding UpstreamVersion, StringFormat='Powered by cueki\'s {0}'}"
+                         IsVisible="{Binding UpstreamVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

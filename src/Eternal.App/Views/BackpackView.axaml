@@ -1,0 +1,161 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             x:Class="Eternal.App.Views.BackpackView"
+             x:DataType="vm:BackpackViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16">
+
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="display" Text="BACKPACK" />
+        <TextBlock Classes="muted" Text="{Binding Owner}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="28" VerticalAlignment="Bottom">
+        <StackPanel Spacing="0" IsVisible="{Binding HasItems}">
+          <TextBlock Classes="meta" Text="Worth about" HorizontalAlignment="Right" />
+          <TextBlock Classes="figure accent" FontSize="26" Text="{Binding Total}" HorizontalAlignment="Right" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+          <Button Classes="ghost" Content="Change account" Command="{Binding ChangeAccountCommand}" />
+          <Button Command="{Binding RefreshCommand}" ToolTip.Tip="Reload from Steam">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconRefresh}" Width="14" Height="14" />
+              <TextBlock Text="Refresh" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding HasItems}">
+        <TextBox Watermark="Search items, effects, types" Text="{Binding Search}">
+          <TextBox.InnerLeftContent>
+            <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Qualities}" SelectedItem="{Binding Quality}" />
+        <ComboBox Grid.Column="2" ItemsSource="{Binding Classes}" SelectedItem="{Binding Class}" />
+        <ComboBox Grid.Column="3" ItemsSource="{Binding Sorts}" SelectedItem="{Binding Sort}" />
+        <ToggleSwitch Grid.Column="4" IsChecked="{Binding TradableOnly}" OnContent="Tradable only" OffContent="Tradable only" Margin="8,0,0,0" />
+      </Grid>
+      <TextBlock Classes="meta" IsVisible="{Binding HasItems}">
+        <Run Text="{Binding Coverage}" />
+        <Run Text="  " />
+        <Run Text="{Binding KeyPrice}" />
+      </TextBlock>
+      <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding PricingRunning}" />
+      <Border Classes="notice" IsVisible="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" />
+      </Border>
+    </StackPanel>
+
+    <StackPanel Grid.Row="2" Spacing="12" VerticalAlignment="Top">
+      <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" />
+      <Border Classes="card" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="title" Text="The backpack couldn't be loaded" />
+          <TextBlock Classes="muted" Text="{Binding Error}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Try again" Command="{Binding RefreshCommand}" />
+            <Button Classes="ghost" Content="Steam privacy settings" Command="{Binding OpenPrivacyCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border Classes="card" IsVisible="{Binding NoAccount}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="title" Text="No Steam account found" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="Sign in to Steam on this computer, or point the launcher at any public backpack." />
+          <Button Content="Choose an account" Command="{Binding ChangeAccountCommand}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,320" ColumnSpacing="24" IsVisible="{Binding HasItems}">
+      <ScrollViewer>
+        <ItemsRepeater ItemsSource="{Binding Visible}" Name="Items">
+          <ItemsRepeater.Layout>
+            <UniformGridLayout MinItemWidth="118" MinItemHeight="148" MinRowSpacing="8" MinColumnSpacing="8" ItemsStretch="Fill" />
+          </ItemsRepeater.Layout>
+          <ItemsRepeater.ItemTemplate>
+            <DataTemplate DataType="vm:ItemViewModel">
+              <Button Classes="ghost" Padding="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                      Command="{Binding $parent[UserControl].((vm:BackpackViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}"
+                      ToolTip.Tip="{Binding Name}">
+                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="3" ClipToBounds="True">
+                  <Grid RowDefinitions="*,Auto,3">
+                    <Image Margin="10,10,10,4" Stretch="Uniform" views:RemoteImage.DecodeWidth="160" views:RemoteImage.Url="{Binding ImageUrl}" />
+                    <TextBlock Grid.Row="0" Classes="meta" Text="{Binding Amount}" Margin="8,6" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                    <TextBlock Grid.Row="1" Classes="figure" FontSize="12" Margin="8,0,8,6" HorizontalAlignment="Center"
+                               Text="{Binding Price}" Foreground="{DynamicResource MutedBrush}" />
+                    <Border Grid.Row="2" Background="{Binding QualityBrush}" />
+                  </Grid>
+                </Border>
+              </Button>
+            </DataTemplate>
+          </ItemsRepeater.ItemTemplate>
+        </ItemsRepeater>
+      </ScrollViewer>
+
+      <ScrollViewer Grid.Column="1">
+        <StackPanel Spacing="12">
+          <Border Classes="card" IsVisible="{Binding !HasSelection}">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="heading" Text="PRICES" />
+              <TextBlock Classes="muted" TextWrapping="Wrap"
+                         Text="Values come from backpack.tf through pricedb.io and are shown as keys and refined, the way trades are written. Pick an item to see buy and sell prices and its Steam Market listing." />
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <Button Classes="link" Content="backpack.tf profile" Command="{Binding OpenBackpackTfCommand}" />
+                <Button Classes="link" Content="Steam inventory" Command="{Binding OpenSteamInventoryCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding HasSelection}">
+            <StackPanel Spacing="12" DataContext="{Binding Selected}" x:DataType="vm:ItemViewModel">
+              <Border Height="180" Background="{DynamicResource RaisedBrush}" CornerRadius="2">
+                <Image Margin="16" Stretch="Uniform" views:RemoteImage.DecodeWidth="360" views:RemoteImage.Url="{Binding ImageUrl}" />
+              </Border>
+              <StackPanel Spacing="2">
+                <TextBlock Classes="heading" FontSize="22" Text="{Binding Name}" Foreground="{Binding NameBrush}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{Binding Type}" />
+                <TextBlock Classes="meta" Text="{Binding Flags}" TextWrapping="Wrap" />
+              </StackPanel>
+
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                <TextBlock Classes="meta" Text="Sells for" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="figure accent" FontSize="16" Text="{Binding Price}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Row="1" Classes="meta" Text="Buyers pay" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Classes="figure" Text="{Binding BuyPrice}" HorizontalAlignment="Right" />
+                <TextBlock Grid.Row="2" Classes="meta" Text="Steam Market" VerticalAlignment="Center" />
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                  <ProgressBar Classes="thin" Width="40" IsIndeterminate="True" IsVisible="{Binding CheckingMarket}" VerticalAlignment="Center" />
+                  <TextBlock Classes="figure" Text="{Binding MarketPrice}" />
+                </StackPanel>
+              </Grid>
+              <TextBlock Classes="meta" Text="No community price for this item yet." IsVisible="{Binding !HasPrice}" />
+
+              <ItemsControl ItemsSource="{Binding Lines}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:DetailLine">
+                    <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}" TextWrapping="Wrap" FontSize="13" Margin="0,0,0,3" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <Button Classes="link" Content="backpack.tf stats"
+                        Command="{Binding $parent[UserControl].((vm:BackpackViewModel)DataContext).OpenItemStatsCommand}" CommandParameter="{Binding}" />
+                <Button Classes="link" Content="Market listing" IsVisible="{Binding Item.Marketable}"
+                        Command="{Binding $parent[UserControl].((vm:BackpackViewModel)DataContext).OpenMarketCommand}" CommandParameter="{Binding}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

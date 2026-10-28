@@ -1,0 +1,42 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Eternal.App.App"
+             RequestedThemeVariant="Dark"
+             Name="Eternal Launcher">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://EternalLauncher/Theming/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    <FontFamily x:Key="UiFont">avares://EternalLauncher/Assets/Fonts#Barlow</FontFamily>
+    <FontFamily x:Key="DisplayFont">avares://EternalLauncher/Assets/Fonts#Barlow Condensed</FontFamily>
+    <SolidColorBrush x:Key="GroundBrush" Color="#15110E" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#201A16" />
+    <SolidColorBrush x:Key="RaisedBrush" Color="#2B231E" />
+    <SolidColorBrush x:Key="LineBrush" Color="#3A2F28" />
+    <SolidColorBrush x:Key="InkBrush" Color="#EEE4CC" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#B9AA90" />
+    <SolidColorBrush x:Key="FaintBrush" Color="#8E8170" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#CF6A32" />
+    <SolidColorBrush x:Key="AccentInkBrush" Color="#1B110A" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#2ECF6A32" />
+    <SolidColorBrush x:Key="PositiveBrush" Color="#8DB255" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#E7B53B" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#D2553F" />
+    <SolidColorBrush x:Key="WarningSoftBrush" Color="#26E7B53B" />
+    <SolidColorBrush x:Key="DangerSoftBrush" Color="#26D2553F" />
+    <SolidColorBrush x:Key="ScrimBrush" Color="#B815110E" />
+    <Thickness x:Key="RowPadding">18,13</Thickness>
+    <Thickness x:Key="CardPadding">22</Thickness>
+    <x:Double x:Key="SectionGap">28</x:Double>
+    <x:Double x:Key="ItemGap">10</x:Double>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme DensityStyle="Compact" />
+    <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+    <StyleInclude Source="avares://EternalLauncher/Theming/Styles.axaml" />
+  </Application.Styles>
+</Application>

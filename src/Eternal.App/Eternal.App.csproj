@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Eternal.App</RootNamespace>
+    <AssemblyName>EternalLauncher</AssemblyName>
+    <AssemblyTitle>Eternal TF2 Launcher</AssemblyTitle>
+    <ApplicationIcon>..\..\resources\Assets\logo64_classic.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="11.1.5" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Eternal.Core\Eternal.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="..\..\resources\Assets\*.png" Link="Assets\Logos\%(Filename)%(Extension)" />
+    <AvaloniaResource Include="..\..\resources\Assets\logo64_classic.ico" Link="Assets\Logos\app.ico" />
+  </ItemGroup>
+
+</Project>

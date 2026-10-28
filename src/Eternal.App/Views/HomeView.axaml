@@ -1,0 +1,135 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:feed="using:Eternal.Core.Feed"
+             xmlns:views="using:Eternal.App.Views"
+             x:Class="Eternal.App.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+  <Grid ColumnDefinitions="*,340" ColumnSpacing="28">
+
+    <ScrollViewer Grid.Column="0" Padding="0,0,8,0">
+      <StackPanel Spacing="{DynamicResource SectionGap}">
+        <StackPanel Spacing="2">
+          <TextBlock Classes="display" Text="HOME" />
+          <TextBlock Classes="muted" Text="{Binding Greeting}" />
+        </StackPanel>
+
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="heading" Text="FRESH ON GAMEBANANA" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh">
+              <PathIcon Data="{StaticResource IconRefresh}" />
+            </Button>
+          </Grid>
+          <TextBlock Classes="muted" Text="{Binding ModsError}" IsVisible="{Binding ModsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingMods}" />
+          <ItemsControl ItemsSource="{Binding FreshMods}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="feed:GameBananaMod">
+                <Border Classes="card" Padding="0" Margin="0,0,12,12" ClipToBounds="True">
+                  <StackPanel>
+                    <Border Background="{DynamicResource RaisedBrush}" Height="104" ClipToBounds="True">
+                      <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="420" views:RemoteImage.Url="{Binding ImageUrl}" />
+                    </Border>
+                    <StackPanel Margin="12,10,12,12" Spacing="2">
+                      <TextBlock Classes="title" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                      <TextBlock Classes="meta" Text="{Binding Author, StringFormat='by {0}'}" TextTrimming="CharacterEllipsis" />
+                      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+                        <Button Classes="primary" Padding="10,5" Content="Import"
+                                Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).ImportModCommand}" CommandParameter="{Binding}" />
+                        <Button Classes="ghost" Padding="8,5" ToolTip.Tip="Open on GameBanana"
+                                Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenCommand}" CommandParameter="{Binding Url}">
+                          <PathIcon Data="{StaticResource IconLink}" Width="14" Height="14" />
+                        </Button>
+                      </StackPanel>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <StackPanel Spacing="12">
+          <TextBlock Classes="heading" Text="TF2 NEWS" />
+          <TextBlock Classes="muted" Text="{Binding NewsError}" IsVisible="{Binding NewsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingNews}" />
+          <ItemsControl ItemsSource="{Binding News}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:NewsRow">
+                <Button Classes="ghost" Padding="0" Margin="0,0,0,8" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenNewsCommand}" CommandParameter="{Binding}">
+                  <Border Classes="card" Padding="16">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                      <Border Width="176" Height="99" Background="{DynamicResource RaisedBrush}" ClipToBounds="True" IsVisible="{Binding HasImage}" CornerRadius="2">
+                        <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="360" views:RemoteImage.Url="{Binding ImageUrl}" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Classes="title" FontSize="16" Text="{Binding Title}" TextWrapping="Wrap" Foreground="{DynamicResource InkBrush}" />
+                        <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxLines="3" TextTrimming="WordEllipsis" FontWeight="Normal" />
+                        <TextBlock Classes="meta" Text="{Binding When}" FontWeight="Normal" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Column="1" Spacing="16" Margin="0,62,0,0">
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="heading" Text="LOADOUT" />
+          <StackPanel Spacing="2">
+            <TextBlock Classes="title" Text="{Binding Main.DockTitle}" />
+            <TextBlock Classes="meta" Text="{Binding Main.DockDetail}" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <TextBlock Classes="meta" Text="Config" />
+            <TextBlock Text="{Binding Main.Config.ProfileMatch}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Manage mods" Command="{Binding GoCommand}" CommandParameter="mods" />
+            <Button Classes="ghost" Content="Config" Command="{Binding GoCommand}" CommandParameter="config" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="heading" Text="BACKPACK" />
+          <StackPanel Spacing="2">
+            <TextBlock Classes="figure accent" FontSize="26" Text="{Binding Main.Backpack.Total}" IsVisible="{Binding Main.Backpack.HasItems}" />
+            <TextBlock Classes="meta" Text="{Binding Main.Backpack.Coverage}" TextWrapping="Wrap"
+                       IsVisible="{Binding Main.Backpack.Coverage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="meta" Text="Open the backpack to price your items."
+                       IsVisible="{Binding !Main.Backpack.HasItems}" />
+          </StackPanel>
+          <Button Content="Open backpack" Command="{Binding GoCommand}" CommandParameter="backpack" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="heading" Text="GAME" />
+          <StackPanel Spacing="2">
+            <TextBlock Classes="meta" Text="TF2 folder" />
+            <TextBlock Text="{Binding Tf2Folder}" TextWrapping="Wrap" FontSize="13" />
+            <TextBlock Classes="danger" FontSize="12" Text="Not a TF2 folder. Fix it in the Launcher tab." IsVisible="{Binding !Tf2Found}" />
+          </StackPanel>
+          <StackPanel Spacing="2" IsVisible="{Binding Account, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Classes="meta" Text="Steam account" />
+            <TextBlock Text="{Binding Account}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Grid>
+</UserControl>

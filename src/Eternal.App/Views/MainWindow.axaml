@@ -1,0 +1,149 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Eternal.App.ViewModels"
+        xmlns:views="using:Eternal.App.Views"
+        x:Class="Eternal.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Eternal TF2 Launcher"
+        Icon="avares://EternalLauncher/Assets/Logos/app.ico"
+        Width="1300" Height="800" MinWidth="1040" MinHeight="660"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
+
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:HomeViewModel"><views:HomeView /></DataTemplate>
+    <DataTemplate DataType="vm:ModsViewModel"><views:ModsView /></DataTemplate>
+    <DataTemplate DataType="vm:BackpackViewModel"><views:BackpackView /></DataTemplate>
+    <DataTemplate DataType="vm:ConfigViewModel"><views:ConfigView /></DataTemplate>
+    <DataTemplate DataType="vm:LauncherViewModel"><views:LauncherView /></DataTemplate>
+  </Window.DataTemplates>
+
+  <Panel>
+    <Image Source="{Binding Theme.Background}" Stretch="UniformToFill"
+           IsVisible="{Binding Theme.Background, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    <Rectangle Fill="{DynamicResource ScrimBrush}"
+               IsVisible="{Binding Theme.Background, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+    <LayoutTransformControl>
+      <LayoutTransformControl.LayoutTransform>
+        <ScaleTransform ScaleX="{Binding Theme.Scale}" ScaleY="{Binding Theme.Scale}" />
+      </LayoutTransformControl.LayoutTransform>
+
+      <Grid RowDefinitions="*,Auto" ColumnDefinitions="236,*">
+
+        <DockPanel Grid.Row="0" Grid.Column="0" LastChildFill="True">
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="24,26,16,34">
+            <Image Source="{Binding Theme.Logo}" Width="40" Height="40" RenderOptions.BitmapInterpolationMode="HighQuality" />
+            <StackPanel VerticalAlignment="Center" Spacing="-4">
+              <TextBlock Classes="display" FontSize="27" Text="ETERNAL" />
+              <TextBlock Classes="meta" Text="TF2 Launcher" />
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Bottom" Margin="28,0,16,20" Spacing="6">
+            <Button Classes="link" Command="{Binding OpenUpdateCommand}"
+                    IsVisible="{Binding Update, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <TextBlock Classes="accent" FontWeight="SemiBold" Text="{Binding Update.Version, StringFormat='Version {0} is out'}" />
+            </Button>
+            <TextBlock Classes="meta" Text="{Binding Version, StringFormat='v{0}'}" />
+          </StackPanel>
+
+          <ListBox Classes="nav" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}"
+                   AutoScrollToSelectedItem="False">
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:TabViewModel">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                  <Ellipse Width="7" Height="7" Fill="{DynamicResource WarningBrush}" VerticalAlignment="Center"
+                           IsVisible="{Binding HasAlert}" ToolTip.Tip="Mods need attention" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+
+        <ContentControl Grid.Row="0" Grid.Column="1" Classes="page" Margin="8,24,32,0"
+                        Content="{Binding SelectedTab.Page}" />
+
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="{DynamicResource SurfaceBrush}" Margin="0,20,0,0">
+          <Grid ColumnDefinitions="236,*,Auto,Auto" Height="92">
+            <ProgressBar Grid.ColumnSpan="4" Classes="thin" VerticalAlignment="Top"
+                         IsVisible="{Binding DockBusy}" Value="{Binding DockProgress}" Maximum="100"
+                         IsIndeterminate="{Binding DockIndeterminate}" />
+            <StackPanel Grid.Column="0" Margin="28,0,0,0" VerticalAlignment="Center" Spacing="2">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource IconWarning}" Width="14" Height="14" Foreground="{DynamicResource WarningBrush}"
+                          IsVisible="{Binding DockProblem}" />
+                <TextBlock Classes="title" Text="{Binding DockTitle}" />
+              </StackPanel>
+              <TextBlock Classes="meta" Text="{Binding DockDetail}" TextTrimming="CharacterEllipsis" MaxWidth="200"
+                         ToolTip.Tip="{Binding DockDetail}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="8,0,24,0" VerticalAlignment="Center" Spacing="2">
+              <TextBlock Classes="meta" Text="Launches with" />
+              <TextBlock Classes="muted" Text="{Binding LaunchSummary}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="link" Margin="0,0,20,0" VerticalAlignment="Center" Content="Cancel"
+                    Command="{Binding CancelLaunchCommand}"
+                    IsVisible="{Binding PlayState, Converter={x:Static views:Converters.IsPreparing}}" />
+            <Button Grid.Column="3" Classes="play" Margin="0,0,32,0" VerticalAlignment="Center"
+                    Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}"
+                    Content="{Binding PlayLabel}" HotKey="Ctrl+Enter" />
+          </Grid>
+        </Border>
+
+        <ItemsControl Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Notices}" HorizontalAlignment="Right"
+                      VerticalAlignment="Bottom" Margin="0,0,32,12" MaxWidth="460">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="vm:NoticeViewModel">
+              <Border Background="{DynamicResource RaisedBrush}" CornerRadius="3" Padding="16,12" BoxShadow="0 8 24 0 #66000000">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <Border Width="3" Background="{DynamicResource AccentBrush}" CornerRadius="1"
+                          IsVisible="{Binding !IsError}" />
+                  <Border Width="3" Background="{DynamicResource DangerBrush}" CornerRadius="1"
+                          IsVisible="{Binding IsError}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Message}" TextWrapping="Wrap" />
+                  <Button Grid.Column="2" Classes="ghost" Padding="4" VerticalAlignment="Top" Command="{Binding DismissCommand}"
+                          ToolTip.Tip="Dismiss">
+                    <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" />
+                  </Button>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+    </LayoutTransformControl>
+
+    <Border Name="DropOverlay" Background="{DynamicResource ScrimBrush}" IsVisible="False">
+      <Border Background="{DynamicResource SurfaceBrush}" Padding="40,32" CornerRadius="3"
+              HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="6" HorizontalAlignment="Center">
+          <TextBlock Classes="display" Text="DROP TO IMPORT" HorizontalAlignment="Center" />
+          <TextBlock Classes="muted" Text="VPK, ZIP, RAR, 7z or folders" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <Border Background="#99000000" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="4" Padding="28,24" Width="480"
+              HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 16 48 0 #88000000">
+        <StackPanel Spacing="16" DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel">
+          <TextBlock Classes="heading" FontSize="24" Text="{Binding Title}" />
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" />
+          <TextBox Text="{Binding Input}" IsVisible="{Binding HasInput}" Name="DialogInput" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10"
+                      IsVisible="{Binding ConfirmText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <Button Content="{Binding CancelText}" Command="{Binding CancelCommand}" Classes="ghost"
+                    IsVisible="{Binding CancelText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" IsCancel="True" />
+            <Button Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}" Classes="primary" IsDefault="True"
+                    Classes.danger="{Binding Danger}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Panel>
+</Window>
