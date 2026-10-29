@@ -121,8 +121,7 @@ def install(tf_path: Path, order: list[str], particle_order: list[str], options:
     selections = particle_selections(particle_order)
     service = InstallService()
     before = _snapshot(tf / "custom")
-    precache.install_guard()
-    precache.skipped.clear()
+    precache.reset()
     entry = journal()
     entry.begin("install", tf, addons=order, particles=particle_order)
 
@@ -153,12 +152,7 @@ def install(tf_path: Path, order: list[str], particle_order: list[str], options:
         raise BuildError(f"Install failed: {exc}. The game files were restored to vanilla.", "vanilla") from exc
 
     entry.finish("done")
-    if precache.skipped:
-        found = [f"{model} ({_owner(model, order) or where})" for model, where in precache.skipped.items()]
-        more = f" and {len(found) - 3} more" if len(found) > 3 else ""
-        warnings.append(f"Left {len(found)} broken model{'s' if len(found) != 1 else ''} out of QuickPrecache "
-                        f"so TF2 doesn't crash at the menu: {', '.join(found[:3])}{more}. "
-                        "If that mod looks wrong in game, turn it off.")
+    warnings.extend(precache.warnings(lambda model: _owner(model, order)))
     try:
         write_manifest(config.project_dir / "last_install_manifest.json", tf / "custom", before,
                        order, sorted(set(selections.values())))

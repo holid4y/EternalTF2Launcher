@@ -39,6 +39,9 @@ public sealed class AppServices : IAsyncDisposable
         Mods = new ModLibrary(Engine, paths, new ThumbnailStore(paths.ThumbnailsDir));
         Preload = new PreloadCoordinator(new EnginePreloadBuilder(Engine), Mods.Desired, () => TfPath, GameProcess.IsRunning, paths.PreloadStateFile);
         Mods.DesiredChanged += Preload.RequestBuild;
+        Preload.Recovered += result => Notice?.Invoke(result.Success
+            ? "The last mod build was interrupted, so the game files were restored and your mods will be applied again."
+            : $"The last mod build was interrupted and restoring the game files failed: {result.ErrorSummary}");
 
         Inventory = new InventoryService(Path.Combine(paths.CacheDir, "inventory"));
         Prices = new PriceService(Path.Combine(paths.CacheDir, "pricing"));
@@ -106,23 +109,16 @@ public sealed class AppServices : IAsyncDisposable
             if (!status.IsReady)
                 return;
 
-            await Step("Recovering an interrupted build", async () =>
+            if (status.Interrupted)
             {
-                if (status.Interrupted)
-                {
-                    Log.Warn("A previous mod build was interrupted; restoring the game files.");
-                    var recovered = await Engine.RecoverAsync(null).ConfigureAwait(false);
-                    Preload.Invalidate();
-                    Notice?.Invoke(recovered.Success
-                        ? "The last mod build was interrupted, so the game files were restored and your mods will be applied again."
-                        : $"The last mod build was interrupted and restoring the game files failed: {recovered.ErrorSummary}");
-                }
-                else if (status.PreloadPresent != Preload.Record.Installed)
-                {
-                    // Steam verified the files, or another tool changed them.
-                    Preload.Invalidate();
-                }
-            }).ConfigureAwait(false);
+                Log.Warn("A previous mod build was interrupted; the game files will be restored.");
+                Preload.RecoverInterrupted();
+            }
+            else if (status.PreloadPresent != Preload.Record.Installed)
+            {
+                // Steam verified the files, or another tool changed them.
+                Preload.Invalidate();
+            }
 
             await Step("Importing the 1.x mod library", MigrateLegacyLibraryAsync).ConfigureAwait(false);
             await Step("Loading the mod library", async () =>

@@ -13,9 +13,6 @@ public static class Converters
     public static readonly IValueConverter Percent =
         new FuncValueConverter<double, string>(value => value.ToString("0", CultureInfo.InvariantCulture) + "%");
 
-    public static readonly IValueConverter ColorToBrush =
-        new FuncValueConverter<Color, IBrush>(color => new SolidColorBrush(color));
-
     public static readonly IValueConverter BackgroundModeName =
         new FuncValueConverter<Eternal.Core.BackgroundMode, string>(mode => mode switch
         {

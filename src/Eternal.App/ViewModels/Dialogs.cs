@@ -11,6 +11,7 @@ public interface IDialogs
 {
     Task<bool> ConfirmAsync(string title, string message, string confirm = "OK", string cancel = "Cancel", bool danger = false);
     Task AlertAsync(string title, string message);
+    /// <summary>The trimmed answer, possibly empty, or null when cancelled.</summary>
     Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save");
 }
 

@@ -111,7 +111,8 @@ public sealed class InventoryService(string cacheDir)
             }
         }
 
-        var more = root.TryGetProperty("more_items", out var flag) && flag.ValueKind is JsonValueKind.True or JsonValueKind.Number;
+        var more = root.TryGetProperty("more_items", out var flag)
+            && (flag.ValueKind == JsonValueKind.True || flag.ValueKind == JsonValueKind.Number && flag.TryGetInt32(out var n) && n != 0);
         return more && root.TryGetProperty("last_assetid", out var last) ? last.GetString() : null;
     }
 
@@ -146,7 +147,7 @@ public sealed class InventoryCacheFile
     public List<InventoryItem> Items { get; set; } = [];
 }
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true)]
+[JsonSourceGenerationOptions(RespectNullableAnnotations = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(InventoryCacheFile))]
 [JsonSerializable(typeof(PriceCacheFile))]
 [JsonSerializable(typeof(Dictionary<string, int>))]

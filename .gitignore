@@ -21,9 +21,7 @@ installer/publish-portable/
 *.pyc
 engine/.venv/
 
-# Kept locally, not published: tests, dev tools, working notes
-tests/
-engine/tests/
+# Kept locally, not published: dev tools and working notes
 tools/
 docs/*.md
 

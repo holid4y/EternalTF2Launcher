@@ -1,13 +1,20 @@
-"""Keeps structurally broken models out of QuickPrecache.
+"""QuickPrecache fixes on top of upstream.
 
 QuickPrecache chains every custom prop and bot model into one $includemodel
 list. A model with a garbage header in that chain crashes TF2 at the main menu
-("GroupStudioHdr(): invalid index"), as the femspy and femmepyro bot models
-did, so such models are left out and reported instead.
+("GroupStudioHdr(): invalid index"), so such models are left out and reported
+instead.
+
+Upstream also runs studiomdl through a shell on Linux and reports success when
+compiles fail; here the compiler gets an argument list and failures become a
+build warning.
 """
 
 import logging
 import struct
+import subprocess
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -20,6 +27,28 @@ _MAX_COUNT = 4096
 
 # Models left out by the last scan and where they were found. Upstream scans twice per install.
 skipped: dict[str, str] = {}
+# What went wrong while compiling during the last install.
+failed: list[str] = []
+_installed = False
+
+
+def reset() -> None:
+    skipped.clear()
+    failed.clear()
+
+
+def warnings(owner: Callable[[str], str | None] = lambda model: None) -> list[str]:
+    found = []
+    if skipped:
+        names = [f"{model} ({owner(model) or where})" for model, where in skipped.items()]
+        more = f" and {len(names) - 3} more" if len(names) > 3 else ""
+        found.append(f"Left {len(names)} broken model{'s' if len(names) != 1 else ''} out of QuickPrecache "
+                     f"so TF2 doesn't crash at the menu: {', '.join(names[:3])}{more}. "
+                     "If that mod looks wrong in game, turn it off.")
+    if failed:
+        found.append("QuickPrecache didn't finish, so custom models on map props may not load. "
+                     "engine.log in the launcher's logs folder has the details.")
+    return found
 
 
 def header_is_broken(data: bytes) -> bool:
@@ -83,13 +112,57 @@ def _check_vpk(vpk_path: Path, models: set[str]) -> set[str]:
     return kept
 
 
-def install_guard() -> None:
-    """Wraps upstream's precache scan; make_precache_list looks both functions up at call time."""
-    from core.quickprecache import precache_list as upstream
+def _make_model(self, qc_file: Path) -> bool:
+    from core.quickprecache.studio_mdl import StudioMDLVersion
 
-    if getattr(upstream, "eternal_guard", False):
+    if self.studio_mdl_version == StudioMDLVersion.MISSING:
+        failed.append(f"no studiomdl.exe for {qc_file.name}")
+        return False
+    exe = str(self.bundled_studiomdl_path if self.studio_mdl_version == StudioMDLVersion.BUNDLED_SDK
+              else self.game_path / self.studio_mdl_version.value)
+    tf = str(self.game_path / "tf")
+    if sys.platform == "win32":
+        args = [exe, "-game", tf, "-nop4", "-verbose", str(qc_file)]
+    else:
+        # Wine maps Z: to /. As a list, nothing in these paths is read by a shell.
+        args = ["wine", exe, "-game", f"Z:{tf}", "-nop4", "-verbose", f"Z:{qc_file}"]
+    log.info("compiling %s", qc_file.name)
+    try:
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
+    except OSError as exc:
+        failed.append(f"{qc_file.name}: {exc}")
+        return False
+    for line in process.stdout:
+        log.info(line.rstrip())
+    code = process.wait()
+    if code != 0:
+        failed.append(f"{qc_file.name} exited with {code}")
+    return code == 0
+
+
+def install() -> None:
+    """make_precache_list and QuickPrecache look these up at call time, so replacing them is enough."""
+    global _installed
+    if _installed:
         return
-    scan_folder, scan_vpk = upstream.manage_folder, upstream.manage_vpk
-    upstream.manage_folder = lambda folder: _check_folder(folder, scan_folder(folder))
-    upstream.manage_vpk = lambda vpk_path: _check_vpk(vpk_path, scan_vpk(vpk_path))
-    upstream.eternal_guard = True
+    from core.quickprecache import precache_list
+    from core.quickprecache.quick_precache import QuickPrecache
+    from core.quickprecache.studio_mdl import StudioMDL
+
+    scan_folder, scan_vpk = precache_list.manage_folder, precache_list.manage_vpk
+    precache_list.manage_folder = lambda folder: _check_folder(folder, scan_folder(folder))
+    precache_list.manage_vpk = lambda vpk_path: _check_vpk(vpk_path, scan_vpk(vpk_path))
+    if not callable(getattr(StudioMDL, "make_model", None)):
+        raise RuntimeError("casual-pre-loader no longer has StudioMDL.make_model; update eternal_engine/precache.py")
+    StudioMDL.make_model = _make_model
+
+    run = QuickPrecache.run
+
+    def checked_run(self, auto: bool = False, list_file: str = "", flush: bool = False) -> bool:
+        ok = run(self, auto, list_file, flush)
+        if not ok:
+            failed.append("QuickPrecache stopped with an error")
+        return ok
+
+    QuickPrecache.run = checked_run
+    _installed = True

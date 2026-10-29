@@ -41,8 +41,6 @@ public sealed class EngineClient
 
     public EngineClient(EngineRuntime runtime) => _runtime = runtime;
 
-    public bool IsBusy => _gate.CurrentCount == 0;
-
     /// <param name="cancellation">
     /// Cancels waiting for the engine. For mutations it is ignored once the process has started.
     /// </param>

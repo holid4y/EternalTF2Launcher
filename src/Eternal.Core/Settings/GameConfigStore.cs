@@ -153,19 +153,6 @@ public sealed class GameConfigStore : IDisposable
         return report;
     }
 
-    /// <summary>Second attempt for a file that was locked at startup.</summary>
-    public bool RetryLoad()
-    {
-        if (LoadOutcome.CanSave)
-            return true;
-        var config = JsonFile.Load(_path, CoreJson.Default.GameConfig, () => new GameConfig(), out var outcome);
-        if (!outcome.CanSave)
-            return false;
-        LoadOutcome = outcome;
-        Settings.Replace(config);
-        return true;
-    }
-
     public void Dispose()
     {
         _timer.Dispose();

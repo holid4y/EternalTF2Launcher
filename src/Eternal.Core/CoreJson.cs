@@ -4,6 +4,7 @@ using Eternal.Core.Settings;
 namespace Eternal.Core;
 
 [JsonSourceGenerationOptions(
+    RespectNullableAnnotations = true,
     WriteIndented = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = true,

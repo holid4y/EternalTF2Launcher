@@ -1,0 +1,10 @@
+# What the vendored casual-pre-loader core and the adapter import. Upstream's
+# GUI packages (PyQt6, PyGithub) are left out.
+#
+# requirements.txt is generated from this file:
+#   uv pip compile --universal --generate-hashes --python-version 3.12 requirements.in -o requirements.txt
+valve-parsers>=1.2.2
+cappa~=0.33.0
+more-itertools~=11.2
+packaging~=26.3
+platformdirs~=4.13

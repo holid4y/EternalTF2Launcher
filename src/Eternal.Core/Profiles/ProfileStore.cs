@@ -176,9 +176,18 @@ public sealed partial class ProfileStore
         var root = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }) as JsonObject
                    ?? throw new InvalidDataException("Not a profile file.");
 
-        var profile = root["format"]?.GetValue<string>() == Profile.FormatName
-            ? root.Deserialize(ProfileJson.Default.Profile) ?? throw new InvalidDataException("Not a profile file.")
-            : FromLegacy(root);
+        Profile profile;
+        try
+        {
+            profile = root["format"]?.GetValue<string>() == Profile.FormatName
+                ? root.Deserialize(ProfileJson.Default.Profile) ?? throw new InvalidDataException("Not a profile file.")
+                : FromLegacy(root);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or FormatException)
+        {
+            // A field of the wrong type, e.g. a number where a name belongs.
+            throw new InvalidDataException("Not a profile file.", ex);
+        }
 
         if (profile.UserAutoexec is { Length: > MaxAutoexecChars })
             profile.UserAutoexec = profile.UserAutoexec[..MaxAutoexecChars];

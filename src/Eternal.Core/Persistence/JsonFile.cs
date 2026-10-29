@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Eternal.Core.Logging;
@@ -95,7 +96,7 @@ public static class JsonFile
     {
         try
         {
-            var target = $"{path}.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}";
+            var target = $"{path}.corrupt-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
             File.Move(path, target, overwrite: true);
             return Path.GetFileName(target);
         }

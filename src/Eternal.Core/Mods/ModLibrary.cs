@@ -250,10 +250,11 @@ public sealed class ModLibrary
 
     public async Task<EngineResult> RemoveAsync(IReadOnlyList<ModItem> mods)
     {
-        var result = await _engine.RemoveAsync(mods.Select(m => m.Name).ToArray()).ConfigureAwait(false);
-        foreach (var mod in mods)
-            _thumbnails.Delete(mod.Name);
+        var result = await _engine.RemoveAsync(mods.Select(m => (m.Name, m.Kind))).ConfigureAwait(false);
         await RefreshAsync().ConfigureAwait(false);
+        // Thumbnails are keyed by name, which an addon and a particle mod can share.
+        foreach (var name in mods.Select(m => m.Name).Distinct().Where(name => Items.All(i => i.Name != name)))
+            _thumbnails.Delete(name);
         return result;
     }
 

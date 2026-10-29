@@ -26,7 +26,6 @@ public sealed partial class ItemViewModel(InventoryItem item) : ObservableObject
     public string Quality => Item.Quality;
     public bool Tradable => Item.Tradable;
     public string? Amount => Item.Amount > 1 ? $"×{Item.Amount}" : null;
-    public bool HasEffect => Item.Effect is not null;
 
     public IReadOnlyList<DetailLine> Lines => Item.Lines
         .Select(l => new DetailLine(l.Text, l.Color is null ? Brushes("#B9AA90") : Brushes(l.Color)))
@@ -76,6 +75,7 @@ public sealed partial class BackpackViewModel : PageViewModel
     private readonly IDialogs _dialogs;
     private static readonly int[] RetrySeconds = [30, 60, 120];
     private List<ItemViewModel> _all = [];
+    private string? _itemsOwner;
     private CancellationTokenSource? _pricing;
     private DispatcherTimer? _retry;
     private int _retryAttempt;
@@ -144,6 +144,9 @@ public sealed partial class BackpackViewModel : PageViewModel
         var account = SteamLocator.ActiveAccount();
         SteamId = _services.Launcher.Settings.SteamIdOverride is { Length: > 0 } custom ? custom : account?.SteamId64;
         Owner = _services.Launcher.Settings.SteamIdOverride is { Length: > 0 } ? $"SteamID {SteamId}" : account?.PersonaName ?? "";
+        // The items on screen must belong to the account named above them, even if loading the new one fails.
+        if (SteamId != _itemsOwner)
+            ClearItems();
         if (SteamId is null)
             return;
 
@@ -156,6 +159,7 @@ public sealed partial class BackpackViewModel : PageViewModel
             _retry?.Stop();
             _retryAttempt = 0;
             Notice = snapshot.Notice;
+            _itemsOwner = snapshot.SteamId;
             _all = snapshot.Items.Select(i => new ItemViewModel(i)).ToList();
             RebuildFacets();
             ApplyPrices();
@@ -185,6 +189,18 @@ public sealed partial class BackpackViewModel : PageViewModel
         {
             Loading = false;
         }
+    }
+
+    private void ClearItems()
+    {
+        _pricing?.Cancel();
+        _itemsOwner = null;
+        _all = [];
+        Selected = null;
+        RebuildFacets();
+        ApplyPrices();
+        ApplyFilter();
+        OnPropertyChanged(nameof(HasItems));
     }
 
     /// <summary>Steam's limit lifts after a minute or two; try again on our own instead of making the player guess.</summary>
@@ -344,6 +360,8 @@ public sealed partial class BackpackViewModel : PageViewModel
             "Paste a SteamID64 or a Steam profile link. Leave empty to use the account signed in to Steam.",
             _services.Launcher.Settings.SteamIdOverride ?? "", "Show");
         if (input is null)
+            return;
+        if (input.Length == 0)
         {
             _services.Launcher.Update(s => s.SteamIdOverride = null);
             await LoadAsync(force: false);

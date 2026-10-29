@@ -88,8 +88,9 @@ public sealed class PreloaderEngine
         return (result, items);
     }
 
-    public Task<EngineResult> RemoveAsync(IReadOnlyList<string> names, CancellationToken cancellation = default) =>
-        _client.RunAsync(["remove", "--", .. names], EngineCommandKind.Mutation, cancellation: cancellation);
+    public Task<EngineResult> RemoveAsync(IEnumerable<(string Name, ModKind Kind)> mods, CancellationToken cancellation = default) =>
+        _client.RunAsync(["remove", .. mods.Select(m => m.Kind == ModKind.Particle ? $"--particle={m.Name}" : $"--addon={m.Name}")],
+            EngineCommandKind.Mutation, cancellation: cancellation);
 
     public Task<EngineResult> InstallAsync(string tfPath, IReadOnlyList<string> addons, IReadOnlyList<string> particles,
         BuildOptions options, IProgress<EngineProgress>? progress, CancellationToken cancellation = default)

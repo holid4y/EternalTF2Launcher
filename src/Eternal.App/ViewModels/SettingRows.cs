@@ -22,7 +22,6 @@ public abstract partial class SettingRowViewModel : ObservableObject
     public string? Cvar => Definition.Cvar;
     public IReadOnlyList<string> Tags { get; }
     public bool IsTouched => Settings.IsTouched(Definition);
-    public bool IsChanged => !Settings.IsDefault(Definition);
     public bool IsEnabled => Settings.IsEnabled(Definition);
     public bool IsAdvanced => Definition.IsAdvanced;
     public bool Applies => !Definition.Tags.HasFlag(SettingTags.WindowsOnly) || OperatingSystem.IsWindows();
@@ -113,7 +112,6 @@ public sealed class ChoiceRowViewModel(ChoiceSetting definition, GameSettings se
     private ChoiceSetting Choice => (ChoiceSetting)Definition;
 
     public IReadOnlyList<ChoiceOption> Options => Choice.Options;
-    public bool UseSegments => Choice.Options.Count <= 4 && Choice.Options.Sum(o => o.Label.Length) < 40;
 
     public ChoiceOption? Selected
     {

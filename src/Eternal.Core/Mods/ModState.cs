@@ -10,11 +10,9 @@ public sealed class ModEntry
     public string Name { get; set; } = "";
     public ModKind Kind { get; set; }
     public bool Enabled { get; set; }
-    public DateTimeOffset Added { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>Where it came from, e.g. "gamebanana:12345", for update checks.</summary>
     public string? Source { get; set; }
-    public string? SourceVersion { get; set; }
 }
 
 public sealed class ModBuildOptions
@@ -64,7 +62,7 @@ public sealed record DesiredPreload(IReadOnlyList<string> Addons, IReadOnlyList<
     }
 }
 
-[JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+[JsonSourceGenerationOptions(RespectNullableAnnotations = true, WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = true, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(ModState))]
 [JsonSerializable(typeof(PreloadRecord))]

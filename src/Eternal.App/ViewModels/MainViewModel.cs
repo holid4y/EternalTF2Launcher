@@ -366,7 +366,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         Dialog = dialog;
         try
         {
-            return await dialog.Result && !string.IsNullOrWhiteSpace(dialog.Input) ? dialog.Input.Trim() : null;
+            return await dialog.Result ? dialog.Input.Trim() : null;
         }
         finally
         {

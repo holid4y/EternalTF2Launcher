@@ -15,8 +15,6 @@ public static class Log
 
     public static LogLevel MinimumLevel { get; set; } = LogLevel.Info;
 
-    public static string? FilePath => _path;
-
     public static void Initialize(string directory, LogLevel level, bool clearExisting = false)
     {
         lock (Gate)

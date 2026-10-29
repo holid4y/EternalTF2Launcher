@@ -52,7 +52,6 @@ public sealed partial class ConfigViewModel : PageViewModel
     private readonly AppServices _services;
     private readonly MainViewModel _main;
     private readonly List<SettingRowViewModel> _rows = [];
-    private bool _syncingBinds;
 
     public ConfigViewModel(AppServices services, MainViewModel main)
     {
@@ -197,7 +196,7 @@ public sealed partial class ConfigViewModel : PageViewModel
         if (ShowPreview)
             OnPropertyChanged(nameof(AutoexecPreview));
         UpdateProfileMatch();
-        if (!_syncingBinds)
+        if (!RowsShowSavedBinds())
             LoadBinds();
     }
 
@@ -223,17 +222,18 @@ public sealed partial class ConfigViewModel : PageViewModel
             Binds.Add(new BindRowViewModel(bind, SaveBinds));
     }
 
-    private void SaveBinds()
+    private void SaveBinds() => _services.Game.Settings.SetBinds(RowsToSave());
+
+    private IEnumerable<KeyBind> RowsToSave() => Binds.Select(b => b.ToBind()).Where(b => b.Key.Length > 0 || b.Command.Length > 0);
+
+    // A bind edit comes back through Settings.Changed after it's saved. Rebuilding
+    // the rows then would replace the box the player is typing in.
+    private bool RowsShowSavedBinds()
     {
-        _syncingBinds = true;
-        try
-        {
-            _services.Game.Settings.SetBinds(Binds.Select(b => b.ToBind()).Where(b => b.Key.Length > 0 || b.Command.Length > 0));
-        }
-        finally
-        {
-            _syncingBinds = false;
-        }
+        var saved = _services.Game.Settings.Binds;
+        var shown = RowsToSave().ToList();
+        return saved.Count == shown.Count
+            && saved.Zip(shown).All(p => p.First.Key == p.Second.Key && p.First.Command == p.Second.Command && p.First.Label == p.Second.Label);
     }
 
     [RelayCommand]
@@ -323,7 +323,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     private async Task SaveAsProfileAsync()
     {
         var name = await _main.PromptAsync("Save profile", "Name this setup. It stores every setting, your binds and launch options.");
-        if (name is null)
+        if (string.IsNullOrEmpty(name))
             return;
         var includeMods = _services.Mods.Loaded && await _main.ConfirmAsync("Include mods?", "Also remember which mods are enabled and in what order?", "Include mods", "Settings only");
         var profile = ProfileStore.Capture(_services.Game.Settings, name, null, ReadUserAutoexec(), includeMods ? CurrentMods() : null);
@@ -351,7 +351,7 @@ public sealed partial class ConfigViewModel : PageViewModel
         if (SelectedProfile is not { BuiltIn: false } profile)
             return;
         var name = await _main.PromptAsync("Rename profile", "New name:", profile.Name, "Rename");
-        if (name is null)
+        if (string.IsNullOrEmpty(name))
             return;
         profile.Name = name;
         _services.Profiles.Save(profile);

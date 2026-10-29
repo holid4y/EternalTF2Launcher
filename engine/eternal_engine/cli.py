@@ -155,7 +155,8 @@ def build_parser() -> argparse.ArgumentParser:
                           help="folder unpacked from an archive; its name is used as the mod name")
 
     remove = sub.add_parser("remove")
-    remove.add_argument("names", nargs="+")
+    remove.add_argument("--addon", action="append", default=[])
+    remove.add_argument("--particle", action="append", default=[])
 
     install = sub.add_parser("install")
     install.add_argument("--tf-path", type=Path, required=True)
@@ -248,7 +249,7 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
         return any(r["ok"] for r in results), {"results": results}, [], errors, EXIT_OK if not errors else EXIT_FAILED
 
     if command == "remove":
-        removed, missing = library.remove(args.names)
+        removed, missing = library.remove(args.addon, args.particle)
         errors = [f"Not in the library: {name}" for name in missing]
         return not missing, {"removed": removed}, [], errors, EXIT_OK if not missing else EXIT_FAILED
 

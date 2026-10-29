@@ -34,7 +34,7 @@ Eight themes, any accent colour, your TF2 screenshots or a picture of your own a
 
 Download a release from the [Releases](../../releases) page. Release builds include the .NET runtime and the mod engine, so you don't need to install .NET or Python.
 
-**Linux**
+### Linux
 
 ```sh
 tar xf EternalLauncher-2.0.0-linux-x64.tar.gz
@@ -43,7 +43,7 @@ cd EternalLauncher && ./install.sh
 
 This installs for your user only (`~/.local/share/eternal-launcher`), adds a menu entry and the `eternal-launcher` command. `./install.sh --remove` uninstalls and keeps your settings. QuickPrecache, the preloader step that keeps custom models on map props loaded, uses Wine on Linux; without `wine` installed it is skipped and the Mods tab says so.
 
-**Windows**
+### Windows
 
 Run `EternalLauncher-2.0.0-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
 
@@ -55,12 +55,9 @@ The launcher keeps your intent (which mods are on, in what order) and a record o
 
 While a preload is installed, the launcher starts TF2 with `+exec w/config.cfg`, which runs the preloader's setup at boot. If you start TF2 from Steam instead, copy the launch line from Config → Launch Options into TF2's launch options.
 
-Casual servers still enforce Valve's whitelist; preloading gets most visual content through:
+Casual servers still enforce Valve's whitelist, but most visual content gets through: particles and unusual effects, weapon and cosmetic skins, war paints, lightwarps, map and world textures, props and HUDs. Full player-model replacements are hit or miss. Their textures usually apply, but the server often forces the vanilla model back. The Mods tab flags models with a known cause of this (an IK-chain mismatch) before you launch.
 
-- **Works:** particles and unusual effects, weapon and cosmetic skins, war paints, lightwarps, map and world textures, props, HUDs.
-- **Hit or miss:** full player-model replacements. Textures usually apply but the server often forces the vanilla model. The Mods tab flags models with a known cause (an IK-chain mismatch) before you launch.
-
-Your mod library lives in the launcher's data folder, not in `tf/custom`. **Restore vanilla** turns every mod off and removes the preload while keeping the library.
+Your mod library lives in the launcher's data folder, not in `tf/custom`. Restore vanilla turns every mod off and removes the preload while keeping the library.
 
 ## Settings and autoexec.cfg
 
@@ -88,18 +85,22 @@ Cvar names, ranges and defaults were checked against TF2's own binaries and `cfg
 
 ## Building from source
 
-Requirements: .NET 10 SDK, and Python 3.12 or newer for the engine.
+You need the .NET 10 SDK, and Python 3.12 or newer for the engine.
 
 ```sh
 dotnet run --project src/Eternal.App
+dotnet test --project tests/Eternal.Core.Tests
+python -m pip install -r engine/requirements.txt
+python -m unittest discover -s engine/tests
 ```
 
-Run from source, the launcher offers a one-click engine setup on the Mods tab that creates a private virtual environment and installs `engine/requirements.txt`.
+Run from source, the launcher offers a one-click engine setup on the Mods tab that creates a private virtual environment and installs `engine/requirements.txt`. That file pins every package with a hash. To change a dependency, edit `engine/requirements.in` and regenerate it with the `uv` command at the top of that file.
 
 Release packages:
 
 ```sh
-python -m pip install -r engine/requirements.txt pyinstaller
+python -m pip install -r engine/requirements.txt
+python -m pip install pyinstaller
 python scripts/package.py --rid linux-x64 --freeze-engine
 python scripts/package.py --rid win-x64 --freeze-engine --portable   # on Windows
 iscc installer/installer.iss                                         # Windows installer
@@ -115,20 +116,16 @@ src/Eternal.App             Avalonia UI
 engine/eternal_engine       the launcher's adapter over the preloader
 engine/vendor               cueki/casual-pre-loader, copied unmodified (UPSTREAM has the commit)
 packaging, installer        Linux archive and Windows installer
+tests, engine/tests         C# and engine tests
 ```
 
 ### The engine
 
 The launcher runs the engine once per command (`engine/run.py`) and reads one JSON object per line from its stdout: progress events, then a result. Commands that only read are killed if they hang; commands that write, to the mod library or to the game, are never interrupted once started.
 
-What the adapter adds on top of upstream:
+The adapter in `engine/eternal_engine` points upstream at the launcher's data and cache folders and journals every install and uninstall. Upstream patches `tf2_misc_dir.vpk` and `gameinfo.txt` in place, so an interrupted build is found on the next start, and the game files are restored before anything else touches them.
 
-- It points upstream at the launcher's data and cache folders instead of the install folder.
-- It journals every install and uninstall. Upstream patches `tf2_misc_dir.vpk` and `gameinfo.txt` in place, so an interrupted build is detected on the next start and the game is restored to vanilla before building again.
-- It reverses the mod list before installing, because upstream lets later files overwrite earlier ones. The mod higher in the launcher's list wins, as the conflict report says.
-- It checks ZIP entries before extracting, collapses multipart VPK sets and handles short numeric VPK names.
-- It keeps models with a broken header out of QuickPrecache, where one would crash TF2 at the main menu, and writes `last_install_manifest.json` with the files each install wrote.
-- It flags player models with an IK-chain mismatch, which Casual servers replace with the vanilla model.
+It also changes a few things upstream does. The mod list is reversed before installing, because upstream lets later files overwrite earlier ones, so the mod higher in the launcher's list wins, as the conflict report says. Paths inside ZIPs and VPKs are checked before anything is extracted, and a mod being replaced by an import is kept until the new copy is in place. A HUD VPK in `tf/custom` is only deleted after its unpacked copy is complete. Models with a broken header stay out of QuickPrecache, where one would crash TF2 at the main menu, and studiomdl runs without a shell. Upstream's JSON files are written to a temporary file and moved into place, so a command that gets stopped can't leave half a file behind. Each install writes `last_install_manifest.json` with the files it put in the game folder.
 
 ### Updating the preloader
 
@@ -137,7 +134,7 @@ python scripts/sync-preloader.py            # latest upstream main
 python scripts/sync-preloader.py --ref v2.4.0
 ```
 
-The script replaces `engine/vendor/casual-pre-loader` with upstream's `core/`, `data/` and `backup/` and records the commit in `UPSTREAM`. Nothing in `vendor/` is edited by hand. The adapter relies on a few upstream names: `core.config`, `InstallService`, the importer and conflict services, and `manage_folder` and `manage_vpk` in `core/quickprecache/precache_list.py`. Check those after a sync.
+The script replaces `engine/vendor/casual-pre-loader` with upstream's `core/`, `data/` and `backup/` and records the commit in `UPSTREAM`. Nothing in `vendor/` is edited by hand. The functions the adapter wraps or replaces are set up in `bootstrap.py`, `hud.py` and `precache.py`, and the engine refuses to start if one of them is gone. Run the engine tests after a sync.
 
 ## Credits
 

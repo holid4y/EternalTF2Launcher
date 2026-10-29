@@ -24,6 +24,9 @@ public interface IPreloadBuilder
 {
     /// <summary>Builds the preload, or removes it when nothing is enabled.</summary>
     Task<EngineResult> BuildAsync(string tfPath, DesiredPreload desired, IProgress<EngineProgress> progress);
+
+    /// <summary>Restores vanilla files after a build that was cut off.</summary>
+    Task<EngineResult> RecoverAsync(IProgress<EngineProgress> progress);
 }
 
 public sealed class EnginePreloadBuilder(PreloaderEngine engine) : IPreloadBuilder
@@ -32,6 +35,8 @@ public sealed class EnginePreloadBuilder(PreloaderEngine engine) : IPreloadBuild
         desired.IsEmpty
             ? engine.UninstallAsync(tfPath, progress)
             : engine.InstallAsync(tfPath, desired.Addons, desired.Particles, desired.Options.ToEngine(), progress);
+
+    public Task<EngineResult> RecoverAsync(IProgress<EngineProgress> progress) => engine.RecoverAsync(progress);
 }
 
 /// <summary>
@@ -62,6 +67,8 @@ public sealed class PreloadCoordinator : IAsyncDisposable
     private bool _immediate;
     private TaskCompletionSource? _skipDebounce;
     private bool _launchHold;
+    private bool _building;
+    private bool _recover;
     private string? _lastError;
     private PreloadStatus _status = new(PreloadPhase.Idle, "");
 
@@ -86,6 +93,21 @@ public sealed class PreloadCoordinator : IAsyncDisposable
     }
 
     public event Action<PreloadStatus>? StatusChanged;
+
+    public event Action<EngineResult>? Recovered;
+
+    /// <summary>
+    /// A build was cut off (crash, power loss). The game files are restored on the
+    /// next pass, under the same rules as a build: never while TF2 is running.
+    /// </summary>
+    public void RecoverInterrupted()
+    {
+        lock (_gate)
+            _recover = true;
+        Record = new PreloadRecord();
+        SaveRecord();
+        BuildNow();
+    }
 
     public void Start()
     {
@@ -154,15 +176,19 @@ public sealed class PreloadCoordinator : IAsyncDisposable
             {
                 cancellation.ThrowIfCancellationRequested();
                 Task pass;
+                bool building;
                 lock (_gate)
+                {
                     pass = _pass.Task;
-
-                var phase = Status.Phase;
-                if (phase == PreloadPhase.Building)
+                    building = _building;
+                }
+                if (building)
                 {
                     await pass.WaitAsync(cancellation).ConfigureAwait(false);
                     continue;
                 }
+
+                var phase = Status.Phase;
 
                 if (!allowStale && IsDirty() && !_gameRunning())
                 {
@@ -180,7 +206,12 @@ public sealed class PreloadCoordinator : IAsyncDisposable
                 }
 
                 lock (_gate)
+                {
+                    // A pass may have claimed the folder while the checks above ran.
+                    if (_building)
+                        continue;
                     _launchHold = true;
+                }
                 SetStatus(PreloadPhase.Launching, "Starting TF2…");
                 return new LaunchAdmission(true, Record.Installed);
             }
@@ -264,11 +295,40 @@ public sealed class PreloadCoordinator : IAsyncDisposable
             }
         }
 
-        bool hold;
         lock (_gate)
-            hold = _launchHold;
-        if (hold)
-            return;
+        {
+            // Checked and claimed together, so a launch can't be admitted in between.
+            if (_launchHold)
+                return;
+            _building = true;
+        }
+        try
+        {
+            await ApplyAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_gate)
+                _building = false;
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        bool recover;
+        lock (_gate)
+            recover = _recover;
+        if (recover)
+        {
+            if (_gameRunning())
+            {
+                SetStatus(PreloadPhase.Blocked, "Close TF2 so the launcher can restore the game files.");
+                WatchForGameExit();
+                return;
+            }
+            if (!await RecoverAsync().ConfigureAwait(false))
+                return;
+        }
 
         var tf = _tfPath();
         var desired = _desired();
@@ -295,15 +355,35 @@ public sealed class PreloadCoordinator : IAsyncDisposable
             return;
         }
 
-        await BuildAsync(tf, desired).ConfigureAwait(false);
-        if (IsDirty())
+        // A failed build waits for a new change or an explicit retry instead of looping.
+        if (await BuildAsync(tf, desired).ConfigureAwait(false) && IsDirty())
         {
             Interlocked.Increment(ref _requests);
             _wake.Release();
         }
     }
 
-    private async Task BuildAsync(string tf, DesiredPreload desired)
+    private async Task<bool> RecoverAsync()
+    {
+        SetStatus(PreloadPhase.Building, "Restoring the game files…");
+        var progress = new InlineProgress<EngineProgress>(p => SetStatus(PreloadPhase.Building, p.Message, p.Percent));
+        var result = await _builder.RecoverAsync(progress).ConfigureAwait(false);
+        lock (_gate)
+            _recover = false;
+        if (result.Success)
+            Log.Info("Game files restored after an interrupted build");
+        else
+        {
+            _lastError = result.ErrorSummary;
+            Record = new PreloadRecord { Installed = true };
+            SaveRecord();
+            SetStatus(PreloadPhase.Failed, $"Restoring the game files failed: {result.ErrorSummary}");
+        }
+        Recovered?.Invoke(result);
+        return result.Success;
+    }
+
+    private async Task<bool> BuildAsync(string tf, DesiredPreload desired)
     {
         SetStatus(PreloadPhase.Building, desired.IsEmpty ? "Restoring the game files…" : "Applying mods to the game…");
         var progress = new InlineProgress<EngineProgress>(p => SetStatus(PreloadPhase.Building, p.Message, p.Percent));
@@ -325,22 +405,24 @@ public sealed class PreloadCoordinator : IAsyncDisposable
             SaveRecord();
             SetStatus(PreloadPhase.Idle, desired.IsEmpty ? "Game files are vanilla." : "Mods are ready.");
             Log.Info($"Preload applied: {desired.Addons.Count} addon(s), {desired.Particles.Count} particle mod(s) in {result.DurationMs} ms");
-            return;
+            return true;
         }
 
-        // The engine says whether it touched the game before failing: validation
-        // errors leave the previous preload in place, a failed install is rolled
-        // back to vanilla.
+        // The engine says what it left behind: "unchanged" keeps the previous
+        // preload, "vanilla" means it rolled back. Anything else (including no
+        // answer at all) may have left our files in the game, so the record
+        // stays dirty until a later build or removal succeeds.
         _lastError = result.ErrorSummary;
-        var untouched = result.Data.ValueKind == System.Text.Json.JsonValueKind.Object
-            && result.Data.TryGetProperty("game_files", out var state) && state.GetString() == "unchanged";
-        if (!untouched)
+        var gameFiles = result.Data.ValueKind == System.Text.Json.JsonValueKind.Object
+            && result.Data.TryGetProperty("game_files", out var state) ? state.GetString() : null;
+        if (gameFiles != "unchanged")
         {
-            Record = new PreloadRecord { TfPath = tf };
+            Record = new PreloadRecord { TfPath = tf, Installed = gameFiles != "vanilla" };
             SaveRecord();
         }
         SetStatus(PreloadPhase.Failed, result.ErrorSummary);
         Log.Warn($"Preload build failed: {result.ErrorSummary}");
+        return false;
     }
 
     private void WatchForGameExit()

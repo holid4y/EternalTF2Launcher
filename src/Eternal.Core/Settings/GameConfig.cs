@@ -94,8 +94,6 @@ public sealed class GameSettings
             _ => true,
         };
 
-    public bool IsDefault(SettingDefinition setting) => setting.ValueEquals(Get(setting), setting.DefaultNode);
-
     public void Set(SettingDefinition setting, JsonNode? value)
     {
         var coerced = setting.Coerce(value);
@@ -192,17 +190,6 @@ public sealed class GameSettings
                 values[setting.Id] = Get(setting).DeepClone();
         }
         return values;
-    }
-
-    public void Replace(GameConfig config)
-    {
-        lock (_gate)
-        {
-            _config.Values = config.Values.ToDictionary(kv => kv.Key, kv => kv.Value?.DeepClone(), StringComparer.Ordinal);
-            _config.Binds = config.Binds.Select(b => b.Clone()).ToList();
-            _config.ExtraLaunchArgs = config.ExtraLaunchArgs;
-        }
-        Changed?.Invoke(AllChanged);
     }
 
     public IReadOnlyDictionary<string, JsonNode> Observed

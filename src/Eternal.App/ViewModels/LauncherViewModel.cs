@@ -115,7 +115,6 @@ public sealed partial class LauncherViewModel : PageViewModel
     public string TfStatus => TfValid ? "TF2 found." : "This doesn't look like TF2's tf folder (gameinfo.txt is missing).";
     public string Account => SteamLocator.ActiveAccount() is { } a ? $"{a.PersonaName ?? "Steam account"} ({a.SteamId64})" : "No Steam account found";
     public string ScaleText => $"{UiScale * 100:0}%";
-    public string DataFolder => _services.Paths.DataDir;
     public bool TraySupported => OperatingSystem.IsWindows();
     public string TrayNote => OperatingSystem.IsWindows() ? "" : "Needs a system tray (KDE, Cinnamon, or GNOME with the AppIndicator extension). Starting the launcher again always shows the window.";
     public string Version => _main.Version;
@@ -211,14 +210,6 @@ public sealed partial class LauncherViewModel : PageViewModel
         BackgroundImage = files[0];
         Save(s => s.BackgroundImage = files[0], restyle: true);
         BackgroundMode = BackgroundMode.Picture;
-    }
-
-    [RelayCommand]
-    private void ClearBackground()
-    {
-        BackgroundImage = null;
-        Save(s => s.BackgroundImage = null, restyle: true);
-        BackgroundMode = BackgroundMode.Screenshots;
     }
 
     [RelayCommand]

@@ -9,6 +9,8 @@ import zipfile
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
+from .archives import ArchiveError, check_vpk
+
 log = logging.getLogger(__name__)
 
 Progress = Callable[[int, str], None]
@@ -17,6 +19,7 @@ MAX_ARCHIVE_BYTES = 8 * 1024 ** 3
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_SEARCH_DEPTH = 4
 GENERIC_FOLDERS = {"tf", "tf2", "custom", "mod", "mods", "files", "content", "addons", "download"}
+SET_ASIDE = ".eternal-previous-"
 
 
 class LibraryError(Exception):
@@ -40,6 +43,7 @@ def list_library() -> dict:
     from core.settings import addon_metadata
     from core.util.pcf_path_walk import get_mod_particles
 
+    restore_set_aside()
     service = AddonService()
     service.scan_addon_contents()
 
@@ -114,19 +118,15 @@ def particle_selections(particle_order: list[str]) -> dict[str, str]:
     return selections
 
 
-def remove(names: list[str]) -> tuple[list[str], list[str]]:
+def remove(addon_names: list[str], particle_names: list[str]) -> tuple[list[str], list[str]]:
     from core.services.addons import AddonService
     from core.services.particles import delete_particle_mods
 
     config = _config()
     addons, particles, missing = [], [], []
-    for name in map(check_name, names):
-        if (config.addons_dir / name).is_dir():
-            addons.append(name)
-        elif (config.particles_dir / name).is_dir():
-            particles.append(name)
-        else:
-            missing.append(name)
+    for names, root, found in ((addon_names, config.addons_dir, addons), (particle_names, config.particles_dir, particles)):
+        for name in map(check_name, names):
+            (found if (root / name).is_dir() else missing).append(name)
 
     if addons:
         ok, message = AddonService().delete_addons(addons)
@@ -205,22 +205,78 @@ def _rename_library_entry(old: str, new: str) -> None:
                 mod_json.write_text(json.dumps(info, indent=2), encoding="utf-8")
 
 
+def restore_set_aside() -> None:
+    """Puts back mods that an import moved out of the way and never got to finish."""
+    for root in (_config().addons_dir, _config().particles_dir):
+        if not root.is_dir():
+            continue
+        for aside in root.glob(f"{SET_ASIDE}*"):
+            current = root / aside.name[len(SET_ASIDE):]
+            log.warning("restoring %s after an unfinished import", current.name)
+            shutil.rmtree(current, ignore_errors=True)
+            aside.rename(current)
+
+
+def _replacing(names: list[str], run: Callable[[], tuple[bool, str]]) -> tuple[bool, str]:
+    """Upstream deletes a mod before copying its replacement in. Keep the old copy
+    until the import has succeeded, and put it back if it fails."""
+    config = _config()
+    moved = []
+    for name in dict.fromkeys(names):
+        for root in (config.addons_dir, config.particles_dir):
+            current = root / name
+            if current.exists():
+                aside = root / f"{SET_ASIDE}{name}"
+                shutil.rmtree(aside, ignore_errors=True)
+                current.rename(aside)
+                moved.append((current, aside))
+
+    ok = False
+    try:
+        ok, message = run()
+        return ok, message
+    finally:
+        for current, aside in moved:
+            if ok and current.exists():
+                shutil.rmtree(aside, ignore_errors=True)
+            else:
+                shutil.rmtree(current, ignore_errors=True)
+                aside.rename(current)
+
+
+def _upstream_vpk_name(stem: str) -> str:
+    # Same rule as ImportService.process_vpk_file uses to name the library folder.
+    return stem[:-4] if stem[-3:].isdigit() and stem[-4:-3] == "_" or stem[-4:] == "_dir" else stem
+
+
 def _import_vpk(importer, path: Path, progress: Progress) -> tuple[bool, str]:
+    archive, _ = check_vpk(path)
+    archive.close()
+
     stem = path.stem
     if not (stem.isdigit() and len(stem) <= 3):
-        return importer.process_vpk_file(path, progress_callback=progress)
+        name = _upstream_vpk_name(stem)
+        return _replacing([name], lambda: importer.process_vpk_file(path, progress_callback=progress))
 
     # Upstream indexes stem[-4] when the stem ends in three digits.
-    with tempfile.TemporaryDirectory() as tmp:
-        alias = Path(tmp) / f"{stem}_.vpk"
-        try:
-            os.link(path, alias)
-        except OSError:
-            shutil.copy2(path, alias)
-        ok, message = importer.process_vpk_file(alias, progress_callback=progress)
-    if ok:
-        _rename_library_entry(f"{stem}_", stem)
-    return ok, message.replace(f"{stem}_", stem)
+    def run() -> tuple[bool, str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            alias = Path(tmp) / f"{stem}_.vpk"
+            try:
+                os.link(path, alias)
+            except OSError:
+                shutil.copy2(path, alias)
+            ok, message = importer.process_vpk_file(alias, progress_callback=progress)
+        if ok:
+            _rename_library_entry(f"{stem}_", stem)
+        return ok, message.replace(f"{stem}_", stem)
+
+    return _replacing([f"{stem}_", stem], run)
+
+
+def _import_folder(importer, folder: Path, progress: Progress, override: str | None = None) -> tuple[bool, str]:
+    return _replacing([override or folder.name],
+                      lambda: importer.process_folder(folder, override_name=override, progress_callback=progress))
 
 
 def _looks_like_mod(folder: Path) -> bool:
@@ -263,7 +319,7 @@ def _import_extracted(importer, root: Path, progress: Progress) -> tuple[bool, s
     imported, errors = 0, []
     for folder in roots:
         override = name if folder == root or folder.name.lower() in GENERIC_FOLDERS else None
-        ok, message = importer.process_folder(folder, override_name=override, progress_callback=progress)
+        ok, message = _import_folder(importer, folder, progress, override)
         imported += ok
         if not ok:
             errors.append(message)
@@ -272,10 +328,24 @@ def _import_extracted(importer, root: Path, progress: Progress) -> tuple[bool, s
     return True, f"Imported {imported} mod(s) from {name}"
 
 
+def _stage_vanilla_particles() -> None:
+    """Upstream merges particle mods against vanilla copies that it only stages
+    while preparing a build, so a particle import on a fresh install found none."""
+    from core.backup_manager import prepare_runtime_environment
+
+    if any(_config().temp_to_be_referenced_dir.glob("*.pcf")):
+        return
+    error = prepare_runtime_environment()
+    if error:
+        raise LibraryError(error)
+
+
 def import_items(paths: list[Path], extracted: list[Path], progress: Progress) -> list[dict]:
     from core.services.addons import AddonService
     from core.services.importer import ImportService
 
+    restore_set_aside()
+    _stage_vanilla_particles()
     importer = ImportService()
     jobs = [(path, False) for path in normalize_inputs(paths)] + [(path.resolve(), True) for path in extracted]
     results = []
@@ -291,7 +361,7 @@ def import_items(paths: list[Path], extracted: list[Path], progress: Progress) -
             elif is_extracted:
                 ok, message = _import_extracted(importer, path, report)
             elif path.is_dir():
-                ok, message = importer.process_folder(path, progress_callback=report)
+                ok, message = _import_folder(importer, path, report)
             elif path.suffix.lower() == ".vpk":
                 ok, message = _import_vpk(importer, path, report)
             elif path.suffix.lower() == ".zip":
@@ -301,7 +371,7 @@ def import_items(paths: list[Path], extracted: list[Path], progress: Progress) -
                     ok, message = _import_extracted(importer, unpacked, report)
             else:
                 ok, message = False, f"Unsupported file type: {path.name}"
-        except LibraryError as exc:
+        except (LibraryError, ArchiveError) as exc:
             log.warning("import rejected %s: %s", path, exc)
             ok, message = False, str(exc)
         except Exception as exc:

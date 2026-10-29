@@ -5,7 +5,8 @@ Release builds ship this folder as engine/ next to the launcher, so players
 need neither Python nor pip. Run it with the Python that has the engine's
 requirements and PyInstaller installed:
 
-    python -m pip install -r engine/requirements.txt pyinstaller
+    python -m pip install -r engine/requirements.txt
+    python -m pip install pyinstaller
     python scripts/freeze-engine.py --out build/engine
 """
 
