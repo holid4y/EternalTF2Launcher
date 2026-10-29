@@ -169,10 +169,9 @@ public sealed class PreloadCoordinatorTests : IAsyncDisposable
         _builder.AfterReport = _ => shown.Add(coordinator.Status.Message);
 
         coordinator.BuildNow();
-        await WaitUntil(() => coordinator.Record.Installed);
+        await WaitUntil(() => coordinator.Record.Installed && coordinator.Status.Phase == PreloadPhase.Idle);
 
         Assert.Equal(["step 1", "step 2", "step 3", "step 4", "step 5"], shown);
-        Assert.Equal(PreloadPhase.Idle, coordinator.Status.Phase);
     }
 
     [Fact]
