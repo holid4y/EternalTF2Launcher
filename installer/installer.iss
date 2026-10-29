@@ -7,7 +7,7 @@
 ; The payload is self-contained: the launcher carries its own .NET runtime and
 ; the mod engine is frozen, so nothing else (Python, pip, .NET) is installed.
 
-#define AppVersion     "2.0.0"
+#define AppVersion     "2.0.1"
 #define AppName        "Eternal TF2 Launcher"
 #define AppExeName     "EternalLauncher.exe"
 #define AppPublisher   "Project Eternal"
