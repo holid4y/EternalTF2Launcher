@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Eternal.App.ViewModels"
-             xmlns:feed="using:Eternal.Core.Feed"
              xmlns:views="using:Eternal.App.Views"
              x:Class="Eternal.App.Views.HomeView"
              x:DataType="vm:HomeViewModel">
@@ -16,9 +15,10 @@
         </StackPanel>
 
         <StackPanel Spacing="12">
-          <Grid ColumnDefinitions="*,Auto">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
             <TextBlock Classes="heading" Text="FRESH ON GAMEBANANA" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="ghost" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh">
+            <Button Grid.Column="1" Classes="link" Content="Browse all" Command="{Binding BrowseAllCommand}" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Classes="ghost" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh">
               <PathIcon Data="{StaticResource IconRefresh}" />
             </Button>
           </Grid>
@@ -29,26 +29,26 @@
               <UniformGridLayout MinItemWidth="168" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
             </ItemsRepeater.Layout>
             <ItemsRepeater.ItemTemplate>
-              <DataTemplate DataType="feed:GameBananaMod">
-                <Border Classes="card" Padding="0" ClipToBounds="True">
-                  <StackPanel>
-                    <Border Background="{DynamicResource RaisedBrush}" Height="104" ClipToBounds="True">
-                      <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="420" views:RemoteImage.Url="{Binding ImageUrl}" />
-                    </Border>
-                    <StackPanel Margin="12,10,12,12" Spacing="2">
-                      <TextBlock Classes="title" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
-                      <TextBlock Classes="meta" Text="{Binding Author, StringFormat='by {0}'}" TextTrimming="CharacterEllipsis" />
-                      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
-                        <Button Classes="primary" Padding="10,5" Content="Import"
-                                Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).ImportModCommand}" CommandParameter="{Binding}" />
-                        <Button Classes="ghost" Padding="8,5" ToolTip.Tip="Open on GameBanana"
-                                Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenCommand}" CommandParameter="{Binding Url}">
-                          <PathIcon Data="{StaticResource IconLink}" Width="14" Height="14" />
-                        </Button>
+              <DataTemplate DataType="vm:SubmissionCard">
+                <Button Classes="ghost" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
+                        Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenModCommand}" CommandParameter="{Binding}">
+                  <Border Classes="card" Padding="0" ClipToBounds="True">
+                    <StackPanel>
+                      <Panel Background="{DynamicResource RaisedBrush}" Height="104" ClipToBounds="True">
+                        <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="420" views:RemoteImage.Url="{Binding Thumbnail}" />
+                        <Border Classes="badge installed" IsVisible="{Binding Installed}" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top">
+                          <TextBlock Text="Installed" />
+                        </Border>
+                      </Panel>
+                      <StackPanel Margin="12,10,12,12" Spacing="2">
+                        <TextBlock Classes="title" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource InkBrush}" />
+                        <TextBlock Classes="meta" Text="{Binding Author}" TextTrimming="CharacterEllipsis" FontWeight="Normal" />
+                        <TextBlock Classes="meta" Text="{Binding Category}" TextTrimming="CharacterEllipsis" FontWeight="Normal" />
                       </StackPanel>
                     </StackPanel>
-                  </StackPanel>
-                </Border>
+                  </Border>
+                </Button>
               </DataTemplate>
             </ItemsRepeater.ItemTemplate>
           </ItemsRepeater>

@@ -23,6 +23,8 @@ public sealed class AppServices : IAsyncDisposable
     public AppServices(AppPaths paths)
     {
         Paths = paths;
+        // Only one launcher runs at a time, so anything left in staging is from an import that never finished.
+        ArchiveIngest.TryDelete(paths.ImportStagingDir);
         Launcher = new LauncherSettingsStore(paths);
         if (!SteamLocator.IsTf2Folder(Launcher.Settings.TfPath) && SteamLocator.FindTf2() is { } detected)
             Launcher.Update(s => s.TfPath = detected);
@@ -36,7 +38,7 @@ public sealed class AppServices : IAsyncDisposable
         Runtime = new EngineRuntime(paths, () => Launcher.Settings.PythonOverride);
         EngineClient = new EngineClient(Runtime);
         Engine = new PreloaderEngine(EngineClient);
-        Mods = new ModLibrary(Engine, paths, new ThumbnailStore(paths.ThumbnailsDir));
+        Mods = new ModLibrary(Engine, paths, new ThumbnailStore(paths.ThumbnailsDir), () => TfPath);
         Preload = new PreloadCoordinator(new EnginePreloadBuilder(Engine), Mods.Desired, () => TfPath, GameProcess.IsRunning, paths.PreloadStateFile);
         Mods.DesiredChanged += Preload.RequestBuild;
         Preload.Recovered += result => Notice?.Invoke(result.Success

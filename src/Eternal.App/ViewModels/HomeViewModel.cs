@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eternal.App.Services;
 using Eternal.Core.Feed;
+using Eternal.Core.GameBanana;
 using Eternal.Core.Logging;
 using Eternal.Core.Platform;
 using Eternal.Core.Steam;
@@ -31,7 +32,7 @@ public sealed partial class HomeViewModel : PageViewModel
     }
 
     public ObservableCollection<NewsRow> News { get; } = [];
-    public ObservableCollection<GameBananaMod> FreshMods { get; } = [];
+    public ObservableCollection<SubmissionCard> FreshMods { get; } = [];
     public MainViewModel Main => _main;
 
     [ObservableProperty] private bool _loadingNews;
@@ -80,12 +81,13 @@ public sealed partial class HomeViewModel : PageViewModel
         ModsError = null;
         try
         {
-            var mods = await FeedService.GameBananaLatestAsync(10);
+            var page = await GameBananaClient.Shared.BrowseAsync(new BrowseQuery(Section.Mods, Sort: BrowseSort.RecentlyUpdated));
+            var installed = _main.Mods.InstalledSources();
             FreshMods.Clear();
-            foreach (var mod in mods.Take(8))
-                FreshMods.Add(mod);
+            foreach (var submission in page.Items.Take(8))
+                FreshMods.Add(new SubmissionCard(submission, GameBananaViewModel.Installed(installed, submission)));
         }
-        catch (Exception ex)
+        catch (GameBananaException ex)
         {
             Log.Info($"GameBanana feed unavailable: {ex.Message}");
             ModsError = "GameBanana couldn't be reached right now.";
@@ -97,13 +99,23 @@ public sealed partial class HomeViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private static void Open(string? url) => Shell.OpenUrl(url);
-
-    [RelayCommand]
     private static void OpenNews(NewsRow? row) => Shell.OpenUrl(row?.Item.Url);
 
     [RelayCommand]
-    private Task ImportMod(GameBananaMod? mod) => mod is null ? Task.CompletedTask : _main.Mods.ImportFromGameBananaAsync(mod);
+    private void OpenMod(SubmissionCard? card)
+    {
+        if (card is null)
+            return;
+        _main.Navigate("mods");
+        _main.Mods.Browse(card.Submission);
+    }
+
+    [RelayCommand]
+    private void BrowseAll()
+    {
+        _main.Navigate("mods");
+        _main.Mods.Browsing = true;
+    }
 
     [RelayCommand]
     private void Go(string tab) => _main.Navigate(tab);

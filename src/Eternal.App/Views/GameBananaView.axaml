@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             x:Class="Eternal.App.Views.GameBananaView"
+             x:DataType="vm:GameBananaViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Button.card">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Button.card:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    </Style>
+    <Style Selector="Button.segment">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+    </Style>
+    <Style Selector="Button.segment.on">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    </Style>
+    <Style Selector="Button.page">
+      <Setter Property="MinWidth" Value="32" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+    </Style>
+    <Style Selector="Button.page.on">
+      <Setter Property="Background" Value="{DynamicResource InkBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource GroundBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <Grid ColumnDefinitions="196,*" ColumnSpacing="24" IsVisible="{Binding Open, Converter={x:Static ObjectConverters.IsNull}}">
+
+      <DockPanel>
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*" ColumnSpacing="4" Margin="0,0,0,14">
+          <Button Classes="segment" Classes.on="{Binding ShowingMods}" Content="Mods" Command="{Binding ShowModsCommand}" />
+          <Button Grid.Column="1" Classes="segment" Classes.on="{Binding !ShowingMods}" Content="Sounds" Command="{Binding ShowSoundsCommand}" />
+        </Grid>
+        <ListBox Classes="subnav" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"
+                 AutomationProperties.Name="Categories">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:CategoryRow">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="{Binding Indent}">
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding Count}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <DockPanel Grid.Column="1">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,10">
+          <TextBox Watermark="Search GameBanana by name" Text="{Binding Search}" MaxLength="80"
+                   AutomationProperties.Name="Search GameBanana">
+            <TextBox.InnerLeftContent>
+              <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
+            </TextBox.InnerLeftContent>
+          </TextBox>
+          <ComboBox Grid.Column="1" ItemsSource="{Binding Sorts}" SelectedItem="{Binding Sort}" MinWidth="170"
+                    AutomationProperties.Name="Sort by" />
+        </Grid>
+
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,10" MinHeight="32">
+          <TextBlock Classes="meta" Text="{Binding ResultText}" VerticalAlignment="Center" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" IsVisible="{Binding HasResults}">
+            <Button Classes="page" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoBack}" ToolTip.Tip="Previous page"
+                    AutomationProperties.Name="Previous page">
+              <PathIcon Data="{StaticResource IconLeft}" Width="14" Height="14" />
+            </Button>
+            <ItemsControl ItemsSource="{Binding Pages}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="2" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:PageButton">
+                  <Button Classes="page figure" Classes.on="{Binding Current}" Content="{Binding Label}" IsEnabled="{Binding !IsGap}"
+                          AutomationProperties.Name="{Binding Label, StringFormat='Page {0}'}"
+                          Command="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).GoToPageCommand}" CommandParameter="{Binding}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="page" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoForward}" ToolTip.Tip="Next page"
+                    AutomationProperties.Name="Next page">
+              <PathIcon Data="{StaticResource IconRight}" Width="14" Height="14" />
+            </Button>
+          </StackPanel>
+        </Grid>
+
+        <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" Margin="0,0,0,8" />
+
+        <Panel>
+          <ScrollViewer IsVisible="{Binding HasResults}" Opacity="{Binding Loading, Converter={x:Static views:Converters.Dimmed}}">
+            <ItemsRepeater ItemsSource="{Binding Items}" Margin="0,0,12,12">
+              <ItemsRepeater.Layout>
+                <UniformGridLayout MinItemWidth="216" MinItemHeight="254" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
+              </ItemsRepeater.Layout>
+              <ItemsRepeater.ItemTemplate>
+                <DataTemplate DataType="vm:SubmissionCard">
+                  <Button Classes="card" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
+                          Command="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).OpenCardCommand}" CommandParameter="{Binding}">
+                    <Grid RowDefinitions="140,*">
+                      <Panel Background="{DynamicResource RaisedBrush}" ClipToBounds="True">
+                        <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="440" views:RemoteImage.Url="{Binding Thumbnail}"
+                               IsVisible="{Binding HasThumbnail}" />
+                        <PathIcon Data="{StaticResource IconSound}" Width="34" Height="34" Foreground="{DynamicResource FaintBrush}"
+                                  IsVisible="{Binding !HasThumbnail}" />
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="8" VerticalAlignment="Top" HorizontalAlignment="Left">
+                          <Border Classes="badge installed" IsVisible="{Binding Installed}"><TextBlock Text="Installed" /></Border>
+                          <Border Classes="badge" IsVisible="{Binding CasualReady}" ToolTip.Tip="Its author says it works in Casual">
+                            <TextBlock Text="Casual" />
+                          </Border>
+                          <Border Classes="badge" IsVisible="{Binding Obsolete}"><TextBlock Text="Obsolete" /></Border>
+                        </StackPanel>
+                      </Panel>
+                      <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="12,10,12,10">
+                        <StackPanel Spacing="2">
+                          <TextBlock Classes="title" Text="{Binding Name}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                                     LineHeight="19" Height="38" />
+                          <TextBlock Classes="meta" Text="{Binding Author}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="12" Margin="0,8,0,0">
+                          <StackPanel Orientation="Horizontal" Spacing="4" ToolTip.Tip="Likes">
+                            <PathIcon Data="{StaticResource IconHeart}" Width="11" Height="11" Foreground="{DynamicResource FaintBrush}" />
+                            <TextBlock Classes="meta figure" Text="{Binding Likes}" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" ToolTip.Tip="Views">
+                            <PathIcon Data="{StaticResource IconEye}" Width="12" Height="12" Foreground="{DynamicResource FaintBrush}" />
+                            <TextBlock Classes="meta figure" Text="{Binding Views}" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Updated}" HorizontalAlignment="Right" ToolTip.Tip="Last updated" />
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+          </ScrollViewer>
+
+          <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="title" Text="GameBanana couldn't be loaded" />
+              <TextBlock Classes="muted" Text="{Binding Error}" TextWrapping="Wrap" />
+              <Button Content="Try again" Command="{Binding RetryCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+            <TextBlock Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
+          </Border>
+        </Panel>
+      </DockPanel>
+    </Grid>
+
+    <views:SubmissionView DataContext="{Binding Open}" IsVisible="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).Open, Converter={x:Static ObjectConverters.IsNotNull}}" />
+  </Panel>
+</UserControl>

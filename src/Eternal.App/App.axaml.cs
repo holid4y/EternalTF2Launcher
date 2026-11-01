@@ -43,7 +43,7 @@ public partial class App : Application
                 window.ExitRequested += () => desktop.Shutdown();
                 if (Instance is not null)
                     Instance.ActivationRequested += () => Dispatcher.UIThread.Post(window.Reveal);
-                TrayIconSetup.Setup(this, window, _services, () => desktop.Shutdown());
+                TrayIconSetup.Setup(this, window, _services, theme, () => desktop.Shutdown());
             }
             catch (Exception ex)
             {

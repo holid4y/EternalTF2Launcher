@@ -79,6 +79,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     [ObservableProperty] private TabViewModel? _selectedTab;
     [ObservableProperty] private DialogViewModel? _dialog;
+    [ObservableProperty] private ImportChoiceViewModel? _importChoice;
     [ObservableProperty] private PlayState _playState;
     [ObservableProperty] private string _playLabel = "PLAY";
     [ObservableProperty] private string _dockTitle = "";
@@ -360,6 +361,22 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             Dialog = null;
     }
 
+    /// <returns>The sources of the parts to install, or null when the player cancels.</returns>
+    public async Task<IReadOnlyList<string>?> ChoosePartsAsync(ImportPlan plan)
+    {
+        var choice = new ImportChoiceViewModel(plan);
+        ImportChoice = choice;
+        try
+        {
+            return await choice.Result;
+        }
+        finally
+        {
+            if (ImportChoice == choice)
+                ImportChoice = null;
+        }
+    }
+
     public async Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save")
     {
         var dialog = new DialogViewModel { Title = title, Message = message, ConfirmText = confirm, CancelText = "Cancel", HasInput = true, Input = initial };
@@ -381,7 +398,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         return span.TotalMinutes < 1 ? "just now"
             : span.TotalHours < 1 ? $"{(int)span.TotalMinutes} min ago"
             : span.TotalDays < 1 ? $"{(int)span.TotalHours} h ago"
-            : when.LocalDateTime.ToString("d MMM");
+            : when.LocalDateTime.ToString(when.Year == DateTimeOffset.Now.Year ? "d MMM" : "d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
 

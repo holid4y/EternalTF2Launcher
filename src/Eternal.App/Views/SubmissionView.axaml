@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             x:Class="Eternal.App.Views.SubmissionView"
+             x:DataType="vm:SubmissionViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Border.file">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+    <Style Selector="Border.file.picked">
+      <Setter Property="BorderBrush" Value="{DynamicResource InkBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="11,9" />
+    </Style>
+    <Style Selector="Button.shot">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Width" Value="96" />
+      <Setter Property="Height" Value="54" />
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <Button Classes="ghost" Padding="6,5" Command="{Binding $parent[views:GameBananaView].((vm:GameBananaViewModel)DataContext).BackCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <PathIcon Data="{StaticResource IconLeft}" Width="14" Height="14" />
+          <TextBlock Text="Back to GameBanana" />
+        </StackPanel>
+      </Button>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+        <Button Classes="ghost" Command="{Binding ListenCommand}" IsVisible="{Binding CanListen}" ToolTip.Tip="Plays GameBanana's preview in your browser">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <PathIcon Data="{StaticResource IconSound}" Width="14" Height="14" />
+            <TextBlock Text="Listen" />
+          </StackPanel>
+        </Button>
+        <Button Classes="ghost" Command="{Binding OpenPageCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <PathIcon Data="{StaticResource IconLink}" Width="14" Height="14" />
+            <TextBlock Text="Open on GameBanana" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="4">
+      <TextBlock Classes="heading" FontSize="26" Text="{Binding Name}" TextWrapping="Wrap" />
+      <WrapPanel ItemSpacing="10" LineSpacing="4">
+        <TextBlock Classes="muted" Text="{Binding Author}" VerticalAlignment="Center" />
+        <TextBlock Classes="meta" Text="{Binding Category}" VerticalAlignment="Center" />
+        <Border Classes="badge" IsVisible="{Binding CasualReady}" VerticalAlignment="Center" ToolTip.Tip="Its author says it works in Casual">
+          <TextBlock Text="Casual" />
+        </Border>
+        <Border Classes="badge" IsVisible="{Binding Obsolete}" VerticalAlignment="Center"><TextBlock Text="Obsolete" /></Border>
+      </WrapPanel>
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,360" ColumnSpacing="24">
+
+      <ScrollViewer>
+        <StackPanel Spacing="12" Margin="0,0,10,12">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="3" Height="300" ClipToBounds="True"
+                  IsVisible="{Binding Shown, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Image Stretch="Uniform" views:RemoteImage.DecodeWidth="1100" views:RemoteImage.Url="{Binding Shown}" />
+          </Border>
+          <ItemsControl ItemsSource="{Binding Screenshots}" IsVisible="{Binding HasScreenshots}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Button Classes="shot" ToolTip.Tip="Show this picture" AutomationProperties.Name="Show this picture"
+                        Command="{Binding $parent[UserControl].((vm:SubmissionViewModel)DataContext).ShowCommand}" CommandParameter="{Binding}">
+                  <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="200" views:RemoteImage.Url="{Binding}" />
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" />
+          <Border Classes="card" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="title" Text="This page couldn't be loaded" />
+              <TextBlock Classes="muted" Text="{Binding Error}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" LineHeight="21" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <ScrollViewer Grid.Column="1">
+        <StackPanel Spacing="16" Margin="0,0,10,12">
+          <Border Classes="card" Padding="18,14">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+              <StackPanel>
+                <TextBlock Classes="figure" FontSize="18" Text="{Binding Downloads, TargetNullValue='–'}" />
+                <TextBlock Classes="meta" Text="downloads" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Classes="figure" FontSize="18" Text="{Binding Likes}" />
+                <TextBlock Classes="meta" Text="likes" />
+              </StackPanel>
+              <StackPanel Grid.Row="1">
+                <TextBlock Classes="figure" FontSize="18" Text="{Binding Views}" />
+                <TextBlock Classes="meta" Text="views" />
+              </StackPanel>
+              <StackPanel Grid.Row="1" Grid.Column="1">
+                <TextBlock Classes="figure" FontSize="18" Text="{Binding Updated}" />
+                <TextBlock Classes="meta" Text="last updated" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <StackPanel Spacing="8">
+            <TextBlock Classes="heading" Text="FILES" />
+            <TextBlock Classes="meta" Text="{Binding FilesHint}" TextWrapping="Wrap"
+                       IsVisible="{Binding FilesHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="muted" Text="There's nothing to download here." IsVisible="{Binding NoFiles}" />
+            <ItemsControl ItemsSource="{Binding Files}" IsEnabled="{Binding !Installing}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:FileRow">
+                  <Border Classes="file" Classes.picked="{Binding Picked}" Margin="0,0,0,6">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                      <CheckBox IsChecked="{Binding Picked}" VerticalAlignment="Top" Margin="0,1,0,0"
+                                IsEnabled="{Binding CanInstall}" AutomationProperties.Name="{Binding Name}" />
+                      <StackPanel Grid.Column="1" Spacing="3">
+                        <WrapPanel ItemSpacing="8">
+                          <ItemsControl ItemsSource="{Binding NameParts}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <Border Classes="badge installed" IsVisible="{Binding Installed}" VerticalAlignment="Center"><TextBlock Text="Installed" /></Border>
+                        </WrapPanel>
+                        <WrapPanel ItemSpacing="10">
+                          <TextBlock Classes="meta figure" Text="{Binding Size}" />
+                          <TextBlock Classes="meta" Text="{Binding Added}" />
+                          <TextBlock Classes="meta" Text="{Binding Downloads}" />
+                        </WrapPanel>
+                        <TextBlock Classes="muted" FontSize="13" Text="{Binding Description}" TextWrapping="Wrap" MaxLines="4" TextTrimming="WordEllipsis"
+                                   IsVisible="{Binding HasDescription}" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !CanInstall}">
+                          <PathIcon Data="{StaticResource IconWarning}" Width="12" Height="12" Foreground="{DynamicResource WarningBrush}" />
+                          <TextBlock Classes="warning" FontSize="12" Text="{Binding Blocker}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ProgressBar Classes="thin" Value="{Binding Progress}" Maximum="100" IsVisible="{Binding Busy}" Margin="0,4,0,0" />
+                        <TextBlock Classes="meta" Classes.danger="{Binding Failed}" Text="{Binding Status}" TextWrapping="Wrap"
+                                   IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <DockPanel IsVisible="{Binding HasFiles}">
+              <Button DockPanel.Dock="Right" Classes="ghost" Height="40" Margin="8,0,0,0" Content="Cancel" Command="{Binding CancelCommand}"
+                      IsVisible="{Binding Installing}" />
+              <Button Classes="primary" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                      Command="{Binding InstallCommand}" Content="{Binding InstallLabel}" />
+            </DockPanel>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

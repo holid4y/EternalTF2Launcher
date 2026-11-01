@@ -67,6 +67,20 @@ public partial class MainWindow : Window
     // Dialogs are drawn over the page, so focus has to be moved in and back by hand.
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.ImportChoice))
+        {
+            if (Vm?.ImportChoice is not null)
+            {
+                _focusBeforeDialog ??= FocusManager?.GetFocusedElement();
+                Dispatcher.UIThread.Post(() => ChoiceInstall.Focus(), DispatcherPriority.Loaded);
+            }
+            else if (Vm?.Dialog is null)
+            {
+                _focusBeforeDialog?.Focus();
+                _focusBeforeDialog = null;
+            }
+            return;
+        }
         if (e.PropertyName != nameof(MainViewModel.Dialog))
             return;
         if (Vm?.Dialog is { } dialog)
@@ -140,6 +154,7 @@ public partial class MainWindow : Window
         if (paths.Length == 0 || Vm is not { } vm)
             return;
         vm.Navigate("mods");
+        vm.Mods.Browsing = false;
         await vm.Mods.ImportAsync(paths);
     }
 

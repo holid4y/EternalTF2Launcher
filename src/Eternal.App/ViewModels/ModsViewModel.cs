@@ -5,12 +5,18 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eternal.App.Services;
 using Eternal.Core.Engine;
-using Eternal.Core.Feed;
 using Eternal.Core.Logging;
 using Eternal.Core.Mods;
 using Eternal.Core.Platform;
 
 namespace Eternal.App.ViewModels;
+
+public sealed record ImportResult(IReadOnlyList<string> Imported, IReadOnlyList<string> Problems, bool WasCancelled)
+{
+    public static ImportResult Cancelled { get; } = new([], [], true);
+
+    public static ImportResult Failed(string problem) => new([], [problem], false);
+}
 
 public sealed partial class ModRowViewModel : ObservableObject
 {
@@ -132,7 +138,36 @@ public sealed partial class ModsViewModel : PageViewModel
         RefreshEngine();
         RefreshStatus();
         LoadOptions();
+        GameBanana = new GameBananaViewModel(services, this);
     }
+
+    public GameBananaViewModel GameBanana { get; }
+
+    /// <summary>True while the GameBanana browser is showing instead of the library.</summary>
+    [ObservableProperty] private bool _browsing;
+
+    public bool ShowingLibrary => !Browsing;
+
+    partial void OnBrowsingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowingLibrary));
+        if (value)
+            GameBanana.Activate();
+    }
+
+    [RelayCommand]
+    private void ShowLibrary() => Browsing = false;
+
+    [RelayCommand]
+    private void ShowGameBanana() => Browsing = true;
+
+    public void Browse(Eternal.Core.GameBanana.Submission submission)
+    {
+        Browsing = true;
+        GameBanana.Show(submission);
+    }
+
+    internal void Notify(string message) => _main.Notify(message);
 
     public ObservableCollection<ModRowViewModel> Rows { get; } = [];
     public ObservableCollection<ModRowViewModel> Visible { get; } = [];
@@ -327,108 +362,118 @@ public sealed partial class ModsViewModel : PageViewModel
             await ImportAsync([folder]);
     }
 
-    public async Task ImportAsync(IReadOnlyList<string> paths, string? source = null)
+    /// <summary>
+    /// Imports files, folders and archives one at a time. When one holds several
+    /// mods the player picks which (see <see cref="ImportPlan.DefaultChoice"/>).
+    /// </summary>
+    public async Task ImportAsync(IReadOnlyList<string> paths)
     {
-        if (paths.Count == 0)
+        if (paths.Count == 0 || !await BeginImportAsync())
             return;
+        var imported = new List<string>();
+        var problems = new List<string>();
+        try
+        {
+            foreach (var path in paths)
+            {
+                var result = await ImportOneAsync(path, null, null, CancellationToken.None);
+                imported.AddRange(result.Imported);
+                problems.AddRange(result.Problems);
+            }
+        }
+        finally
+        {
+            EndImport();
+        }
+
+        if (problems.Count > 0)
+        {
+            var head = imported.Count > 0 ? $"Imported {string.Join(", ", imported)}. These had problems:" : "Nothing was imported:";
+            await _dialogs.AlertAsync("Import finished with problems", head + "\n\n" + string.Join("\n", problems.Select(p => "• " + p)));
+        }
+        else if (imported.Count > 0)
+        {
+            _main.Notify($"Imported {string.Join(", ", imported)}. They're switched on, at the top of your list.");
+        }
+    }
+
+    internal async Task<bool> BeginImportAsync()
+    {
         if (Importing)
         {
             _main.Notify("Wait for the current import to finish.");
-            return;
+            return false;
         }
         if (!EngineReady)
         {
             await _dialogs.AlertAsync("Mod engine not ready", EngineMessage);
-            return;
+            return false;
         }
-
         Importing = true;
         ImportProgress = 0;
         ImportMessage = "Preparing…";
-        try
-        {
-            var progress = new Progress<ImportProgress>(p =>
-            {
-                ImportMessage = p.Message;
-                ImportProgress = p.Fraction * 100;
-            });
-            var outcome = await _services.Mods.ImportAsync(paths, progress);
-            if (source is not null)
-                _services.Mods.SetSource(outcome.Items.SelectMany(i => i.Mods).Select(m => m.Name), source);
-
-            if (outcome.Failures.Count > 0)
-            {
-                var head = outcome.AnyChanged
-                    ? "Some items imported. These could not be:"
-                    : "Nothing could be imported:";
-                await _dialogs.AlertAsync("Import finished with problems", head + "\n\n" + string.Join("\n", outcome.Failures.Select(f => "• " + f)));
-            }
-            else if (outcome.AnyChanged)
-            {
-                _main.Notify($"Imported {string.Join(", ", outcome.Items.SelectMany(i => i.Mods).Select(m => m.Name))}.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Import failed", ex);
-            await _dialogs.AlertAsync("Import failed", ex.Message);
-        }
-        finally
-        {
-            Importing = false;
-        }
+        return true;
     }
 
-    public async Task ImportFromGameBananaAsync(GameBananaMod mod)
+    internal void EndImport() => Importing = false;
+
+    /// <summary>
+    /// One file or folder, between <see cref="BeginImportAsync"/> and <see cref="EndImport"/>.
+    /// <paramref name="modName"/> names the mod when the download holds just one.
+    /// </summary>
+    internal async Task<ImportResult> ImportOneAsync(string path, string? source, string? modName, CancellationToken cancellation)
     {
-        if (Importing)
+        var name = Path.GetFileName(path);
+        var progress = new Progress<ImportProgress>(p =>
         {
-            _main.Notify("Wait for the current import to finish.");
-            return;
-        }
-        _main.Navigate("mods");
-        Importing = true;
-        ImportMessage = $"Looking up {mod.Name}…";
+            ImportMessage = p.Message;
+            ImportProgress = p.Fraction * 100;
+        });
         try
         {
-            var files = await FeedService.GameBananaFilesAsync(mod.Id);
-            var file = files.Where(f => f.Clean).OrderByDescending(f => f.Id).FirstOrDefault();
-            if (file is null)
-            {
-                await _dialogs.AlertAsync("Nothing to download", $"{mod.Name} has no downloadable file that passed GameBanana's scan.");
-                return;
-            }
-            if (files.Count > 1 && !await _dialogs.ConfirmAsync("Choose a file",
-                    $"{mod.Name} has {files.Count} files. Import the newest one, {file.FileName} ({file.Size / 1048576.0:0.#} MB)?", "Import", "Cancel"))
-                return;
+            using var plan = await _services.Mods.PrepareAsync(path, progress, cancellation);
+            if (plan.Parts.Count == 0)
+                return ImportResult.Failed(NothingToImport(name, plan.Inspection));
 
-            var folder = Path.Combine(_services.Paths.ImportStagingDir, "downloads");
-            var progress = new Progress<double>(p =>
+            IReadOnlyList<string>? parts = null;
+            if (plan.Parts.Count > 1)
             {
-                ImportMessage = $"Downloading {file.FileName}…";
-                ImportProgress = p * 100;
-            });
-            var path = await FeedService.DownloadAsync(file, folder, progress);
-            try
-            {
-                Importing = false;
-                await ImportAsync([path], $"gamebanana:{mod.Id}:{file.Id}");
+                parts = await _main.ChoosePartsAsync(plan);
+                if (parts is null)
+                    return ImportResult.Cancelled;
             }
-            finally
-            {
-                File.Delete(path);
-            }
+
+            var outcome = await _services.Mods.ImportAsync(plan, parts, progress, modName, cancellation);
+            var names = outcome.Items.SelectMany(i => i.Mods).Select(m => m.Name).Distinct().ToList();
+            if (source is not null && names.Count > 0)
+                _services.Mods.SetSource(names, source);
+            var problems = outcome.Failures.ToList();
+            if (names.Count > 0 && plan.Inspection.Skipped.Count > 0)
+                problems.Add($"Left out of {name}: {Preview(plan.Inspection.Skipped)}. The game has no file with those names, so there's nowhere to put them.");
+            return new ImportResult(names, problems, false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is ArchiveException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            Log.Warn($"GameBanana import of {mod.Id} failed", ex);
-            await _dialogs.AlertAsync("Download failed", ex.Message);
-        }
-        finally
-        {
-            Importing = false;
+            Log.Warn($"Import of {name} failed: {ex.Message}");
+            return ImportResult.Failed($"{name}: {ex.Message}");
         }
     }
+
+    private static string NothingToImport(string name, Inspection inspection)
+    {
+        if (inspection.Skipped.Count > 0)
+            return $"{name} has files like {Preview(inspection.Skipped)}, but nothing says where in the game they go.";
+        if (inspection.Documents.Count > 0)
+            return $"{name} only holds {Preview(inspection.Documents)}. There are no game files in it.";
+        return $"{name} has no game files in it.";
+    }
+
+    private static string Preview(IReadOnlyList<string> paths) =>
+        string.Join(", ", paths.Take(3).Select(Path.GetFileName)) + (paths.Count > 3 ? $" and {paths.Count - 3} more" : "");
+
+    /// <summary>Sources (see <see cref="ModEntry.Source"/>) of everything in the library.</summary>
+    public IReadOnlySet<string> InstalledSources() =>
+        _services.Mods.State.Order.Select(e => e.Source).OfType<string>().ToHashSet(StringComparer.Ordinal);
 
     public void MoveTo(ModRowViewModel row, int index) => _services.Mods.Move(row.Name, row.Item.Kind, index);
 

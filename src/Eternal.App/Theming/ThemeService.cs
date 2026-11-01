@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
@@ -20,11 +21,13 @@ public sealed partial class ThemeService : ObservableObject
     private string? _backgroundSource;
     private double _backgroundBlur = -1;
     private IReadOnlyList<string>? _screenshots;
+    private Color _logoColor;
     private string? _screenshot;
 
     [ObservableProperty] private Theme _current = Theme.All[0];
     [ObservableProperty] private Color _accent;
-    [ObservableProperty] private IImage? _logo;
+    [ObservableProperty] private Bitmap? _logo;
+    [ObservableProperty] private WindowIcon? _icon;
     [ObservableProperty] private Bitmap? _background;
     [ObservableProperty] private double _backgroundDim;
     [ObservableProperty] private double _scale = 1;
@@ -71,13 +74,11 @@ public sealed partial class ThemeService : ObservableObject
 
         ApplyFluentPalette(theme);
 
-        try
+        if (Logo is null || accent != _logoColor)
         {
-            Logo = new Bitmap(Avalonia.Platform.AssetLoader.Open(new Uri($"avares://EternalLauncher/Assets/Logos/{theme.Logo}.png")));
-        }
-        catch (Exception ex) when (ex is FileNotFoundException or IOException)
-        {
-            Logo = null;
+            Logo = Hat(accent);
+            Icon = Logo is null ? null : new WindowIcon(Logo);
+            _logoColor = accent;
         }
 
         var source = settings.Background switch
@@ -87,6 +88,30 @@ public sealed partial class ThemeService : ObservableObject
             _ => null,
         };
         _ = UpdateBackgroundAsync(source, settings.BackgroundBlur);
+    }
+
+    /// <summary>The top hat in the accent colour, so a custom accent reaches the window and tray icons too.</summary>
+    private static Bitmap? Hat(Color color)
+    {
+        try
+        {
+            using var source = Avalonia.Platform.AssetLoader.Open(new Uri("avares://EternalLauncher/Assets/Logos/logo_minimal.png"));
+            using var mask = SKBitmap.Decode(source);
+            using var tinted = new SKBitmap(mask.Width, mask.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            using (var canvas = new SKCanvas(tinted))
+            using (var paint = new SKPaint { ColorFilter = SKColorFilter.CreateBlendMode(new SKColor(color.R, color.G, color.B), SKBlendMode.SrcIn) })
+            {
+                canvas.Clear(SKColors.Transparent);
+                canvas.DrawBitmap(mask, 0, 0, paint);
+            }
+            using var png = tinted.Encode(SKEncodedImageFormat.Png, 100);
+            return new Bitmap(png.AsStream());
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or IOException or ArgumentException)
+        {
+            Log.Warn($"Couldn't draw the logo: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>TF2 screenshots found in Steam's userdata, listed once per session.</summary>

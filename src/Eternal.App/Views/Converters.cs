@@ -47,6 +47,9 @@ public static class Converters
 
     private static Color Scale(Color c, double f) => Color.FromRgb((byte)(c.R * f), (byte)(c.G * f), (byte)(c.B * f));
 
+    public static readonly IValueConverter Dimmed =
+        new FuncValueConverter<bool, double>(dim => dim ? 0.55 : 1);
+
     public static readonly IValueConverter TabTitle =
         new FuncValueConverter<string, string>(id => id switch
         {

@@ -5,7 +5,7 @@
         x:Class="Eternal.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="Eternal TF2 Launcher"
-        Icon="avares://EternalLauncher/Assets/Logos/app.ico"
+        Icon="{Binding Theme.Icon}"
         Width="1300" Height="800" MinWidth="1040" MinHeight="660"
         WindowStartupLocation="CenterScreen"
         DragDrop.AllowDrop="True">
@@ -122,6 +122,44 @@
               <TextBlock Classes="display" Text="DROP TO IMPORT" HorizontalAlignment="Center" />
               <TextBlock Classes="muted" Text="VPK, ZIP, RAR, 7z or folders" HorizontalAlignment="Center" />
             </StackPanel>
+          </Border>
+        </Border>
+
+        <Border Background="#99000000" IsVisible="{Binding ImportChoice, Converter={x:Static ObjectConverters.IsNotNull}}"
+                KeyboardNavigation.TabNavigation="Cycle">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="4" Padding="28,24" Width="560" MaxHeight="560"
+                  HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 16 48 0 #88000000">
+            <DockPanel DataContext="{Binding ImportChoice}" x:DataType="vm:ImportChoiceViewModel">
+              <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,14">
+                <TextBlock Classes="heading" FontSize="22" Text="{Binding Title}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{Binding Message}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10" Margin="0,16,0,0">
+                <Button Classes="link" Content="Pick all" Command="{Binding PickAllCommand}" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Classes="link" Content="Pick none" Command="{Binding PickNoneCommand}" VerticalAlignment="Center" />
+                <Button Grid.Column="3" Classes="ghost" Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+                <Button Grid.Column="4" Name="ChoiceInstall" Classes="primary" Content="Install" Command="{Binding InstallCommand}"
+                        IsEnabled="{Binding CanInstall}" IsDefault="True" />
+              </Grid>
+              <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Parts}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:PartChoice">
+                      <Border Background="{DynamicResource RaisedBrush}" CornerRadius="3" Padding="12,9" Margin="0,0,0,4">
+                        <CheckBox IsChecked="{Binding Picked}" AutomationProperties.Name="{Binding Name}">
+                          <StackPanel Spacing="2" Margin="4,0,0,0">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Classes="meta" Text="{Binding Detail}" />
+                            <TextBlock Classes="meta" TextWrapping="Wrap" IsVisible="{Binding HasAlternatives}"
+                                       Text="{Binding Alternatives, StringFormat='Changes the same files as {0}'}" />
+                          </StackPanel>
+                        </CheckBox>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </DockPanel>
           </Border>
         </Border>
 

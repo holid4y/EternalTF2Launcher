@@ -15,6 +15,7 @@ namespace Eternal.App.Services;
 public sealed class ImageCache(string directory)
 {
     private const int MemoryLimit = 600;
+    private const int MaxImageBytes = 16 * 1024 * 1024;
     private readonly ConcurrentDictionary<string, Bitmap> _memory = new();
     private readonly ConcurrentQueue<string> _order = new();
     private readonly SemaphoreSlim _downloads = new(6, 6);
@@ -40,7 +41,7 @@ public sealed class ImageCache(string directory)
                 await _downloads.WaitAsync(cancellation).ConfigureAwait(false);
                 try
                 {
-                    var bytes = await Http.Client.GetByteArrayAsync(url, cancellation).ConfigureAwait(false);
+                    var bytes = await DownloadAsync(url, cancellation).ConfigureAwait(false);
                     Directory.CreateDirectory(directory);
                     // Moved into place whole, so an interrupted or parallel download never leaves half a picture.
                     var partial = $"{file}.{Guid.NewGuid():N}.part";
@@ -91,5 +92,25 @@ public sealed class ImageCache(string directory)
         {
             _inflight.TryRemove(key, out _);
         }
+    }
+
+    // Pictures come from pages written by anyone (news posts, GameBanana uploads); a huge one must not fill memory.
+    private static async Task<byte[]> DownloadAsync(string url, CancellationToken cancellation)
+    {
+        using var response = await Http.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellation).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength > MaxImageBytes)
+            throw new InvalidOperationException("Picture is too large.");
+        await using var input = await response.Content.ReadAsStreamAsync(cancellation).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        int n;
+        while ((n = await input.ReadAsync(chunk, cancellation).ConfigureAwait(false)) > 0)
+        {
+            if (buffer.Length + n > MaxImageBytes)
+                throw new InvalidOperationException("Picture is too large.");
+            buffer.Write(chunk, 0, n);
+        }
+        return buffer.ToArray();
     }
 }
