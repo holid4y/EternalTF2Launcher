@@ -153,6 +153,14 @@ def build_parser() -> argparse.ArgumentParser:
     importer.add_argument("paths", nargs="*", type=Path)
     importer.add_argument("--extracted", action="append", type=Path, default=[],
                           help="folder unpacked from an archive; its name is used as the mod name")
+    importer.add_argument("--part", dest="parts", action="append",
+                          help="only import the part with this source, as listed by inspect (repeatable)")
+    importer.add_argument("--tf-path", type=Path, help="lets loose files be placed by their name")
+    importer.add_argument("--name", help="library name for what is imported, when it is a single mod")
+
+    inspector = sub.add_parser("inspect")
+    inspector.add_argument("path", type=Path)
+    inspector.add_argument("--tf-path", type=Path)
 
     remove = sub.add_parser("remove")
     remove.add_argument("--addon", action="append", default=[])
@@ -230,6 +238,12 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
     if command == "library":
         return True, library.list_library(), [], [], EXIT_OK
 
+    if command == "inspect":
+        try:
+            return True, library.inspect(args.path, args.tf_path), [], [], EXIT_OK
+        except (library.LibraryError, library.ArchiveError) as exc:
+            return False, {}, [], [str(exc)], EXIT_FAILED
+
     if command == "conflicts":
         return True, library.conflicts(args.addons, args.particles), [], [], EXIT_OK
 
@@ -243,7 +257,8 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
         if not args.paths and not args.extracted:
             return False, {}, [], ["Nothing to import."], EXIT_USAGE
         build.journal()  # make sure the data dir is initialised before staging writes
-        results = library.import_items(args.paths, args.extracted, progress)
+        chosen = set(args.parts) if args.parts else None
+        results = library.import_items(args.paths, args.extracted, progress, chosen, args.tf_path, args.name)
         errors = [f"{r['source']}: {r['message']}" for r in results if not r["ok"]]
         # Partial success is still success for the items that worked; callers read per-item results.
         return any(r["ok"] for r in results), {"results": results}, [], errors, EXIT_OK if not errors else EXIT_FAILED
@@ -260,7 +275,9 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
             fix_mdl_paths=not args.no_fix_mdl_paths,
             skip_quickprecache=args.skip_quickprecache,
         )
+        unpacked = library.unpack_vpk_folders(args.addons, progress)
         data, warnings = build.install(args.tf_path, args.addons, args.particles, options, progress)
+        warnings[:0] = unpacked
         try:
             for issue in compat.scan(Path(build._config().addons_dir), args.addons):
                 warnings.append(issue.message)

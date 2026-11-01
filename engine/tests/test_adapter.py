@@ -240,6 +240,52 @@ class SafeImportTest(unittest.TestCase):
         self.assertEqual((addons / "skins" / "materials" / "skin2.vmt").read_bytes(), b"y" * 64)
         shutil.rmtree(addons / "skins")
 
+    def test_a_folder_holding_a_vpk_imports_what_is_inside(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / "femmepyro_v1"
+            folder.mkdir()
+            make_vpk(folder / "FemPyro.vpk", {"models/player/pyro.mdl": b"pyro"})
+
+            result = run_cli("import", str(folder))["data"]["results"][0]
+
+        self.assertTrue(result["ok"], result["message"])
+        self.assertEqual([m["name"] for m in result["mods"]], ["FemPyro"])
+        self.assertEqual((addons / "FemPyro" / "models" / "player" / "pyro.mdl").read_bytes(), b"pyro")
+        self.assertEqual(list(addons.rglob("*.vpk")), [])
+        shutil.rmtree(addons / "FemPyro")
+
+    def test_a_library_mod_still_holding_a_vpk_is_unpacked_under_its_name(self):
+        addons, _ = library_dirs()
+        old = addons / "Old Pyro"
+        old.mkdir()
+        (old / "mod.json").write_text('{"addon_name": "Old Pyro", "type": "Vpk_Container"}', encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.move(make_vpk(Path(tmp) / "pyro.vpk", {"models/player/pyro.mdl": b"pyro"}), old / "pyro.vpk")
+
+        problems = library.unpack_vpk_folders(["Old Pyro"], lambda *_: None)
+
+        self.assertEqual(problems, [])
+        self.assertEqual((old / "models" / "player" / "pyro.mdl").read_bytes(), b"pyro")
+        self.assertEqual(list(old.glob("*.vpk")), [])
+        shutil.rmtree(old)
+
+    def test_a_damaged_vpk_inside_a_library_mod_is_left_as_it_was(self):
+        addons, _ = library_dirs()
+        old = addons / "Cut Pyro"
+        old.mkdir()
+        with tempfile.TemporaryDirectory() as tmp:
+            vpk = make_vpk(Path(tmp) / "pyro.vpk", {"models/player/pyro.mdl": b"p" * 4000})
+            vpk.write_bytes(vpk.read_bytes()[:-1000])
+            shutil.move(vpk, old / "pyro.vpk")
+
+        problems = library.unpack_vpk_folders(["Cut Pyro"], lambda *_: None)
+
+        self.assertEqual(len(problems), 1)
+        self.assertIn("Cut Pyro", problems[0])
+        self.assertTrue((old / "pyro.vpk").is_file())
+        shutil.rmtree(old)
+
     def test_a_vpk_named_only_with_digits_imports(self):
         addons, _ = library_dirs()
         with tempfile.TemporaryDirectory() as tmp:
@@ -269,6 +315,149 @@ class SafeImportTest(unittest.TestCase):
         self.assertTrue(result["data"]["results"][0]["ok"], result["data"]["results"][0]["message"])
         self.assertTrue((particles / "Halloween Unusuals").is_dir())
         shutil.rmtree(particles / "Halloween Unusuals")
+
+
+class PartsTest(unittest.TestCase):
+    def fake_tf(self, root: Path) -> Path:
+        tf = root / "tf"
+        make_vpk(tf / "tf2_misc_dir.vpk", {
+            "materials/models/player/pyro/pyro_lightwarp.vtf": b"x",
+            "sound/ui/hitsound.wav": b"x",
+            "sound/ui/killsound.wav": b"x",
+            "materials/models/player/scout/eyeball_l.vtf": b"x",
+            "materials/models/player/pyro/eyeball_l.vtf": b"x",
+        })
+        return tf
+
+    def test_variants_of_the_same_files_are_listed_as_alternatives(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Scout FP Overhaul"
+            make_mod(root, "54 FOV", {"models/weapons/c_models/c_scout_arms.mdl": b"54"})
+            make_mod(root, "70 FOV", {"models/weapons/c_models/c_scout_arms.mdl": b"70"})
+            make_mod(root, "Extras", {"materials/hud/extra.vmt": b"x"})
+
+            parts = {p["name"]: p for p in run_cli("inspect", str(root))["data"]["parts"]}
+
+        self.assertEqual(sorted(parts), ["54 FOV", "70 FOV", "Extras"])
+        self.assertEqual(parts["54 FOV"]["conflicts"], ["70 FOV"])
+        self.assertEqual(parts["Extras"]["conflicts"], [])
+        self.assertEqual(parts["Extras"]["kind"], "folder")
+
+    def test_only_the_chosen_part_is_imported(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Arms"
+            make_mod(root, "Arms 54", {"models/weapons/c_models/c_scout_arms.mdl": b"54"})
+            make_mod(root, "Arms 70", {"models/weapons/c_models/c_scout_arms.mdl": b"70"})
+
+            result = run_cli("import", "--extracted", str(root), "--part", "Arms 70")["data"]["results"][0]
+
+        self.assertEqual([m["name"] for m in result["mods"]], ["Arms 70"])
+        self.assertFalse((addons / "Arms 54").exists())
+        shutil.rmtree(addons / "Arms 70")
+
+    def test_loose_files_go_where_the_game_keeps_files_of_that_name(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            tf = self.fake_tf(Path(tmp))
+            root = Path(tmp) / "Cinematic Lightwarp"
+            root.mkdir()
+            (root / "pyro_lightwarp.vtf").write_bytes(b"warp")
+            (root / "Readme.txt").write_text("put it in materials")
+
+            result = run_cli("import", "--tf-path", str(tf), "--extracted", str(root))["data"]["results"][0]
+
+        self.assertTrue(result["ok"], result["message"])
+        placed = addons / "Cinematic Lightwarp" / "materials" / "models" / "player" / "pyro" / "pyro_lightwarp.vtf"
+        self.assertEqual(placed.read_bytes(), b"warp")
+        shutil.rmtree(addons / "Cinematic Lightwarp")
+
+    def test_loose_variants_in_their_own_folders_are_separate_parts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tf = self.fake_tf(Path(tmp))
+            root = Path(tmp) / "Hitsounds"
+            for variant in ("Quake", "Ding"):
+                (root / variant).mkdir(parents=True)
+                (root / variant / "hitsound.wav").write_bytes(variant.encode())
+
+            parts = run_cli("inspect", "--tf-path", str(tf), str(root))["data"]["parts"]
+
+        self.assertEqual(sorted(p["name"] for p in parts), ["Hitsounds - Ding", "Hitsounds - Quake"])
+        self.assertTrue(all(p["kind"] == "loose" and p["conflicts"] for p in parts))
+
+    def test_names_the_game_uses_more_than_once_are_left_out_and_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tf = self.fake_tf(Path(tmp))
+            root = Path(tmp) / "Eyes"
+            root.mkdir()
+            (root / "eyeball_l.vtf").write_bytes(b"x")
+            (root / "killsound.wav").write_bytes(b"x")
+
+            data = run_cli("inspect", "--tf-path", str(tf), str(root))["data"]
+
+        self.assertEqual([p["files"] for p in data["parts"]], [1])
+        self.assertEqual(data["skipped"], ["eyeball_l.vtf"])
+
+    def test_a_loose_map_goes_into_maps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "cp_escaperoom_v3"
+            root.mkdir()
+            (root / "cp_escaperoom_v3.bsp").write_bytes(b"VBSP")
+
+            parts = run_cli("inspect", str(root))["data"]["parts"]
+
+        self.assertEqual([(p["name"], p["kind"], p["files"]) for p in parts], [("cp_escaperoom_v3", "loose", 1)])
+
+    def test_a_download_with_only_a_readme_says_what_it_holds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "bot_overhaul_part_1"
+            (root / "Bot Overhaul").mkdir(parents=True)
+            (root / "Bot Overhaul" / "DOWNLOAD FOR PART 1.txt").write_text("get it elsewhere")
+
+            data = run_cli("inspect", str(root))["data"]
+            result = run_cli("import", "--extracted", str(root))["data"]["results"][0]
+
+        self.assertEqual(data["parts"], [])
+        self.assertEqual(data["documents"], ["Bot Overhaul/DOWNLOAD FOR PART 1.txt"])
+        self.assertIn("DOWNLOAD FOR PART 1.txt", result["message"])
+
+    def test_a_single_part_can_be_named_by_the_caller(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "download"
+            make_mod(root / "tf" / "custom", "my_custom_stuff", {"sound/ui/hitsound.wav": b"x"})
+
+            result = run_cli("import", "--name", "Quake III Arena hit indicator", "--extracted", str(root))["data"]["results"][0]
+
+        self.assertEqual([m["name"] for m in result["mods"]], ["Quake III Arena hit indicator"])
+        shutil.rmtree(addons / "Quake III Arena hit indicator")
+
+    def test_a_caller_name_with_a_path_in_it_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_mod(Path(tmp), "mod", {"sound/ui/hitsound.wav": b"x"})
+
+            result = run_cli("import", "--name", "../escape", str(root))["data"]["results"][0]
+
+        self.assertFalse(result["ok"])
+
+    def test_parts_that_would_share_a_name_get_numbered(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Pack"
+            make_mod(root / "a", "custom", {"materials/a.vmt": b"x"})
+            make_mod(root / "b", "custom", {"materials/b.vmt": b"x"})
+
+            names = sorted(p["name"] for p in run_cli("inspect", str(root))["data"]["parts"])
+
+        self.assertEqual(names, ["Pack", "Pack 2"])
+
+    def test_inspecting_something_that_is_not_a_mod_says_so(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            notes = Path(tmp) / "notes.exe"
+            notes.write_bytes(b"MZ")
+
+            result = run_cli("inspect", str(notes))
+
+        self.assertFalse(result["success"])
 
 
 class HudConversionTest(unittest.TestCase):

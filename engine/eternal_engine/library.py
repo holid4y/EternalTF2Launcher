@@ -4,7 +4,9 @@ import logging
 import shutil
 import tempfile
 import zipfile
+from collections import Counter
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .archives import ArchiveError, check_vpk, extract_vpk
@@ -18,6 +20,12 @@ MAX_ARCHIVE_ENTRIES = 200_000
 MAX_SEARCH_DEPTH = 4
 GENERIC_FOLDERS = {"tf", "tf2", "custom", "mod", "mods", "files", "content", "addons", "download"}
 SET_ASIDE = ".eternal-previous-"
+GAME_VPKS = ("tf2_misc_dir.vpk", "tf2_textures_dir.vpk", "tf2_sound_misc_dir.vpk", "tf2_sound_vo_english_dir.vpk")
+# Files that come with mods but are never game files: readmes, previews, model sources.
+DOCUMENTS = {".txt", ".md", ".rtf", ".pdf", ".url", ".htm", ".html", ".nfo", ".doc", ".docx", ".odt",
+             ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".psd", ".xcf", ".blend", ".qc", ".smd", ".dmx"}
+# Custom maps have names the game doesn't know, but only one place to go.
+MAP_FILES = {".bsp", ".nav"}
 
 
 class LibraryError(Exception):
@@ -231,21 +239,52 @@ def _vpk_mod_name(stem: str) -> str:
     return stem[:-4] if len(stem) > 4 and stem.lower().endswith("_dir") else stem
 
 
-def _import_vpk(importer, path: Path, progress: Progress) -> tuple[bool, str]:
+def _import_vpks(importer, name: str, paths: list[Path], progress: Progress) -> tuple[bool, str]:
     """Upstream's VPK import keeps whatever bytes it managed to read, so a cut-off
     download would replace a working mod. Unpack and check every file first, then
-    import the result as a folder."""
-    name = _vpk_mod_name(path.stem)
-    archive, names = check_vpk(path)
+    import the result as one folder."""
     with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
         staging = Path(tmp) / name
         staging.mkdir()
-        try:
-            progress(5, f"Extracting {path.name}")
-            extract_vpk(archive, names, staging, path.name)
-        finally:
-            archive.close()
+        for path in paths:
+            archive, names = check_vpk(path)
+            try:
+                progress(5, f"Extracting {path.name}")
+                extract_vpk(archive, names, staging, path.name)
+            finally:
+                archive.close()
         return _import_folder(importer, staging, progress, name)
+
+
+def _import_vpk(importer, path: Path, progress: Progress) -> tuple[bool, str]:
+    return _import_vpks(importer, _vpk_mod_name(path.stem), [path], progress)
+
+
+def _vpks_in(folder: Path) -> list[Path]:
+    return normalize_inputs(p for p in folder.iterdir() if p.suffix.lower() == ".vpk") if folder.is_dir() else []
+
+
+def unpack_vpk_folders(names: Iterable[str], progress: Progress) -> list[str]:
+    """A folder imported with a VPK inside used to be kept as it was, and TF2
+    never opens a VPK packed into the preload. Unpacks those mods in place under
+    the same name, so they stay enabled and in order. Returns what couldn't be."""
+    from core.services.importer import ImportService
+
+    problems = []
+    for name in names:
+        vpks = _vpks_in(_config().addons_dir / check_name(name))
+        if not vpks:
+            continue
+        try:
+            ok, message = _import_vpks(ImportService(), name, vpks, progress)
+        except (ArchiveError, LibraryError, OSError) as exc:
+            ok, message = False, str(exc)
+        if ok:
+            log.info("unpacked the VPK kept inside %s", name)
+        else:
+            log.warning("could not unpack the VPK inside %s: %s", name, message)
+            problems.append(f"{name} still holds a VPK that couldn't be unpacked: {message}")
+    return problems
 
 
 def _import_folder(importer, folder: Path, progress: Progress, override: str | None = None) -> tuple[bool, str]:
@@ -275,31 +314,188 @@ def _find_mod_roots(validator, root: Path) -> list[Path]:
     return found
 
 
-def _import_extracted(importer, root: Path, progress: Progress) -> tuple[bool, str]:
-    """An archive the launcher already unpacked; root.name is the archive name."""
-    name = root.name
-    vpks = normalize_inputs(root.rglob("*.vpk"))
-    if vpks:
-        outcomes = [_import_vpk(importer, vpk, progress) for vpk in vpks]
-        imported = sum(ok for ok, _ in outcomes)
-        if not imported:
-            return False, "; ".join(message for _, message in outcomes)
-        return True, f"Imported {imported} VPK(s) from {name}"
+@dataclass(frozen=True)
+class Part:
+    """One mod inside something being imported: a VPK, a mod folder, or loose
+    game files. `source` is where it sits, relative to what was scanned."""
+    source: str
+    name: str
+    kind: str
+    files: frozenset[str]
+    size: int
+    placement: tuple[tuple[str, str], ...] = field(default=())
 
-    roots = _find_mod_roots(importer.validator, root)
-    if not roots:
-        return False, f"No mod content found in {name}"
+
+def game_names(tf: Path | None) -> dict[str, str]:
+    """File name to game path for every name TF2 uses exactly once, read from its own VPKs."""
+    from valve_parsers import VPKFile
+
+    if tf is None:
+        return {}
+    counts: Counter[str] = Counter()
+    paths: dict[str, str] = {}
+    for name in GAME_VPKS:
+        vpk = tf / name
+        if not vpk.is_file():
+            continue
+        try:
+            listing = VPKFile(str(vpk)).list_files()
+        except Exception:
+            log.warning("could not read %s", vpk, exc_info=True)
+            continue
+        for entry in listing:
+            base = entry.rsplit("/", 1)[-1].lower()
+            counts[base] += 1
+            paths[base] = entry.lower()
+    return {base: paths[base] for base, n in counts.items() if n == 1}
+
+
+def _relative(path: Path, root: Path) -> str:
+    return "." if path == root else path.relative_to(root).as_posix()
+
+
+def _game_files(folder: Path) -> frozenset[str]:
+    from core.constants import VALID_MOD_ROOT_FOLDERS
+
+    roots = {name.lower() for name in VALID_MOD_ROOT_FOLDERS}
+    files = (p.relative_to(folder).as_posix().lower() for p in folder.rglob("*") if p.is_file())
+    return frozenset(f for f in files if f.split("/", 1)[0] in roots)
+
+
+def _vpk_part(vpk: Path, root: Path) -> Part:
+    archive, names = check_vpk(vpk)
+    try:
+        size = sum(archive.get_file_info(n)["size"] + archive.get_file_info(n)["preload_bytes"] for n in names)
+    finally:
+        archive.close()
+    return Part(_relative(vpk, root), _vpk_mod_name(vpk.stem), "vpk", frozenset(n.lower() for n in names), size)
+
+
+def _loose_parts(root: Path, names: dict[str, str]) -> tuple[list[Part], list[str]]:
+    """Files without the game's folders around them, placed by their file name.
+    Each folder holding some becomes its own part, so variants stay apart."""
+    groups: dict[Path, dict[str, Path]] = {}
+    skipped = []
+    for file in sorted(p for p in root.rglob("*") if p.is_file()):
+        name = file.name.lower()
+        target = names.get(name) or (f"maps/{name}" if file.suffix.lower() in MAP_FILES else None)
+        group = groups.setdefault(file.parent, {}) if target else None
+        if group is None or target in group:
+            if file.suffix.lower() not in DOCUMENTS:
+                skipped.append(_relative(file, root))
+            continue
+        group[target] = file
+    parts = []
+    for folder, placed in sorted(groups.items()):
+        if not placed:
+            continue
+        name = root.name if folder == root or len(groups) == 1 else f"{root.name} - {folder.name}"
+        parts.append(Part(_relative(folder, root), name, "loose", frozenset(placed),
+                          sum(f.stat().st_size for f in placed.values()),
+                          tuple(sorted((target, _relative(f, root)) for target, f in placed.items()))))
+    return parts, skipped
+
+
+def _unique_names(parts: list[Part]) -> list[Part]:
+    seen: Counter[str] = Counter()
+    result = []
+    for part in parts:
+        seen[part.name.lower()] += 1
+        n = seen[part.name.lower()]
+        result.append(part if n == 1 else Part(part.source, f"{part.name} {n}", part.kind, part.files, part.size, part.placement))
+    return result
+
+
+def find_parts(path: Path, tf: Path | None = None) -> tuple[list[Part], list[str]]:
+    """What importing `path` would add to the library, one part per mod, plus the
+    files left out because nothing says where in the game they belong. Upstream
+    refuses folders holding VPKs in its own window; here their VPKs become parts."""
+    from core.structure_validator import StructureValidator
+
+    path = path.resolve()
+    if path.is_file():
+        if path.suffix.lower() != ".vpk":
+            raise LibraryError(f"Unsupported file type: {path.name}")
+        return [_vpk_part(path, path.parent)], []
+    if not path.is_dir():
+        raise LibraryError(f"Not found: {path.name}")
+
+    parts = [_vpk_part(vpk, path) for vpk in normalize_inputs(path.rglob("*.vpk"))]
+    for folder in _find_mod_roots(StructureValidator(), path):
+        name = path.name if folder == path or folder.name.lower() in GENERIC_FOLDERS else folder.name
+        parts.append(Part(_relative(folder, path), name, "folder", _game_files(folder),
+                          sum(p.stat().st_size for p in folder.rglob("*") if p.is_file())))
+    skipped = []
+    if not parts:
+        parts, skipped = _loose_parts(path, game_names(tf))
+    return _unique_names(parts), skipped
+
+
+def _documents(path: Path) -> list[str]:
+    if not path.is_dir():
+        return []
+    return [_relative(p, path) for p in sorted(path.rglob("*")) if p.is_file() and p.suffix.lower() in DOCUMENTS]
+
+
+def inspect(path: Path, tf: Path | None = None) -> dict:
+    parts, skipped = find_parts(path, tf)
+    return {
+        "documents": _documents(path) if not parts else [],
+        "parts": [{
+            "source": part.source,
+            "name": part.name,
+            "kind": part.kind,
+            "files": len(part.files),
+            "size": part.size,
+            "conflicts": [other.source for other in parts if other is not part and part.files & other.files],
+        } for part in parts],
+        "skipped": skipped,
+    }
+
+
+def _import_part(importer, root: Path, part: Part, progress: Progress) -> tuple[bool, str]:
+    location = root if part.source == "." else root / part.source
+    if part.kind == "vpk":
+        return _import_vpks(importer, part.name, [location], progress)
+    if part.kind == "folder":
+        return _import_folder(importer, location, progress, part.name)
+    with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
+        staging = Path(tmp) / part.name
+        for target, source in part.placement:
+            destination = staging.joinpath(*target.split("/"))
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root / source, destination)
+        return _import_folder(importer, staging, progress, part.name)
+
+
+def _import_extracted(importer, root: Path, progress: Progress, chosen: set[str] | None = None,
+                      tf: Path | None = None, name: str | None = None) -> tuple[bool, str]:
+    """A dropped folder or an archive the launcher already unpacked, named after root."""
+    parts, skipped = find_parts(root, tf)
+    if not parts:
+        if skipped:
+            return False, f"No mod content found in {root.name}: nothing says where in the game {', '.join(skipped[:3])} belong."
+        documents = _documents(root)
+        if documents:
+            return False, f"{root.name} only has {', '.join(Path(d).name for d in documents[:3])}, no game files."
+        return False, f"No mod content found in {root.name}"
+    if chosen is not None:
+        parts = [part for part in parts if part.source in chosen]
+        if not parts:
+            return False, f"None of the chosen parts are in {root.name}"
+    if name and len(parts) == 1:
+        part = parts[0]
+        parts = [Part(part.source, check_name(name), part.kind, part.files, part.size, part.placement)]
 
     imported, errors = 0, []
-    for folder in roots:
-        override = name if folder == root or folder.name.lower() in GENERIC_FOLDERS else None
-        ok, message = _import_folder(importer, folder, progress, override)
+    for part in parts:
+        ok, message = _import_part(importer, root, part, progress)
         imported += ok
         if not ok:
             errors.append(message)
     if not imported:
         return False, "; ".join(errors)
-    return True, f"Imported {imported} mod(s) from {name}"
+    return True, f"Imported {imported} part(s) from {root.name}"
 
 
 def _stage_vanilla_particles() -> None:
@@ -314,7 +510,9 @@ def _stage_vanilla_particles() -> None:
         raise LibraryError(error)
 
 
-def import_items(paths: list[Path], extracted: list[Path], progress: Progress) -> list[dict]:
+def import_items(paths: list[Path], extracted: list[Path], progress: Progress,
+                 chosen: set[str] | None = None, tf: Path | None = None, name: str | None = None) -> list[dict]:
+    """Imports each path whole, or with `chosen`, only the parts with those sources (see inspect)."""
     from core.services.addons import AddonService
     from core.services.importer import ImportService
 
@@ -332,17 +530,15 @@ def import_items(paths: list[Path], extracted: list[Path], progress: Progress) -
         try:
             if not path.exists():
                 ok, message = False, f"Not found: {path}"
-            elif is_extracted:
-                ok, message = _import_extracted(importer, path, report)
-            elif path.is_dir():
-                ok, message = _import_folder(importer, path, report)
+            elif is_extracted or path.is_dir():
+                ok, message = _import_extracted(importer, path, report, chosen, tf, name)
             elif path.suffix.lower() == ".vpk":
-                ok, message = _import_vpk(importer, path, report)
+                ok, message = _import_vpks(importer, check_name(name) if name else _vpk_mod_name(path.stem), [path], report)
             elif path.suffix.lower() == ".zip":
-                with tempfile.TemporaryDirectory() as tmp:
+                with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
                     unpacked = Path(tmp) / path.stem
                     extract_zip(path, unpacked)
-                    ok, message = _import_extracted(importer, unpacked, report)
+                    ok, message = _import_extracted(importer, unpacked, report, chosen, tf, name)
             else:
                 ok, message = False, f"Unsupported file type: {path.name}"
         except (LibraryError, ArchiveError) as exc:
