@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
-<title>Eternal TF2 Launcher</title>
-<meta name="description" content="A free launcher for Team Fortress 2 on Windows and Linux: mods that load in Casual, settings explained, your backpack with prices.">
+<title>Eternal TF2 Launcher: your TF2 mods, even in Casual</title>
+<meta name="description" content="A free launcher for Team Fortress 2 on Windows and Linux. Your mods load on Casual servers, every setting is explained, and your backpack shows its prices.">
 <link rel="icon" type="image/png" href="assets/logos/mann-co.png">
 <link rel="preload" href="assets/fonts/BarlowCondensed-ExtraBold.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="site.css">
@@ -24,77 +24,91 @@
   <a class="wordmark" href="#top"><img data-logo src="assets/logos/mann-co.png" alt="" width="40" height="40">Eternal</a>
   <nav aria-label="Sections">
     <a href="#mods">Mods</a>
+    <a href="#config">Config</a>
+    <a href="#backpack">Backpack</a>
     <a href="#themes">Themes</a>
     <a href="#install">Install</a>
   </nav>
+  <a class="button button-ink bar-download" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
 </header>
 
 <main id="top">
 
   <section class="hero" aria-labelledby="title">
-    <div class="hero-field">
-      <h1 id="title"><span>Eternal</span><span>TF2 Launcher</span></h1>
-      <figure class="hero-shot shutter">
-        <img src="assets/screens/mods.webp" width="2732" height="1640" alt="The Mods tab of Eternal, with five of six mods switched on and the orange Play button at the bottom">
-      </figure>
+    <h1 id="title">Your TF2 mods, <br class="phone-break">even in Casual</h1>
+    <div class="hero-text">
+      <p class="lead">Eternal is a free launcher for Team Fortress 2 on Windows and Linux. Switch on the mods you want, press Play, and they're there on any Casual server.</p>
+      <div class="hero-actions">
+        <a class="button button-ink" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
+        <a class="link" href="https://github.com/holid4y/EternalTF2Launcher">Source on GitHub</a>
+      </div>
+      <p class="facts">Version 2.0.1 · Windows and Linux · Free and open source</p>
     </div>
-    <div class="hero-band">
-      <p>A free launcher for Team Fortress 2 on Windows and Linux. It applies mods that load in Casual, explains every setting it writes and shows your backpack with prices.</p>
-      <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
+    <figure class="hero-shot">
+      <a href="assets/screens/themes/mann-co-2x.webp" aria-label="Open the screenshot at full size"><img data-shot src="assets/screens/themes/mann-co-1x.webp" srcset="assets/screens/themes/mann-co-1x.webp 1366w, assets/screens/themes/mann-co-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Mods tab: seven mods in load order, six switched on, and the orange Play button at the bottom"></a>
+    </figure>
+  </section>
+
+  <section id="mods" class="mods" aria-labelledby="mods-title">
+    <div class="section-head">
+      <h2 id="mods-title" data-reveal>Drop it in, press Play</h2>
+      <p class="statement" data-reveal>Casual servers usually throw out custom files. Eternal packs your mods the way cueki's casual-pre-loader does, so hitsounds, skins, particles and HUDs make it into matchmaking.</p>
+    </div>
+    <div class="story">
+      <div class="story-stage" aria-hidden="true">
+        <img class="is-on" data-step="drop" src="assets/screens/drop-1x.webp" srcset="assets/screens/drop-1x.webp 1366w, assets/screens/drop-2x.webp 2732w" sizes="58vw" width="1366" height="820" alt="">
+        <img data-step="conflict" src="assets/screens/conflict-1x.webp" srcset="assets/screens/conflict-1x.webp 1366w, assets/screens/conflict-2x.webp 2732w" sizes="58vw" width="1366" height="820" alt="" loading="lazy">
+        <img data-step="applying" src="assets/screens/applying-1x.webp" srcset="assets/screens/applying-1x.webp 1366w, assets/screens/applying-2x.webp 2732w" sizes="58vw" width="1366" height="820" alt="" loading="lazy">
+        <img data-step="restore" src="assets/screens/restore-1x.webp" srcset="assets/screens/restore-1x.webp 1366w, assets/screens/restore-2x.webp 2732w" sizes="58vw" width="1366" height="820" alt="" loading="lazy">
+      </div>
+      <ol class="steps">
+        <li class="step" data-step="drop">
+          <a class="shot" href="assets/screens/drop-2x.webp"><img src="assets/screens/drop-1x.webp" srcset="assets/screens/drop-1x.webp 1366w, assets/screens/drop-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="A file being dragged onto the launcher, which shows Drop to import" loading="lazy"></a>
+          <h3>Drag a mod onto the window</h3>
+          <p>A VPK, a folder or a ZIP, RAR or 7z straight from your downloads all work. New mods from GameBanana can be imported from the Home tab, checked against GameBanana's own virus scan.</p>
+        </li>
+        <li class="step" data-step="conflict">
+          <a class="shot" href="assets/screens/conflict-2x.webp"><img src="assets/screens/conflict-1x.webp" srcset="assets/screens/conflict-1x.webp 1366w, assets/screens/conflict-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="Two hitsound mods in the list, with Loud Hitsound marked as losing its file to Classic Hitsound" loading="lazy"></a>
+          <h3>Put them in order</h3>
+          <p>When two mods change the same file, the one higher up wins. Each mod tells you which files it wins and which it loses, so you're never guessing why a skin didn't show up.</p>
+        </li>
+        <li class="step" data-step="applying">
+          <a class="shot" href="assets/screens/applying-2x.webp"><img src="assets/screens/applying-1x.webp" srcset="assets/screens/applying-1x.webp 1366w, assets/screens/applying-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The launcher applying mods, with a progress bar over the Play button" loading="lazy"></a>
+          <h3>Press Play</h3>
+          <p>A moment after each change, Eternal applies your mods. It never touches the game folder while TF2 is running, and Play waits for a build to finish instead of starting the game on half-written files.</p>
+        </li>
+        <li class="step" data-step="restore">
+          <a class="shot" href="assets/screens/restore-2x.webp"><img src="assets/screens/restore-1x.webp" srcset="assets/screens/restore-1x.webp 1366w, assets/screens/restore-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The Restore vanilla question, asking to turn every mod off while keeping the library" loading="lazy"></a>
+          <h3>Changed your mind?</h3>
+          <p>Restore vanilla puts the game back the way Steam installed it. Your mods stay in the library, ready for next time.</p>
+        </li>
+      </ol>
     </div>
   </section>
 
-  <section id="mods" class="closeup" aria-labelledby="mods-title">
-    <div class="closeup-frame">
-      <img class="closeup-image drift" src="assets/screens/mods.webp" width="2732" height="1640" alt="" loading="lazy">
-      <div class="closeup-card" data-reveal>
-        <h2 id="mods-title">Mods in Casual</h2>
-        <p>Drop a VPK, a folder or a ZIP, RAR or 7z file on the window.</p>
-        <p>The mods you switch on are packed into tf/custom by cueki's casual-pre-loader, which is where Casual servers load them from.</p>
-        <img class="closeup-whole" src="assets/screens/mods.webp" width="2732" height="1640" alt="The whole Mods tab" loading="lazy">
-        <a class="button button-block" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
-      </div>
+  <section id="config" class="config" aria-labelledby="config-title">
+    <div class="config-text">
+      <h2 id="config-title" data-reveal>Settings in plain English</h2>
+      <p class="statement" data-reveal>Every option says what it does, whether it costs you frames and what TF2 uses by default. Change what you care about and the rest stays with TF2.</p>
+      <dl class="points">
+        <div data-reveal><dt>Binds by pressing the key</dt><dd>Click, press the key, mouse button or scroll wheel, then type the command.</dd></div>
+        <div data-reveal><dt>Profiles to start from</dt><dd>Competitive, Max Performance, Max Quality and Balanced, or your own. A profile can remember your mods too, and you can send it to a friend as a file.</dd></div>
+        <div data-reveal><dt>Search by name or cvar</dt><dd>Type "fov" or "viewmodel_fov", either finds it.</dd></div>
+      </dl>
     </div>
-    <div class="closeup-frame closeup-frame-second">
-      <img class="closeup-image closeup-image-dock drift" src="assets/screens/mods.webp" width="2732" height="1640" alt="" loading="lazy">
-      <div class="closeup-card" data-reveal>
-        <h3>Play waits for it</h3>
-        <p>When two mods change the same file, the one higher in the list wins, and each mod shows which files it wins or loses.</p>
-        <p>The game folder is never touched while TF2 runs, Play waits for a build to finish, and Restore vanilla puts the game back as Steam installed it.</p>
-        <a class="link" href="https://github.com/holid4y/EternalTF2Launcher#how-mods-reach-the-game">How mods reach the game</a>
-      </div>
-    </div>
-  </section>
-
-  <section id="config" class="caps" aria-labelledby="config-title">
-    <div class="caps-row caps-head" data-reveal><h2 id="config-title">Config</h2></div>
-    <div class="caps-row" data-reveal>
-      <h3>Settings explained</h3>
-      <p>Every setting says what it does, whether it costs frames and whether it goes on the launch line.</p>
-    </div>
-    <div class="caps-row" data-reveal>
-      <h3>Only what you change</h3>
-      <p>Anything you never touch stays with TF2. What you change goes into one marked block in autoexec.cfg.</p>
-    </div>
-    <div class="caps-row" data-reveal>
-      <h3>Binds by keypress</h3>
-      <p>Press the key or mouse button, then type the command.</p>
-    </div>
-    <div class="caps-row" data-reveal>
-      <h3>Profiles</h3>
-      <p>Competitive, Max Performance, Max Quality and Balanced, plus your own. A profile can carry your mods and exports to a file you can share.</p>
-    </div>
-    <div class="caps-row" data-reveal>
-      <h3>Your launch options</h3>
-      <p>Kept as you typed them. The full launch line is shown before you play.</p>
-    </div>
+    <figure class="config-shot" data-reveal>
+      <a class="shot" href="assets/screens/config-2x.webp"><img src="assets/screens/config-1x.webp" srcset="assets/screens/config-1x.webp 1366w, assets/screens/config-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Config tab on its Performance page: a frame rate cap slider and switches for shiny models, reflections and surface detail" loading="lazy"></a>
+    </figure>
   </section>
 
   <section class="autoexec" aria-labelledby="autoexec-title">
     <div class="autoexec-text">
-      <h2 id="autoexec-title" data-reveal>One block in autoexec.cfg</h2>
-      <p data-reveal>This is what the launcher writes after you set a field of view, fast weapon switch, damage numbers, a frame cap and one bind. Lines outside the block are yours and stay as they are. The old file is kept as autoexec.cfg.eternal-backup.</p>
-      <pre data-reveal><code>// === ETERNAL LAUNCHER MANAGED BLOCK — do not edit between these markers ===
+      <h2 id="autoexec-title" data-reveal>Your autoexec stays yours</h2>
+      <p data-reveal>What you change goes into one marked block at the end of autoexec.cfg. Everything outside it is left exactly as you wrote it, and the old file is kept as autoexec.cfg.eternal-backup.</p>
+      <p data-reveal>This is the block after setting a field of view, fast weapon switch, damage numbers, a frame cap and one voice bind:</p>
+    </div>
+    <div class="slip slip-code" data-reveal>
+      <pre><code>// === ETERNAL LAUNCHER MANAGED BLOCK — do not edit between these markers ===
 // Gameplay
 fov_desired 90
 hud_fastswitch 1
@@ -112,121 +126,121 @@ fps_max 240
 bind "f" "voicemenu 0 0"
 // === ETERNAL LAUNCHER MANAGED BLOCK END ===</code></pre>
     </div>
-    <figure class="autoexec-shot" data-reveal>
-      <img src="assets/screens/config.webp" width="2732" height="1640" alt="The Config tab on its Performance page" loading="lazy">
-      <figcaption>The Performance page of the Config tab.</figcaption>
-    </figure>
   </section>
 
   <section id="backpack" class="backpack" aria-labelledby="backpack-title">
-    <div class="backpack-text">
-      <h2 id="backpack-title" data-reveal>Your backpack, priced</h2>
-      <p data-reveal>Your public TF2 inventory with item art, qualities and attributes. Prices come from backpack.tf through pricedb.io and are written in keys and refined, the way trades are. Pick an item to see its Steam Market price in your currency.</p>
-    </div>
     <figure class="backpack-shot" data-reveal>
-      <img class="drift" src="assets/screens/backpack.webp" width="2732" height="1640" alt="The Backpack tab: a grid of items with their prices and a Winter 2024 Cosmetic Case selected" loading="lazy">
+      <a class="shot" href="assets/screens/backpack-2x.webp"><img src="assets/screens/backpack-1x.webp" srcset="assets/screens/backpack-1x.webp 1366w, assets/screens/backpack-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Backpack tab: a grid of items with names and prices, and a Winter 2024 Cosmetic Case open on the right with its buy and sell prices" loading="lazy"></a>
     </figure>
+    <div class="backpack-text">
+      <h2 id="backpack-title" data-reveal>What's your backpack worth?</h2>
+      <p data-reveal>Eternal reads your public TF2 inventory from Steam and prices it with backpack.tf data from pricedb.io, in keys and refined, the way trades are written.</p>
+      <p data-reveal>Pick an item to see what sellers ask, what buyers offer and its Steam Market price in your currency. Sort by value, or filter by quality, class or what you can trade.</p>
+    </div>
   </section>
 
   <section id="themes" class="themes" aria-labelledby="themes-title">
-    <h2 id="themes-title" data-reveal><span>Eight</span><span>themes</span></h2>
-    <div class="prints">
-      <figure class="print print-red" data-reveal>
-        <img src="assets/screens/mods-red.webp" width="1366" height="820" alt="The Mods tab in the RED theme" loading="lazy">
-      </figure>
-      <figure class="print print-blu" data-reveal>
-        <img src="assets/screens/mods-blu.webp" width="1366" height="820" alt="The Mods tab in the BLU theme" loading="lazy">
-      </figure>
-      <figure class="print print-australium" data-reveal>
-        <img src="assets/screens/mods-australium.webp" width="1366" height="820" alt="The Mods tab in the Australium theme" loading="lazy">
-      </figure>
+    <div class="themes-head">
+      <h2 id="themes-title" data-reveal>Eight themes, pick one</h2>
+      <p id="themes-note" data-reveal>Click a theme and this page switches to it, screenshot included. In the launcher you can also pick any accent colour, put your own TF2 screenshots behind it and make the whole window bigger or smaller.</p>
     </div>
-    <div class="picker">
-      <p id="picker-label">Pick one and this page changes to it. The launcher also takes any accent colour, your TF2 screenshots as a background and a size for the whole window.</p>
-      <div class="swatches" role="group" aria-labelledby="picker-label">
-        <button type="button" data-pick="mann-co" aria-pressed="true"><img src="assets/logos/mann-co.png" alt="" width="32" height="32">Mann Co.</button>
-        <button type="button" data-pick="red" aria-pressed="false"><img src="assets/logos/red.png" alt="" width="32" height="32">RED</button>
-        <button type="button" data-pick="blu" aria-pressed="false"><img src="assets/logos/blu.png" alt="" width="32" height="32">BLU</button>
-        <button type="button" data-pick="australium" aria-pressed="false"><img src="assets/logos/australium.png" alt="" width="32" height="32">Australium</button>
-        <button type="button" data-pick="carbon" aria-pressed="false"><img src="assets/logos/carbon.png" alt="" width="32" height="32">Carbon</button>
-        <button type="button" data-pick="toxic" aria-pressed="false"><img src="assets/logos/toxic.png" alt="" width="32" height="32">Toxic</button>
-        <button type="button" data-pick="midnight" aria-pressed="false"><img src="assets/logos/midnight.png" alt="" width="32" height="32">Midnight</button>
-        <button type="button" data-pick="minimal" aria-pressed="false"><img src="assets/logos/minimal.png" alt="" width="32" height="32">Minimal</button>
-      </div>
+    <div class="tiles" role="group" aria-labelledby="themes-note">
+      <button type="button" class="tile" data-pick="mann-co" aria-pressed="true">
+        <img src="assets/screens/themes/mann-co-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-mann-co"><img src="assets/logos/mann-co.png" alt="" width="28" height="28"><span>Mann Co.</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="red" aria-pressed="false">
+        <img src="assets/screens/themes/red-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-red"><img src="assets/logos/red.png" alt="" width="28" height="28"><span>RED</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="blu" aria-pressed="false">
+        <img src="assets/screens/themes/blu-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-blu"><img src="assets/logos/blu.png" alt="" width="28" height="28"><span>BLU</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="australium" aria-pressed="false">
+        <img src="assets/screens/themes/australium-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-australium"><img src="assets/logos/australium.png" alt="" width="28" height="28"><span>Australium</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="carbon" aria-pressed="false">
+        <img src="assets/screens/themes/carbon-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-carbon"><img src="assets/logos/carbon.png" alt="" width="28" height="28"><span>Carbon</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="toxic" aria-pressed="false">
+        <img src="assets/screens/themes/toxic-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-toxic"><img src="assets/logos/toxic.png" alt="" width="28" height="28"><span>Toxic</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="midnight" aria-pressed="false">
+        <img src="assets/screens/themes/midnight-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-midnight"><img src="assets/logos/midnight.png" alt="" width="28" height="28"><span>Midnight</span><span>Dark</span></span>
+      </button>
+      <button type="button" class="tile" data-pick="minimal" aria-pressed="false">
+        <img src="assets/screens/themes/minimal-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-minimal"><img src="assets/logos/minimal.png" alt="" width="28" height="28"><span>Minimal</span><span>Light</span></span>
+      </button>
     </div>
   </section>
 
   <section id="install" class="install" aria-labelledby="install-title">
-    <div class="install-column">
-      <h2 id="install-title" data-reveal>Install</h2>
-      <p data-reveal><strong>On Windows,</strong> run EternalLauncher-2.0.1-win-x64-setup.exe from the latest release. It installs for your user without admin rights. The portable zip runs from any folder and keeps its data next to it.</p>
-      <p data-reveal><strong>On Linux,</strong> extract the tar.gz and run the install script. It adds a menu entry and an eternal-launcher command, and <code>./install.sh --remove</code> takes it out again.</p>
-      <pre data-reveal><code>tar xf EternalLauncher-2.0.1-linux-x64.tar.gz
-cd EternalLauncher &amp;&amp; ./install.sh</code></pre>
-      <p data-reveal><strong>Neither needs</strong> .NET or Python. On Linux, install Wine as well so QuickPrecache can run; without it the launcher skips that step and tells you.</p>
-      <p data-reveal><strong>Coming from 1.x,</strong> your settings, profiles and mods are imported on the first start.</p>
+    <div class="install-text">
+      <h2 id="install-title" data-reveal>Install in a minute</h2>
+      <p data-reveal>Both downloads come with everything they need, so there's no .NET or Python to set up first.</p>
+      <p data-reveal>Coming from 1.x? Your settings, profiles and mods move over on the first start.</p>
+      <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" data-reveal>Download 2.0.1</a>
+    </div>
+    <div class="slip slip-steps" data-reveal>
+      <h3>Windows</h3>
+      <ul>
+        <li><span>Run EternalLauncher-2.0.1-win-x64-setup.exe</span><span>no admin rights</span></li>
+        <li><span>Or unzip the portable build anywhere</span><span>keeps its data next to it</span></li>
+      </ul>
+      <h3>Linux</h3>
+      <ul>
+        <li><code>tar xf EternalLauncher-2.0.1-linux-x64.tar.gz</code></li>
+        <li><code>cd EternalLauncher &amp;&amp; ./install.sh</code><span>adds a menu entry</span></li>
+        <li><span>Install wine too for QuickPrecache</span><span>optional</span></li>
+        <li><span>Changed your mind? <code>./install.sh --remove</code></span><span>keeps your settings</span></li>
+      </ul>
+      <p class="slip-end"><span>Open Eternal, pick your mods, press Play</span></p>
     </div>
   </section>
 
-  <section class="faq" aria-labelledby="faq-title">
-    <div class="faq-row faq-head" data-reveal>
-      <h2 id="faq-title">Questions</h2>
-      <p>Something else? <a class="link" href="https://github.com/holid4y/EternalTF2Launcher/issues">Open an issue on GitHub</a>.</p>
-    </div>
-    <div class="faq-row" data-reveal>
-      <h3>Do mods really load in Casual?</h3>
-      <p>Most visual mods do: particles and unusual effects, weapon and cosmetic skins, war paints, map textures, props and HUDs. Full player-model replacements are hit or miss, because the server often puts the vanilla model back.</p>
-    </div>
-    <div class="faq-row" data-reveal>
-      <h3>What does it change in my TF2 folder?</h3>
-      <p>The preload in tf/custom and one marked block in autoexec.cfg. Your mod library stays in the launcher's own folder, and Restore vanilla removes the preload.</p>
-    </div>
-    <div class="faq-row" data-reveal>
-      <h3>Can I still start TF2 from Steam?</h3>
-      <p>Yes, the preload stays in place. Copy the launch line from the Config tab into TF2's launch options so the preloader's config still runs.</p>
-    </div>
-    <div class="faq-row" data-reveal>
-      <h3>Does it cost anything?</h3>
-      <p>No. It's free and open source under the MIT license.</p>
-    </div>
-    <div class="faq-row" data-reveal>
-      <h3>Where are the logs?</h3>
-      <p>In ~/.local/share/eternal-launcher/logs on Linux, and in %LOCALAPPDATA%\Eternal TF2 Launcher\logs on Windows.</p>
+  <section id="faq" class="faq" aria-labelledby="faq-title">
+    <h2 id="faq-title" data-reveal>Questions</h2>
+    <div class="answers">
+      <p data-reveal><strong>Do mods really load in Casual?</strong> Most visual ones do: particles and unusual effects, weapon and cosmetic skins, war paints, map textures, props and HUDs. Full player-model swaps are hit or miss, because the server often forces the original model back. The Mods tab warns you about models with a known problem before you launch.</p>
+      <p data-reveal><strong>Does it change the game itself?</strong> No. Eternal never touches the game's code or memory. It writes the packed mods into tf/custom and one marked block into autoexec.cfg, the same places any HUD or hitsound goes.</p>
+      <p data-reveal><strong>Can I still start TF2 from Steam?</strong> Yes. Copy the launch line from Config, Launch Options into TF2's launch options in Steam so the preloader's setup still runs when the game boots.</p>
+      <p data-reveal><strong>Where do my mods live?</strong> In the launcher's own folder, not in tf/custom. Restore vanilla removes what was put in the game and keeps your library.</p>
+      <p data-reveal><strong>Does it cost anything?</strong> No. It's free and open source under the MIT license, with no account to make.</p>
+      <p data-reveal><strong>Something broke?</strong> <a class="link" href="https://github.com/holid4y/EternalTF2Launcher/issues">Open an issue on GitHub</a> and attach your logs. They're in ~/.local/share/eternal-launcher/logs on Linux and %LOCALAPPDATA%\Eternal TF2 Launcher\logs on Windows.</p>
     </div>
   </section>
 
   <section class="credits" aria-labelledby="credits-title">
-    <div class="credits-panel">
+    <img class="credits-hat" data-logo src="assets/logos/mann-co.png" alt="The Eternal top hat" width="376" height="376" loading="lazy">
+    <div class="credits-text">
       <h2 id="credits-title" data-reveal>Built on cueki's preloader</h2>
-      <div class="credits-hat" data-reveal><img data-logo src="assets/logos/mann-co.png" alt="The Eternal top hat" width="376" height="376" loading="lazy"></div>
-      <div class="credits-text">
-        <div data-reveal>
-          <h3>casual-pre-loader</h3>
-          <p>cueki's casual-pre-loader is what puts the mods into the game. It ships with the launcher unchanged, and the credit for it goes to cueki and its contributors.</p>
-        </div>
-        <div data-reveal>
-          <h3>Thanks also to</h3>
-          <p>backpack.tf and pricedb.io for prices, GameBanana and its creators, Deadlock Mod Manager for ideas on recovery and conflicts, and Jeremy Tribby for the Barlow typeface.</p>
-        </div>
-        <a class="button button-ink" href="https://github.com/cueki/casual-pre-loader" data-reveal>casual-pre-loader on GitHub</a>
-      </div>
+      <p data-reveal>The part that gets mods into Casual is cueki's casual-pre-loader. Eternal ships it unchanged and builds the launcher around it, so the credit for that part goes to cueki and its contributors. If all you want is the preloader, use the original.</p>
+      <p data-reveal>Thanks also to backpack.tf and pricedb.io for prices, GameBanana and its creators, Deadlock Mod Manager for ideas on recovery and conflicts, and Jeremy Tribby for the Barlow typeface.</p>
+      <a class="button button-ink" href="https://github.com/cueki/casual-pre-loader" data-reveal>casual-pre-loader on GitHub</a>
     </div>
   </section>
 
 </main>
 
 <footer class="foot">
-  <div class="foot-top">
-    <p>Eternal TF2 Launcher 2.0.1 for Windows and Linux</p>
-    <p>Free and open source, MIT license</p>
-    <p>Not affiliated with Valve</p>
-    <a class="link" href="#top">Back to top</a>
+  <p class="foot-name" aria-hidden="true">Eternal</p>
+  <div class="foot-links">
+    <ul>
+      <li><a href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a></li>
+      <li><a href="https://github.com/holid4y/EternalTF2Launcher">Source code</a></li>
+      <li><a href="https://github.com/holid4y/EternalTF2Launcher/issues">Report a problem</a></li>
+    </ul>
+    <p>Eternal TF2 Launcher 2.0.1 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
   </div>
-  <a class="foot-line" href="https://github.com/holid4y/EternalTF2Launcher">holid4y/<wbr>EternalTF2Launcher</a>
-  <div class="foot-meta">
-    <p><a class="link" href="https://github.com/holid4y/EternalTF2Launcher/releases">Releases</a> <a class="link" href="https://github.com/holid4y/EternalTF2Launcher/issues">Report a problem</a></p>
-    <p>Set in Barlow, SIL Open Font License</p>
-    <p>2026</p>
+  <div class="foot-legal">
+    <p>Not affiliated with Valve. Team Fortress 2 is a trademark of Valve Corporation.</p>
+    <a class="link" href="#top">Back to top</a>
   </div>
 </footer>
 
