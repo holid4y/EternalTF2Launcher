@@ -195,6 +195,63 @@ class SafeImportTest(unittest.TestCase):
         self.assertEqual([p.name for p in addons.iterdir() if p.name.startswith(".")], [])
         shutil.rmtree(addons / "Fresh")
 
+    def test_a_cut_off_vpk_does_not_replace_the_mod_it_updates(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            vpk = make_vpk(Path(tmp) / "Sturdy.vpk", {"materials/good.vmt": b"a" * 2000, "materials/bad.vmt": b"b" * 2000})
+            self.assertTrue(run_cli("import", str(vpk))["data"]["results"][0]["ok"])
+            vpk.write_bytes(vpk.read_bytes()[:-1000])
+
+            result = run_cli("import", str(vpk))["data"]["results"][0]
+
+        self.assertFalse(result["ok"])
+        self.assertIn("damaged", result["message"])
+        for name in ("good.vmt", "bad.vmt"):
+            self.assertEqual((addons / "Sturdy" / "materials" / name).stat().st_size, 2000)
+        shutil.rmtree(addons / "Sturdy")
+
+    def test_standalone_numbered_vpks_are_separate_mods(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = make_vpk(Path(tmp) / "pack_100.vpk", {"materials/pack_100.vmt": b"x"})
+            second = make_vpk(Path(tmp) / "pack_200.vpk", {"materials/pack_200.vmt": b"y"})
+
+            results = run_cli("import", str(first), str(second))["data"]["results"]
+
+        self.assertEqual([r["mods"][0]["name"] for r in results], ["pack_100", "pack_200"])
+        self.assertTrue((addons / "pack_100" / "materials" / "pack_100.vmt").is_file())
+        self.assertTrue((addons / "pack_200" / "materials" / "pack_200.vmt").is_file())
+        self.assertFalse((addons / "pack").exists())
+        shutil.rmtree(addons / "pack_100")
+        shutil.rmtree(addons / "pack_200")
+
+    def test_a_multipart_set_is_one_mod_named_after_the_set(self):
+        from valve_parsers import VPKFile
+
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = make_mod(Path(tmp), "src", {"materials/skin.vmt": b"x" * 64, "materials/skin2.vmt": b"y" * 64})
+            self.assertTrue(VPKFile.create(source, Path(tmp) / "skins", split_size=64))
+            parts = sorted(Path(tmp).glob("skins_*.vpk"))
+
+            result = run_cli("import", *map(str, parts))["data"]["results"]
+
+        self.assertEqual([r["mods"][0]["name"] for r in result], ["skins"])
+        self.assertEqual((addons / "skins" / "materials" / "skin2.vmt").read_bytes(), b"y" * 64)
+        shutil.rmtree(addons / "skins")
+
+    def test_a_vpk_named_only_with_digits_imports(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            vpk = make_vpk(Path(tmp) / "100.vpk", {"materials/a.vmt": b"x"})
+
+            result = run_cli("import", str(vpk))["data"]["results"][0]
+
+        self.assertTrue(result["ok"], result["message"])
+        self.assertEqual(result["mods"][0]["name"], "100")
+        self.assertTrue((addons / "100" / "materials" / "a.vmt").is_file())
+        shutil.rmtree(addons / "100")
+
 
     def test_a_particle_mod_imports_before_any_build(self):
         from core.config import config

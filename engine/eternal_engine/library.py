@@ -1,15 +1,13 @@
 """Mod library operations on top of upstream's import and addon services."""
 
-import json
 import logging
-import os
 import shutil
 import tempfile
 import zipfile
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from .archives import ArchiveError, check_vpk
+from .archives import ArchiveError, check_vpk, extract_vpk
 
 log = logging.getLogger(__name__)
 
@@ -188,23 +186,6 @@ def _snapshot() -> dict[tuple[str, str], int]:
     return state
 
 
-def _rename_library_entry(old: str, new: str) -> None:
-    config = _config()
-    for root in (config.addons_dir, config.particles_dir):
-        source = root / old
-        if not source.is_dir():
-            continue
-        target = root / new
-        shutil.rmtree(target, ignore_errors=True)
-        source.rename(target)
-        mod_json = target / "mod.json"
-        if mod_json.is_file():
-            info = json.loads(mod_json.read_text(encoding="utf-8"))
-            if info.get("addon_name") == old:
-                info["addon_name"] = new
-                mod_json.write_text(json.dumps(info, indent=2), encoding="utf-8")
-
-
 def restore_set_aside() -> None:
     """Puts back mods that an import moved out of the way and never got to finish."""
     for root in (_config().addons_dir, _config().particles_dir):
@@ -244,34 +225,27 @@ def _replacing(names: list[str], run: Callable[[], tuple[bool, str]]) -> tuple[b
                 aside.rename(current)
 
 
-def _upstream_vpk_name(stem: str) -> str:
-    # Same rule as ImportService.process_vpk_file uses to name the library folder.
-    return stem[:-4] if stem[-3:].isdigit() and stem[-4:-3] == "_" or stem[-4:] == "_dir" else stem
+def _vpk_mod_name(stem: str) -> str:
+    # normalize_inputs has already turned the parts of a set into their _dir file,
+    # so a numbered stem here is a mod of its own: pack_100.vpk stays pack_100.
+    return stem[:-4] if len(stem) > 4 and stem.lower().endswith("_dir") else stem
 
 
 def _import_vpk(importer, path: Path, progress: Progress) -> tuple[bool, str]:
-    archive, _ = check_vpk(path)
-    archive.close()
-
-    stem = path.stem
-    if not (stem.isdigit() and len(stem) <= 3):
-        name = _upstream_vpk_name(stem)
-        return _replacing([name], lambda: importer.process_vpk_file(path, progress_callback=progress))
-
-    # Upstream indexes stem[-4] when the stem ends in three digits.
-    def run() -> tuple[bool, str]:
-        with tempfile.TemporaryDirectory() as tmp:
-            alias = Path(tmp) / f"{stem}_.vpk"
-            try:
-                os.link(path, alias)
-            except OSError:
-                shutil.copy2(path, alias)
-            ok, message = importer.process_vpk_file(alias, progress_callback=progress)
-        if ok:
-            _rename_library_entry(f"{stem}_", stem)
-        return ok, message.replace(f"{stem}_", stem)
-
-    return _replacing([f"{stem}_", stem], run)
+    """Upstream's VPK import keeps whatever bytes it managed to read, so a cut-off
+    download would replace a working mod. Unpack and check every file first, then
+    import the result as a folder."""
+    name = _vpk_mod_name(path.stem)
+    archive, names = check_vpk(path)
+    with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
+        staging = Path(tmp) / name
+        staging.mkdir()
+        try:
+            progress(5, f"Extracting {path.name}")
+            extract_vpk(archive, names, staging, path.name)
+        finally:
+            archive.close()
+        return _import_folder(importer, staging, progress, name)
 
 
 def _import_folder(importer, folder: Path, progress: Progress, override: str | None = None) -> tuple[bool, str]:
