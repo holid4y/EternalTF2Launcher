@@ -13,7 +13,7 @@ using Eternal.Core.Steam;
 
 namespace Eternal.App.ViewModels;
 
-public sealed record DetailLine(string Text, IBrush Brush);
+public sealed record DetailLine(string Text, string? Color);
 
 public sealed partial class ItemViewModel(InventoryItem item) : ObservableObject
 {
@@ -21,21 +21,21 @@ public sealed partial class ItemViewModel(InventoryItem item) : ObservableObject
     public string Name => Item.Name;
     public string Type => Item.Type;
     public string? ImageUrl => Item.ImageUrl;
-    public IBrush NameBrush { get; } = Readable(item.NameColor);
+    public string NameColor => Item.NameColor;
     public IBrush QualityBrush { get; } = Brushes(item.QualityColor);
     public string Quality => Item.Quality;
     public bool Tradable => Item.Tradable;
     public string? Amount => Item.Amount > 1 ? $"×{Item.Amount}" : null;
 
     public IReadOnlyList<DetailLine> Lines => Item.Lines
-        .Select(l => new DetailLine(l.Text, l.Color is null ? Brushes("#B9AA90") : Brushes(l.Color)))
+        .Select(l => new DetailLine(l.Text, l.Color))
         .ToArray();
 
     public string Flags => string.Join(" · ", new[]
     {
         Item.Tradable ? null : "Not tradable",
         Item.Craftable ? null : "Not craftable",
-        Item.Marketable ? "On the Steam Market" : null,
+        Item.Marketable ? "Marketable" : null,
         Item.Wear,
     }.Where(s => s is not null));
 
@@ -50,23 +50,6 @@ public sealed partial class ItemViewModel(InventoryItem item) : ObservableObject
     partial void OnValueRefChanged(double value) => OnPropertyChanged(nameof(HasPrice));
 
     private static IBrush Brushes(string hex) => Color.TryParse(hex, out var c) ? new SolidColorBrush(c) : new SolidColorBrush(Colors.Gray);
-
-    /// <summary>
-    /// Steam serves dimmed quality colours (Unique is #7D6D00); on a dark
-    /// ground names need the in-game brightness to stay readable.
-    /// </summary>
-    private static IBrush Readable(string hex)
-    {
-        if (string.Equals(hex, "#7D6D00", StringComparison.OrdinalIgnoreCase))
-            return new SolidColorBrush(Color.Parse("#FFD700"));
-        if (!Color.TryParse(hex, out var c))
-            return new SolidColorBrush(Colors.Gray);
-        var luminance = (0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B) / 255;
-        if (luminance >= 0.4)
-            return new SolidColorBrush(c);
-        byte Lift(byte v) => (byte)(v + (255 - v) * 0.35);
-        return new SolidColorBrush(Color.FromRgb(Lift(c.R), Lift(c.G), Lift(c.B)));
-    }
 }
 
 public sealed partial class BackpackViewModel : PageViewModel

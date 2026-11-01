@@ -19,14 +19,28 @@
       <Setter Property="Padding" Value="6" />
       <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
     </Style>
+    <!-- Set here rather than on the controls so the narrow layout below can move them. -->
+    <Style Selector="Grid.setting > :is(Control).control">
+      <Setter Property="Grid.Column" Value="1" />
+    </Style>
+    <!-- Too narrow for text and control side by side: the control goes under the text. -->
+    <Style Selector="views|ConfigView.narrow Grid.setting > views|SettingInfo">
+      <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="views|ConfigView.narrow Grid.setting > :is(Control).control">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="Margin" Value="0,10,0,0" />
+    </Style>
   </UserControl.Styles>
 
   <UserControl.DataTemplates>
     <DataTemplate DataType="vm:ToggleRowViewModel">
       <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
-        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
           <views:SettingInfo />
-          <ToggleSwitch Grid.Column="1" IsChecked="{Binding Value}" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
+          <ToggleSwitch Classes="control" IsChecked="{Binding Value}" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
           <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
             <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
           </Button>
@@ -35,9 +49,9 @@
     </DataTemplate>
     <DataTemplate DataType="vm:SliderRowViewModel">
       <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
-        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
           <views:SettingInfo />
-          <Panel Grid.Column="1" VerticalAlignment="Center">
+          <Panel Classes="control" VerticalAlignment="Center">
             <NumericUpDown Width="150" Value="{Binding BoxValue}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
                            Increment="{Binding Increment}" FormatString="{Binding FormatString}" IsVisible="{Binding UsesBox}" />
             <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding !UsesBox}">
@@ -54,9 +68,9 @@
     </DataTemplate>
     <DataTemplate DataType="vm:ChoiceRowViewModel">
       <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
-        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
           <views:SettingInfo />
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+          <StackPanel Classes="control" VerticalAlignment="Center" Spacing="4">
             <ComboBox Width="230" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}">
               <ComboBox.ItemTemplate>
                 <DataTemplate DataType="settings:ChoiceOption">
@@ -75,9 +89,9 @@
     </DataTemplate>
     <DataTemplate DataType="vm:TextRowViewModel">
       <Border Classes="card" Padding="{DynamicResource RowPadding}" Margin="0,0,0,2">
-        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
+        <Grid Classes="setting" ColumnDefinitions="*,Auto,36" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
           <views:SettingInfo />
-          <TextBox Grid.Column="1" Width="230" Text="{Binding Value}" VerticalAlignment="Center" />
+          <TextBox Classes="control" Width="230" Text="{Binding Value}" VerticalAlignment="Center" />
           <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
             <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
           </Button>
@@ -88,12 +102,14 @@
 
   <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
 
-    <Grid ColumnDefinitions="*,Auto">
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="20">
       <StackPanel Spacing="2">
         <TextBlock Classes="display" Text="CONFIG" />
         <TextBlock Classes="muted" Text="{Binding ProfileMatch}" />
       </StackPanel>
-      <TextBox Grid.Column="1" Width="300" Watermark="Search settings or cvars" Text="{Binding Search}" VerticalAlignment="Bottom">
+      <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowAdvanced}" OnContent="Show advanced" OffContent="Show advanced"
+                    VerticalAlignment="Bottom" ToolTip.Tip="Settings most players never need to change" />
+      <TextBox Grid.Column="2" Width="280" Watermark="Search settings or cvars" Text="{Binding Search}" VerticalAlignment="Bottom">
         <TextBox.InnerLeftContent>
           <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
         </TextBox.InnerLeftContent>
@@ -101,8 +117,8 @@
     </Grid>
 
     <Border Grid.Row="1" Classes="card" Padding="14,10">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-        <StackPanel Orientation="Horizontal" Spacing="8">
+      <StackPanel Spacing="6">
+        <WrapPanel ItemSpacing="8" LineSpacing="8">
           <TextBlock Classes="meta" Text="Profile" VerticalAlignment="Center" />
           <ComboBox Width="220" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
             <ComboBox.ItemTemplate>
@@ -126,11 +142,10 @@
               </MenuFlyout>
             </Button.Flyout>
           </Button>
-        </StackPanel>
-        <TextBlock Grid.Column="1" Classes="meta" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"
-                   Text="{Binding SelectedProfile.Description}" />
-        <ToggleSwitch Grid.Column="2" IsChecked="{Binding ShowAdvanced}" OnContent="Show advanced" OffContent="Show advanced" />
-      </Grid>
+        </WrapPanel>
+        <TextBlock Classes="meta" TextWrapping="Wrap" Text="{Binding SelectedProfile.Description}"
+                   IsVisible="{Binding SelectedProfile.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
     </Border>
 
     <Grid Grid.Row="2" ColumnDefinitions="210,*" ColumnSpacing="24">

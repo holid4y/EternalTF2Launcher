@@ -4,6 +4,12 @@
              x:Class="Eternal.App.Views.ModsView"
              x:DataType="vm:ModsViewModel">
 
+  <UserControl.Styles>
+    <Style Selector=":is(Control).off">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+  </UserControl.Styles>
+
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="18">
 
     <Grid ColumnDefinitions="*,Auto">
@@ -24,14 +30,15 @@
 
     <StackPanel Grid.Row="1" Spacing="8">
       <Border Classes="card" Padding="16,12" IsVisible="{Binding EngineReady}">
-        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-          <PathIcon Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}" IsVisible="{Binding StatusProblem}" />
-          <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+        <DockPanel>
+          <PathIcon DockPanel.Dock="Left" Margin="0,0,12,0" Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}"
+                    IsVisible="{Binding StatusProblem}" />
+          <Button DockPanel.Dock="Right" Margin="12,0,0,0" Content="Apply now" Command="{Binding SyncNowCommand}" IsVisible="{Binding StatusProblem}" />
+          <StackPanel Spacing="6" VerticalAlignment="Center">
             <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
             <ProgressBar Classes="thin" Value="{Binding BuildProgress}" Maximum="100" IsVisible="{Binding Building}" />
           </StackPanel>
-          <Button Grid.Column="2" Content="Apply now" Command="{Binding SyncNowCommand}" IsVisible="{Binding StatusProblem}" />
-        </Grid>
+        </DockPanel>
       </Border>
       <Border Classes="notice" IsVisible="{Binding HasWarnings}">
         <StackPanel Spacing="4">
@@ -79,10 +86,14 @@
           </TextBox>
           <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" />
         </Grid>
-        <TextBlock DockPanel.Dock="Top" Classes="meta" Margin="2,0,0,8"
-                   Text="Load order: the mod at the top wins when two mods change the same file. Drag to reorder." />
+        <TextBlock DockPanel.Dock="Top" Classes="meta" Margin="2,0,0,8" TextWrapping="Wrap"
+                   Text="When two mods change the same file, the one higher up wins. Drag to reorder." />
 
-        <Border Classes="card" IsVisible="{Binding IsEmpty}" VerticalAlignment="Top">
+        <Border Classes="card" IsVisible="{Binding NoMatches}" VerticalAlignment="Top" DockPanel.Dock="Top">
+          <TextBlock Classes="muted" Text="No mods match. Try another name, or set the filter back to All mods." TextWrapping="Wrap" />
+        </Border>
+
+        <Border Classes="card" IsVisible="{Binding IsEmpty}" VerticalAlignment="Top" DockPanel.Dock="Top">
           <StackPanel Spacing="8">
             <TextBlock Classes="title" Text="Your library is empty" />
             <TextBlock Classes="muted" TextWrapping="Wrap"
@@ -99,20 +110,19 @@
                   <PathIcon Data="{StaticResource IconGrip}" Foreground="{DynamicResource FaintBrush}" Width="14" Height="14" />
                 </Border>
                 <TextBlock Grid.Column="1" Classes="figure meta" Text="{Binding Rank}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="14" />
-                <Border Grid.Column="2" Width="88" Height="50" Background="{DynamicResource GroundBrush}" CornerRadius="2" ClipToBounds="True">
+                <Border Grid.Column="2" Width="88" Height="50" Background="{DynamicResource GroundBrush}" CornerRadius="2" ClipToBounds="True"
+                        Classes.off="{Binding !Enabled}">
                   <Panel>
                     <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                    <TextBlock Classes="meta" Text="{Binding Kind}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <TextBlock Classes="display" FontSize="22" Foreground="{DynamicResource FaintBrush}" Text="{Binding Initials}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" />
                   </Panel>
                 </Border>
-                <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="3">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Classes="title" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
-                    <Border Classes="pill"><TextBlock Text="{Binding Kind}" /></Border>
-                  </StackPanel>
+                <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="3" Classes.off="{Binding !Enabled}">
+                  <TextBlock Classes="title" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DisplayName}" />
                   <TextBlock Classes="meta" Text="{Binding ConflictSummary}" IsVisible="{Binding HasConflicts}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Classes="meta" Text="{Binding Files}" IsVisible="{Binding !HasConflicts}" />
+                  <TextBlock Classes="meta" Text="{Binding Meta}" IsVisible="{Binding !HasConflicts}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <PathIcon Grid.Column="4" Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}"
                           IsVisible="{Binding HasIssues}" ToolTip.Tip="{Binding IssueText}" />
@@ -128,23 +138,13 @@
         <StackPanel Spacing="16">
           <Border Classes="card" IsVisible="{Binding HasSelection}">
             <StackPanel Spacing="12" DataContext="{Binding Selected}" x:DataType="vm:ModRowViewModel">
-              <Border Height="166" Background="{DynamicResource RaisedBrush}" CornerRadius="2" ClipToBounds="True">
-                <Panel>
-                  <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                  <TextBlock Classes="muted" Text="No picture" HorizontalAlignment="Center" VerticalAlignment="Center"
-                             IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNull}}" />
-                </Panel>
+              <Border Height="166" Background="{DynamicResource RaisedBrush}" CornerRadius="2" ClipToBounds="True"
+                      IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
               </Border>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Padding="10,5" Content="Change picture"
-                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ChangeThumbnailCommand}" CommandParameter="{Binding}" />
-                <Button Classes="ghost" Padding="10,5" Content="Remove picture"
-                        IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}"
-                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveThumbnailCommand}" CommandParameter="{Binding}" />
-              </StackPanel>
               <StackPanel Spacing="2">
                 <TextBlock Classes="heading" FontSize="22" Text="{Binding DisplayName}" TextWrapping="Wrap" />
-                <TextBlock Classes="meta" Text="{Binding Kind}" />
+                <TextBlock Classes="meta" Text="{Binding Badge}" IsVisible="{Binding Badge, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 <TextBlock Classes="meta" Text="{Binding Files}" />
               </StackPanel>
               <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap"
@@ -181,6 +181,13 @@
               <Border Classes="notice" IsVisible="{Binding HasIssues}">
                 <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" FontSize="13" />
               </Border>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Padding="10,5" Content="{Binding PictureAction}"
+                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).ChangeThumbnailCommand}" CommandParameter="{Binding}" />
+                <Button Classes="ghost" Padding="10,5" Content="Remove picture"
+                        IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveThumbnailCommand}" CommandParameter="{Binding}" />
+              </StackPanel>
               <Button Classes="danger" Content="Remove from library"
                       Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}" />
             </StackPanel>

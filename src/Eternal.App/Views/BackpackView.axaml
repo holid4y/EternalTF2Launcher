@@ -5,6 +5,12 @@
              x:Class="Eternal.App.Views.BackpackView"
              x:DataType="vm:BackpackViewModel">
 
+  <UserControl.Styles>
+    <Style Selector="ComboBox">
+      <Setter Property="MinWidth" Value="128" />
+    </Style>
+  </UserControl.Styles>
+
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16">
 
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
@@ -77,7 +83,7 @@
       <ScrollViewer>
         <ItemsRepeater ItemsSource="{Binding Visible}" Name="Items">
           <ItemsRepeater.Layout>
-            <UniformGridLayout MinItemWidth="118" MinItemHeight="148" MinRowSpacing="8" MinColumnSpacing="8" ItemsStretch="Fill" />
+            <UniformGridLayout MinItemWidth="118" MinItemHeight="164" MinRowSpacing="8" MinColumnSpacing="8" ItemsStretch="Fill" />
           </ItemsRepeater.Layout>
           <ItemsRepeater.ItemTemplate>
             <DataTemplate DataType="vm:ItemViewModel">
@@ -86,12 +92,20 @@
                       Command="{Binding $parent[UserControl].((vm:BackpackViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}"
                       ToolTip.Tip="{Binding Name}">
                 <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="3" ClipToBounds="True">
-                  <Grid RowDefinitions="*,Auto,3">
+                  <Grid RowDefinitions="*,Auto,Auto,3">
                     <Image Margin="10,10,10,4" Stretch="Uniform" views:RemoteImage.DecodeWidth="160" views:RemoteImage.Url="{Binding ImageUrl}" />
                     <TextBlock Grid.Row="0" Classes="meta" Text="{Binding Amount}" Margin="8,6" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                    <TextBlock Grid.Row="1" Classes="figure" FontSize="12" Margin="8,0,8,6" HorizontalAlignment="Center"
+                    <TextBlock Grid.Row="1" FontSize="12" Margin="8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}">
+                      <TextBlock.Foreground>
+                        <MultiBinding Converter="{x:Static views:Converters.ItemColor}">
+                          <Binding Path="NameColor" />
+                          <Binding Path="$parent[Window].Background" />
+                        </MultiBinding>
+                      </TextBlock.Foreground>
+                    </TextBlock>
+                    <TextBlock Grid.Row="2" Classes="figure" FontSize="12" Margin="8,1,8,6" HorizontalAlignment="Center"
                                Text="{Binding Price}" Foreground="{DynamicResource MutedBrush}" />
-                    <Border Grid.Row="2" Background="{Binding QualityBrush}" />
+                    <Border Grid.Row="3" Background="{Binding QualityBrush}" />
                   </Grid>
                 </Border>
               </Button>
@@ -120,15 +134,22 @@
                 <Image Margin="16" Stretch="Uniform" views:RemoteImage.DecodeWidth="360" views:RemoteImage.Url="{Binding ImageUrl}" />
               </Border>
               <StackPanel Spacing="2">
-                <TextBlock Classes="heading" FontSize="22" Text="{Binding Name}" Foreground="{Binding NameBrush}" TextWrapping="Wrap" />
-                <TextBlock Classes="muted" Text="{Binding Type}" />
-                <TextBlock Classes="meta" Text="{Binding Flags}" TextWrapping="Wrap" />
+                <TextBlock Classes="heading" FontSize="22" Text="{Binding Name}" TextWrapping="Wrap">
+                  <TextBlock.Foreground>
+                    <MultiBinding Converter="{x:Static views:Converters.ItemColor}">
+                      <Binding Path="NameColor" />
+                      <Binding Path="$parent[Window].Background" />
+                    </MultiBinding>
+                  </TextBlock.Foreground>
+                </TextBlock>
+                <TextBlock Classes="muted" Text="{Binding Type}" IsVisible="{Binding Type, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Classes="meta" Text="{Binding Flags}" TextWrapping="Wrap" IsVisible="{Binding Flags, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
 
               <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                <TextBlock Classes="meta" Text="Sells for" VerticalAlignment="Center" />
+                <TextBlock Classes="meta" Text="Sellers ask" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Classes="figure accent" FontSize="16" Text="{Binding Price}" HorizontalAlignment="Right" />
-                <TextBlock Grid.Row="1" Classes="meta" Text="Buyers pay" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="1" Classes="meta" Text="Buyers offer" VerticalAlignment="Center" />
                 <TextBlock Grid.Row="1" Grid.Column="1" Classes="figure" Text="{Binding BuyPrice}" HorizontalAlignment="Right" />
                 <TextBlock Grid.Row="2" Classes="meta" Text="Steam Market" VerticalAlignment="Center" />
                 <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
@@ -141,7 +162,14 @@
               <ItemsControl ItemsSource="{Binding Lines}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate DataType="vm:DetailLine">
-                    <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}" TextWrapping="Wrap" FontSize="13" Margin="0,0,0,3" />
+                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="13" Margin="0,0,0,3">
+                      <TextBlock.Foreground>
+                        <MultiBinding Converter="{x:Static views:Converters.ItemColor}">
+                          <Binding Path="Color" />
+                          <Binding Path="$parent[Window].Background" />
+                        </MultiBinding>
+                      </TextBlock.Foreground>
+                    </TextBlock>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

@@ -124,7 +124,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         get
         {
             var s = _services.Runtime.Status;
-            var parts = new List<string> { s.Message };
+            var parts = new List<string> { s.Message.TrimEnd('.') };
             if (s.UpstreamVersion is not null)
                 parts.Add($"casual-pre-loader {s.UpstreamVersion}" + (s.UpstreamCommit is { Length: >= 7 } c ? $" ({c[..7]})" : ""));
             if (s.PythonVersion is not null && _services.Runtime.FrozenExecutable is null)

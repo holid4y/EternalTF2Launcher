@@ -31,7 +31,13 @@ public sealed partial class ModRowViewModel : ObservableObject
     public ModItem Item { get; private set; }
     public string Name => Item.Name;
     public string DisplayName => Item.DisplayName;
-    public string Kind => Item.Kind == ModKind.Particle ? "Particles" : Item.Type is "" or "Unknown" ? "Mod" : Item.Type;
+    // The preloader labels nearly every mod "Unknown"; only say something when there is something to say.
+    public string? Badge => Item.Kind == ModKind.Particle ? "Particles"
+        : Item.Type.Equals("hud", StringComparison.OrdinalIgnoreCase) ? "HUD"
+        : Item.Type is "" or "Unknown" or "Vpk_Container" ? null : Item.Type;
+    public string Meta => Item.Kind == ModKind.Particle || Badge is null ? Files : $"{Badge} · {Files}";
+    public string Initials => string.Concat(DisplayName.Split([' ', '_', '-'], StringSplitOptions.RemoveEmptyEntries)
+        .Where(w => char.IsLetterOrDigit(w[0])).Take(2).Select(w => char.ToUpperInvariant(w[0])));
     // The preloader fills in "Content from folder: x" or "Content extracted from x.vpk" when a mod has no description.
     public string Description => string.IsNullOrWhiteSpace(Item.Description)
         || Item.Description.StartsWith("Content from", StringComparison.Ordinal)
@@ -67,6 +73,10 @@ public sealed partial class ModRowViewModel : ObservableObject
 
     [ObservableProperty] private bool _enabled;
     [ObservableProperty] private Bitmap? _thumbnail;
+
+    public string PictureAction => Thumbnail is null ? "Add a picture" : "Change picture";
+
+    partial void OnThumbnailChanged(Bitmap? value) => OnPropertyChanged(nameof(PictureAction));
 
     partial void OnEnabledChanged(bool value)
     {
@@ -156,6 +166,7 @@ public sealed partial class ModsViewModel : PageViewModel
 
     public bool HasWarnings => Warnings.Count > 0;
     public bool IsEmpty => EngineReady && Rows.Count == 0;
+    public bool NoMatches => Rows.Count > 0 && Visible.Count == 0;
     public bool HasSelection => Selected is not null;
 
     partial void OnSearchChanged(string value) => ApplyFilter();
@@ -265,10 +276,11 @@ public sealed partial class ModsViewModel : PageViewModel
                 "Particles" => r.Item.Kind == ModKind.Particle,
                 _ => true,
             })
-            && (query.Length == 0 || r.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) || r.Kind.Contains(query, StringComparison.OrdinalIgnoreCase)));
+            && (query.Length == 0 || r.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) || r.Badge?.Contains(query, StringComparison.OrdinalIgnoreCase) == true));
         Visible.Clear();
         foreach (var row in keep)
             Visible.Add(row);
+        OnPropertyChanged(nameof(NoMatches));
     }
 
     internal void SetEnabled(ModRowViewModel row, bool enabled) => _services.Mods.SetEnabled(row.Name, row.Item.Kind, enabled);

@@ -128,6 +128,7 @@
               </StackPanel>
               <Slider Minimum="0.8" Maximum="1.4" Value="{Binding UiScale}" SmallChange="0.05" LargeChange="0.1"
                       TickFrequency="0.05" IsSnapToTickEnabled="True" />
+              <TextBlock Classes="meta" TextWrapping="Wrap" Text="Bigger sizes need a bigger window. A smaller one shows as much as fits." />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="4">
               <TextBlock Classes="title" Text="Density" />
@@ -149,7 +150,8 @@
                 <Border Classes="raised" Padding="12,6" Margin="0,0,0,2">
                   <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding Visible}" IsEnabled="{Binding CanHide}" OnContent="Shown" OffContent="Hidden" />
+                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding Visible}" IsEnabled="{Binding CanHide}" OnContent="" OffContent="" MinWidth="0"
+                                  ToolTip.Tip="Show this tab" />
                     <Button Grid.Column="2" Classes="ghost" Padding="6" ToolTip.Tip="Move up"
                             Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).MoveTabUpCommand}" CommandParameter="{Binding}">
                       <PathIcon Data="{StaticResource IconUp}" Width="14" Height="14" />
@@ -203,8 +205,8 @@
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Classes="meta" Text="Log detail" VerticalAlignment="Center" />
             <ComboBox ItemsSource="{Binding LogLevels}" SelectedItem="{Binding LogLevel}" MinWidth="120" />
-            <ToggleSwitch IsChecked="{Binding ClearLogsOnStart}" OnContent="Clear logs on start" OffContent="Clear logs on start" Margin="12,0,0,0" />
           </StackPanel>
+          <ToggleSwitch IsChecked="{Binding ClearLogsOnStart}" OnContent="Clear logs on start" OffContent="Clear logs on start" />
           <StackPanel Orientation="Horizontal" Spacing="14">
             <Button Classes="link" Content="Logs folder" Command="{Binding OpenLogsCommand}" />
             <Button Classes="link" Content="Data folder" Command="{Binding OpenDataCommand}" />

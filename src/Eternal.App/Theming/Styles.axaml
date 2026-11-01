@@ -263,6 +263,10 @@
     <Setter Property="Width" Value="16" />
     <Setter Property="Height" Value="16" />
   </Style>
+  <!-- Fluent gives icons a fixed colour, which vanishes on a light primary button. -->
+  <Style Selector="Button PathIcon">
+    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContentPresenter, Tree=Visual}}" />
+  </Style>
 
   <Style Selector="ContentControl.page">
     <Setter Property="Transitions">

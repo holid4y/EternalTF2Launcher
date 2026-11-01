@@ -24,13 +24,13 @@
           </Grid>
           <TextBlock Classes="muted" Text="{Binding ModsError}" IsVisible="{Binding ModsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingMods}" />
-          <ItemsControl ItemsSource="{Binding FreshMods}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
+          <ItemsRepeater ItemsSource="{Binding FreshMods}">
+            <ItemsRepeater.Layout>
+              <UniformGridLayout MinItemWidth="168" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
+            </ItemsRepeater.Layout>
+            <ItemsRepeater.ItemTemplate>
               <DataTemplate DataType="feed:GameBananaMod">
-                <Border Classes="card" Padding="0" Margin="0,0,12,12" ClipToBounds="True">
+                <Border Classes="card" Padding="0" ClipToBounds="True">
                   <StackPanel>
                     <Border Background="{DynamicResource RaisedBrush}" Height="104" ClipToBounds="True">
                       <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="420" views:RemoteImage.Url="{Binding ImageUrl}" />
@@ -50,8 +50,8 @@
                   </StackPanel>
                 </Border>
               </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+            </ItemsRepeater.ItemTemplate>
+          </ItemsRepeater>
         </StackPanel>
 
         <StackPanel Spacing="12">
@@ -83,7 +83,8 @@
       </StackPanel>
     </ScrollViewer>
 
-    <StackPanel Grid.Column="1" Spacing="16" Margin="0,62,0,0">
+    <ScrollViewer Grid.Column="1" Margin="0,62,0,0">
+    <StackPanel Spacing="16">
       <Border Classes="card">
         <StackPanel Spacing="10">
           <TextBlock Classes="heading" Text="LOADOUT" />
@@ -131,5 +132,6 @@
         </StackPanel>
       </Border>
     </StackPanel>
+    </ScrollViewer>
   </Grid>
 </UserControl>
