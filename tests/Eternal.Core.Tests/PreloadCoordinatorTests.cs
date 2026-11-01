@@ -16,11 +16,12 @@ public sealed class PreloadCoordinatorTests : IAsyncDisposable
     private static DesiredPreload Desired(params string[] addons) => new(addons, [], new ModBuildOptions(), "sig");
     private string TfPath => _dir;
 
-    private PreloadCoordinator Create(TimeSpan? debounce = null)
+    private PreloadCoordinator Create(TimeSpan? debounce = null, bool start = true)
     {
         _coordinator = new PreloadCoordinator(_builder, () => { _onDesired?.Invoke(); return _desired; }, () => TfPath, () => _gameRunning,
             Path.Combine(_dir, "preload-state.json"), debounce ?? TimeSpan.FromMilliseconds(80), TimeSpan.FromMilliseconds(30));
-        _coordinator.Start();
+        if (start)
+            _coordinator.Start();
         return _coordinator;
     }
 
@@ -259,6 +260,39 @@ public sealed class PreloadCoordinatorTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Play_waits_for_crash_recovery_even_with_no_mods_enabled()
+    {
+        _desired = Desired();
+        var coordinator = Create(start: false);
+        coordinator.RecoverInterrupted();
+
+        var admit = coordinator.AdmitLaunchAsync(allowStale: false);
+        await Task.Delay(200);
+        Assert.False(admit.IsCompleted);
+
+        coordinator.Start();
+        var admission = await admit.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(admission.Allowed);
+        Assert.Equal(1, _builder.Recoveries);
+    }
+
+    [Fact]
+    public async Task A_failed_restore_after_a_crash_refuses_the_launch()
+    {
+        _desired = Desired();
+        _builder.RecoverSucceeds = false;
+        var coordinator = Create(start: false);
+        coordinator.RecoverInterrupted();
+
+        var admit = coordinator.AdmitLaunchAsync(allowStale: false);
+        coordinator.Start();
+        var admission = await admit.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.False(admission.Allowed);
+        Assert.Equal(1, _builder.Recoveries);
+    }
+
+    [Fact]
     public async Task Validation_errors_keep_the_previous_preload_record()
     {
         var coordinator = Create();
@@ -295,11 +329,14 @@ public sealed class PreloadCoordinatorTests : IAsyncDisposable
         public int ProgressReports;
         public Action<EngineProgress>? AfterReport;
         public int Recoveries;
+        public bool RecoverSucceeds = true;
 
         public Task<EngineResult> RecoverAsync(IProgress<EngineProgress> progress)
         {
             Interlocked.Increment(ref Recoveries);
-            return Task.FromResult(new EngineResult { Success = true, Command = "recover" });
+            return Task.FromResult(RecoverSucceeds
+                ? new EngineResult { Success = true, Command = "recover" }
+                : new EngineResult { Success = false, Command = "recover", Errors = ["journal unreadable"] });
         }
         public bool NextSucceeds = true;
         public string NextGameFiles = "vanilla";

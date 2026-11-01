@@ -143,8 +143,11 @@ public sealed partial class ProfileStore
             settings.ExtraLaunchArgs = profile.ExtraLaunchArgs;
     }
 
+    /// <summary>Applying the profile would change nothing. Sections a profile leaves out (null) don't count.</summary>
     public static bool Matches(Profile profile, GameSettings settings)
     {
+        if (profile.Values.Count == 0)
+            return false;
         foreach (var (id, value) in profile.Values)
         {
             if (SettingsCatalog.Find(id) is not { } setting)
@@ -152,8 +155,19 @@ public sealed partial class ProfileStore
             if (!setting.ValueEquals(settings.Get(setting), value))
                 return false;
         }
-        return profile.Values.Count > 0;
+        // Applying a complete profile clears the launch options it doesn't list.
+        if (profile.Complete && SettingsCatalog.All.Any(s => s.IsLaunchOption && settings.IsTouched(s) && !profile.Values.ContainsKey(s.Id)))
+            return false;
+        if (profile.Binds is not null && !SameBinds(profile.Binds, settings.Binds))
+            return false;
+        return profile.ExtraLaunchArgs is null || profile.ExtraLaunchArgs == settings.ExtraLaunchArgs;
     }
+
+    private static bool SameBinds(IEnumerable<KeyBind> a, IEnumerable<KeyBind> b) =>
+        a.Where(ManagedBlock.IsValidBind).Select(Written).SequenceEqual(b.Where(ManagedBlock.IsValidBind).Select(Written));
+
+    // Labels are only shown in the launcher; key names are case-insensitive in TF2.
+    private static (string, string) Written(KeyBind bind) => (bind.Key.ToLowerInvariant(), bind.Command);
 
     public Profile? FindMatch(GameSettings settings) =>
         _user.FirstOrDefault(p => Matches(p, settings)) ?? BuiltIns.FirstOrDefault(p => Matches(p, settings));

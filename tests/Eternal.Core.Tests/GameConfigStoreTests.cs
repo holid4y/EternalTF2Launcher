@@ -70,4 +70,16 @@ public sealed class GameConfigStoreTests : IDisposable
         Assert.Equal(LoadState.Reset, store.LoadOutcome.State);
         Assert.False(store.Settings.IsTouched(SettingsCatalog.Get<SliderSetting>("FpsMax")));
     }
+
+    [Fact]
+    public void Settings_with_an_empty_bind_entry_count_as_damaged()
+    {
+        var file = Path.Combine(_dir, "game.json");
+        File.WriteAllText(file, """{"version": 2, "values": {"FpsMax": 144}, "binds": [null]}""");
+
+        using var store = new GameConfigStore(file, () => _tf);
+
+        Assert.Equal(LoadState.Reset, store.LoadOutcome.State);
+        Assert.Empty(store.Settings.Binds);
+    }
 }

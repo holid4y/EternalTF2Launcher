@@ -1,12 +1,14 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Eternal.Core.Persistence;
 
 namespace Eternal.Core.Inventory;
 
 public sealed record DescriptionLine(string Text, string? Color);
 
-public sealed partial record InventoryItem
+public sealed partial record InventoryItem : IJsonOnDeserialized
 {
     public string AssetId { get; init; } = "";
     public string ClassId { get; init; } = "";
@@ -35,6 +37,13 @@ public sealed partial record InventoryItem
     public int? Level { get; init; }
     public long Position { get; init; }
     public IReadOnlyList<DescriptionLine> Lines { get; init; } = [];
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        JsonChecks.NoEmptyEntries(Classes, "classes");
+        JsonChecks.NoEmptyEntries(Spells, "spells");
+        JsonChecks.NoEmptyEntries(Lines, "description");
+    }
 
     [GeneratedRegex(@"Unusual Effect:\s*(.+)$")]
     private static partial Regex EffectLine();

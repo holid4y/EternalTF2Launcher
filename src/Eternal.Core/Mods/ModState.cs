@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
 using Eternal.Core.Engine;
+using Eternal.Core.Persistence;
 
 namespace Eternal.Core.Mods;
 
@@ -26,15 +27,17 @@ public sealed class ModBuildOptions
 }
 
 /// <summary>The player's intent: which mods are on and in what priority (first wins).</summary>
-public sealed class ModState
+public sealed class ModState : IJsonOnDeserialized
 {
     public int Version { get; set; } = 1;
     public List<ModEntry> Order { get; set; } = [];
     public ModBuildOptions Options { get; set; } = new();
+
+    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Order, "mods");
 }
 
 /// <summary>What was last written into the game folder, so a restart knows whether work is pending.</summary>
-public sealed class PreloadRecord
+public sealed class PreloadRecord : IJsonOnDeserialized
 {
     public string? AppliedFingerprint { get; set; }
     public DateTimeOffset? AppliedAt { get; set; }
@@ -43,6 +46,13 @@ public sealed class PreloadRecord
     public List<string> Addons { get; set; } = [];
     public List<string> Particles { get; set; } = [];
     public List<string> Warnings { get; set; } = [];
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        JsonChecks.NoEmptyEntries(Addons, "addons");
+        JsonChecks.NoEmptyEntries(Particles, "particles");
+        JsonChecks.NoEmptyEntries(Warnings, "warnings");
+    }
 }
 
 /// <summary>A concrete build request: enabled mods in priority order plus options.</summary>

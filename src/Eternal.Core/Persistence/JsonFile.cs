@@ -106,3 +106,13 @@ public static class JsonFile
         }
     }
 }
+
+internal static class JsonChecks
+{
+    /// <summary>RespectNullableAnnotations refuses a null list but lets a null inside one through.</summary>
+    public static void NoEmptyEntries(IEnumerable<object?>? items, string name)
+    {
+        if (items?.Contains(null) == true)
+            throw new JsonException($"The {name} list has an empty entry.");
+    }
+}

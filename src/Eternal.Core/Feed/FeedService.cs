@@ -22,7 +22,7 @@ public static partial class FeedService
     [GeneratedRegex(@"\[/?[a-zA-Z0-9*]+(?:=[^\]]*)?\]|<[^>]+>")]
     private static partial Regex Markup();
 
-    [GeneratedRegex(@"\{STEAM_CLAN_IMAGE\}(?<path>/[^\s\[\]""<>]+\.(?:png|jpe?g|gif|webp))", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\{STEAM_CLAN(?:_LOC)?_IMAGE\}(?<path>/[^\s\[\]""<>]+\.(?:png|jpe?g|gif|webp))", RegexOptions.IgnoreCase)]
     private static partial Regex ClanImage();
 
     [GeneratedRegex(@"https?://[^\s\[\]""<>]+\.(?:png|jpe?g|gif|webp)", RegexOptions.IgnoreCase)]
@@ -33,8 +33,14 @@ public static partial class FeedService
 
     public static async Task<IReadOnlyList<NewsItem>> SteamNewsAsync(int count = 10, CancellationToken cancellation = default)
     {
-        var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=440&count={count}&maxlength=0&format=json";
-        using var doc = JsonDocument.Parse(await Http.Client.GetStringAsync(url, cancellation).ConfigureAwait(false));
+        // Each post usually shows up in two or three feeds, so ask for more than will be shown.
+        var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=440&count={count * 3}&maxlength=0&format=json";
+        return ParseNews(await Http.Client.GetStringAsync(url, cancellation).ConfigureAwait(false), count);
+    }
+
+    internal static IReadOnlyList<NewsItem> ParseNews(string json, int count)
+    {
+        using var doc = JsonDocument.Parse(json);
         var items = new List<NewsItem>();
         foreach (var item in doc.RootElement.GetProperty("appnews").GetProperty("newsitems").EnumerateArray())
         {
@@ -43,15 +49,21 @@ public static partial class FeedService
                 ? "https://clan.cloudflare.steamstatic.com/images" + clan.Groups["path"].Value
                 : AnyImage().Match(contents) is { Success: true } any ? any.Value : null;
             var text = Whitespace().Replace(WebUtility.HtmlDecode(Markup().Replace(ClanImage().Replace(contents, ""), " ")), " ").Trim();
-            items.Add(new NewsItem(
+            var post = new NewsItem(
                 item.GetProperty("title").GetString() ?? "",
                 text.Length > 220 ? text[..220].TrimEnd() + "…" : text,
                 item.GetProperty("url").GetString() ?? "",
                 image,
                 DateTimeOffset.FromUnixTimeSeconds(item.GetProperty("date").GetInt64()),
-                item.TryGetProperty("feedlabel", out var label) ? label.GetString() ?? "Steam" : "Steam"));
+                item.TryGetProperty("feedlabel", out var label) ? label.GetString() ?? "Steam" : "Steam");
+
+            var copy = items.FindIndex(p => p.Title == post.Title && (p.Date - post.Date).Duration() < TimeSpan.FromHours(6));
+            if (copy < 0)
+                items.Add(post);
+            else if (items[copy].ImageUrl is null && post.ImageUrl is not null)
+                items[copy] = post;
         }
-        return items;
+        return items.Take(count).ToArray();
     }
 
     public static async Task<IReadOnlyList<GameBananaMod>> GameBananaLatestAsync(int count = 12, CancellationToken cancellation = default)

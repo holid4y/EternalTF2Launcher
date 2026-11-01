@@ -142,8 +142,14 @@ public sealed class PreloadCoordinator : IAsyncDisposable
         RequestBuild();
     }
 
+    /// <summary>The game files don't match what the player asked for yet, or a cut-off build hasn't been cleaned up.</summary>
     public bool IsDirty()
     {
+        lock (_gate)
+        {
+            if (_recover)
+                return true;
+        }
         var tf = _tfPath();
         var desired = _desired();
         return desired is not null && !string.IsNullOrWhiteSpace(tf) && NeedsBuild(desired, tf);

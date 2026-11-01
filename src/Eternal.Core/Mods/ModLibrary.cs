@@ -98,6 +98,7 @@ public sealed class ModLibrary
         if (library is null)
             return false;
 
+        var before = Desired();
         lock (_gate)
         {
             _library = library;
@@ -110,10 +111,17 @@ public sealed class ModLibrary
         SaveState();
         Rebuild();
         Log.Info($"Mod library: {Items.Count} mods, {Items.Count(i => i.Enabled)} enabled");
-        DesiredChanged?.Invoke();
+        // A reload that finds the same mods would otherwise show "changes pending" for nothing.
+        if (!Same(before, Desired()))
+            DesiredChanged?.Invoke();
         ScheduleAnalysis();
         return true;
     }
+
+    private static bool Same(DesiredPreload? a, DesiredPreload? b) =>
+        a is not null && b is not null
+        && a.Addons.SequenceEqual(b.Addons) && a.Particles.SequenceEqual(b.Particles)
+        && a.Options.ToEngine() == b.Options.ToEngine() && a.LibrarySignature == b.LibrarySignature;
 
     /// <summary>
     /// Imports files, folders and archives. Archives are unpacked off the UI

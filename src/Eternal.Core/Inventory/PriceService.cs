@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Eternal.Core.Logging;
 using Eternal.Core.Persistence;
 
@@ -26,12 +27,19 @@ public sealed class PriceEntry
     public bool Missing { get; set; }
 }
 
-public sealed class PriceCacheFile
+public sealed class PriceCacheFile : IJsonOnDeserialized
 {
     public DateTimeOffset IndexFetchedAt { get; set; }
     public Dictionary<string, string> NameIndex { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, PriceEntry> Prices { get; set; } = new(StringComparer.Ordinal);
     public Dictionary<string, MarketPrice> Market { get; set; } = new(StringComparer.Ordinal);
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        JsonChecks.NoEmptyEntries(NameIndex.Values, "name");
+        JsonChecks.NoEmptyEntries(Prices.Values, "price");
+        JsonChecks.NoEmptyEntries(Market.Values, "market price");
+    }
 }
 
 /// <summary>

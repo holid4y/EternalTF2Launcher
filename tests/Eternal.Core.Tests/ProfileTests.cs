@@ -125,6 +125,45 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void A_saved_profile_stops_matching_once_binds_or_launch_options_change()
+    {
+        var settings = new GameSettings(new GameConfig());
+        settings.SetBinds([new KeyBind { Key = "f", Command = "voicemenu 0 0" }]);
+        var profile = ProfileStore.Capture(settings, "Mine", null, null, null);
+        Assert.True(ProfileStore.Matches(profile, settings));
+
+        settings.SetBinds([new KeyBind { Key = "f", Command = "voicemenu 0 0" }, new KeyBind { Key = "F8", Command = "say gg" }]);
+        Assert.False(ProfileStore.Matches(profile, settings));
+
+        settings.SetBinds([new KeyBind { Key = "f", Command = "voicemenu 1 1" }]);
+        Assert.False(ProfileStore.Matches(profile, settings));
+
+        settings.SetBinds([new KeyBind { Key = "F", Command = "voicemenu 0 0", Label = "renamed" }]);
+        Assert.True(ProfileStore.Matches(profile, settings));
+
+        settings.ExtraLaunchArgs = "-console";
+        Assert.False(ProfileStore.Matches(profile, settings));
+
+        settings.ExtraLaunchArgs = "";
+        settings.Set(SettingsCatalog.All.First(s => s.IsLaunchOption), SettingsCatalog.All.First(s => s.IsLaunchOption).DefaultNode);
+        Assert.False(ProfileStore.Matches(profile, settings));
+    }
+
+    [Fact]
+    public void Presets_ignore_binds_and_launch_options()
+    {
+        var store = NewStore();
+        var settings = new GameSettings(new GameConfig());
+        var competitive = store.BuiltIns.Single(p => p.Name == "Competitive");
+        ProfileStore.Apply(competitive, settings);
+
+        settings.SetBinds([new KeyBind { Key = "F8", Command = "say gg" }]);
+        settings.ExtraLaunchArgs = "-console";
+
+        Assert.True(ProfileStore.Matches(competitive, settings));
+    }
+
+    [Fact]
     public void Built_in_presets_only_use_known_settings()
     {
         foreach (var preset in NewStore().BuiltIns)
@@ -164,6 +203,8 @@ public sealed class ProfileTests : IDisposable
     [InlineData("""{"format": "eternal-profile", "name": "Broken", "values": null}""")]
     [InlineData("""{"name": 5, "settings": {}}""")]
     [InlineData("""{"format": 7}""")]
+    [InlineData("""{"format": "eternal-profile", "name": "Holes", "values": {}, "binds": [null]}""")]
+    [InlineData("""{"format": "eternal-profile", "name": "Holes", "values": {}, "mods": {"addons": [null]}}""")]
     public void A_profile_with_the_wrong_shape_is_refused_as_not_a_profile(string json)
     {
         var file = Path.Combine(_root, "broken.json");

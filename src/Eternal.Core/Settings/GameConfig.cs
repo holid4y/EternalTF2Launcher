@@ -1,4 +1,6 @@
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using Eternal.Core.Persistence;
 
 namespace Eternal.Core.Settings;
 
@@ -16,7 +18,7 @@ public sealed class KeyBind
 /// <see cref="Values"/>: only touched settings are written to autoexec.cfg or
 /// the launch line, so anything the player never changed stays under TF2's control.
 /// </summary>
-public sealed class GameConfig
+public sealed class GameConfig : IJsonOnDeserialized
 {
     public const int CurrentVersion = 2;
 
@@ -26,6 +28,8 @@ public sealed class GameConfig
 
     /// <summary>The player's own launch options, minus anything the launcher manages.</summary>
     public string ExtraLaunchArgs { get; set; } = "";
+
+    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Binds, "binds");
 
     public GameConfig Clone() => new()
     {

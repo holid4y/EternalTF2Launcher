@@ -1,13 +1,20 @@
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Eternal.Core.Persistence;
 using Eternal.Core.Settings;
 
 namespace Eternal.Core.Profiles;
 
-public sealed class ProfileMods
+public sealed class ProfileMods : IJsonOnDeserialized
 {
     public List<string> Addons { get; set; } = [];
     public List<string> Particles { get; set; } = [];
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        JsonChecks.NoEmptyEntries(Addons, "addons");
+        JsonChecks.NoEmptyEntries(Particles, "particles");
+    }
 }
 
 /// <summary>
@@ -16,7 +23,7 @@ public sealed class ProfileMods
 /// Null sections (binds, launch options, autoexec text, mods) are left alone.
 /// Machine-specific data such as the TF2 folder is never part of a profile.
 /// </summary>
-public sealed class Profile
+public sealed class Profile : IJsonOnDeserialized
 {
     public const string FormatName = "eternal-profile";
     public const int CurrentVersion = 2;
@@ -36,6 +43,8 @@ public sealed class Profile
 
     [JsonIgnore]
     public bool BuiltIn { get; set; }
+
+    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Binds, "binds");
 
     public static string NewId() => Guid.NewGuid().ToString("N");
 

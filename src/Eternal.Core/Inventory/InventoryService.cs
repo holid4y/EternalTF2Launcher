@@ -138,13 +138,15 @@ public sealed class InventoryService(string cacheDir)
     }
 }
 
-public sealed class InventoryCacheFile
+public sealed class InventoryCacheFile : IJsonOnDeserialized
 {
     public string SteamId { get; set; } = "";
     public int AppId { get; set; }
     public int ContextId { get; set; }
     public DateTimeOffset FetchedAt { get; set; }
     public List<InventoryItem> Items { get; set; } = [];
+
+    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Items, "items");
 }
 
 [JsonSourceGenerationOptions(RespectNullableAnnotations = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true)]

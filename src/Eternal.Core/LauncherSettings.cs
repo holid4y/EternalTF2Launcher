@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using Eternal.Core.Persistence;
+
 namespace Eternal.Core;
 
 public enum UiDensity { Comfortable, Compact }
@@ -10,7 +13,7 @@ public sealed class TabPreference
     public bool Visible { get; set; } = true;
 }
 
-public sealed class LauncherSettings
+public sealed class LauncherSettings : IJsonOnDeserialized
 {
     public int Version { get; set; } = 2;
 
@@ -39,6 +42,8 @@ public sealed class LauncherSettings
 
     public string? PythonOverride { get; set; }
     public bool LegacyLibraryChecked { get; set; }
+
+    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Tabs, "tabs");
 
     public static readonly string[] DefaultTabOrder = ["home", "mods", "backpack", "config", "launcher"];
 
