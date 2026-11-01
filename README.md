@@ -12,7 +12,13 @@ Mods are packed into VPKs in `tf/custom` before the game starts, which is why th
 
 ### Mods
 
-Drop a VPK, a folder or a ZIP, RAR or 7z download anywhere on the window. A moment after each change, the enabled mods are applied to the game. When two mods change the same file, the one higher in the list wins, and each mod shows which files it wins or loses. New mods from GameBanana can be imported from the Home tab; downloads are checked against GameBanana's checksum and virus scan.
+Drop a VPK, a folder or a ZIP, RAR or 7z download anywhere on the window. A moment after each change, the enabled mods are applied to the game. When two mods change the same file, the one higher in the list wins, and each mod shows which files it wins or loses.
+
+When a download holds several versions of a mod (a 54 and a 70 FOV build, say, or a HUD with optional parts), you pick which ones to install; versions that change the same files are marked. Loose files such as a lightwarp or a hitsound with no folders around them are placed by matching their names against the game's own files.
+
+### GameBanana
+
+The Mods tab has a GameBanana browser for TF2 mods and sounds, with every category, search and sorting. Each mod's page shows its pictures, description and files, and you tick the files you want. Downloads are checked against GameBanana's size, MD5 checksum and virus scan before they're installed, and they only come from gamebanana.com.
 
 ### Config
 
@@ -37,7 +43,7 @@ Download a release from the [Releases](../../releases) page. Release builds incl
 ### Linux
 
 ```sh
-tar xf EternalLauncher-2.0.1-linux-x64.tar.gz
+tar xf EternalLauncher-2.1.0-linux-x64.tar.gz
 cd EternalLauncher && ./install.sh
 ```
 
@@ -45,7 +51,7 @@ This installs for your user only (`~/.local/share/eternal-launcher`), adds a men
 
 ### Windows
 
-Run `EternalLauncher-2.0.1-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
+Run `EternalLauncher-2.1.0-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
 
 Upgrading from 1.x keeps your settings, profiles, thumbnails and mod library; they are imported on first start.
 
@@ -140,7 +146,7 @@ The script replaces `engine/vendor/casual-pre-loader` with upstream's `core/`, `
 
 - [cueki](https://github.com/cueki) and the [casual-pre-loader](https://github.com/cueki/casual-pre-loader) contributors, for the preloading engine this launcher is built around.
 - [backpack.tf](https://backpack.tf) for the community prices, served through [pricedb.io](https://pricedb.io).
-- [GameBanana](https://gamebanana.com) and its TF2 creators for the mod feed and downloads.
+- [GameBanana](https://gamebanana.com) and its TF2 creators for the mods, sounds and downloads.
 - Valve, for TF2 and the Steam Web APIs used for news, inventories and market prices.
 - [Deadlock Mod Manager](https://github.com/deadlock-mod-manager/deadlock-mod-manager), whose interrupted-install recovery, conflict model and game guard shaped how mods are applied here.
 - Jeremy Tribby and the Barlow Project Authors for the [Barlow](https://github.com/jpt/barlow) typeface.

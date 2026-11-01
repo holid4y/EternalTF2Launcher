@@ -33,15 +33,26 @@ showTheme(root.dataset.theme || "mann-co");
 for (const section of document.querySelectorAll("section, footer")) {
   section.querySelectorAll("[data-reveal]").forEach((el, i) => el.style.setProperty("--i", Math.min(i, 6)));
 }
-const reveal = new IntersectionObserver((entries) => {
-  for (const entry of entries) {
-    if (entry.isIntersecting) {
-      entry.target.classList.add("is-in");
-      reveal.unobserve(entry.target);
+// Checked on every scroll frame rather than by intersection, so a part that a fast flick or a jump
+// carries straight past the screen still comes in.
+const hidden = new Set(document.querySelectorAll("[data-reveal]"));
+let queued = false;
+function revealReached() {
+  queued = false;
+  for (const el of hidden) {
+    if (el.getBoundingClientRect().top < innerHeight * 0.9) {
+      el.classList.add("is-in");
+      hidden.delete(el);
     }
   }
-}, { rootMargin: "0px 0px -10% 0px", threshold: 0.1 });
-document.querySelectorAll("[data-reveal]").forEach((el) => reveal.observe(el));
+}
+addEventListener("scroll", () => {
+  if (!queued && hidden.size) {
+    queued = true;
+    requestAnimationFrame(revealReached);
+  }
+}, { passive: true });
+revealReached();
 
 // The Mods story: the held screenshot follows the step in the middle of the screen.
 const stage = document.querySelectorAll(".story-stage img");
