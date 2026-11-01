@@ -56,6 +56,45 @@ public sealed class ArchiveAndEngineTests : IDisposable
         Assert.Empty(Directory.EnumerateFiles(Path.Combine(_dir, "staging"), "*", SearchOption.AllDirectories));
     }
 
+    [Fact]
+    public void Archives_inside_an_archive_are_unpacked_where_they_were()
+    {
+        var dark = MakeZip("Dark.zip", ("materials/hud/dark.vmt", "dark"));
+        var light = MakeZip("Light.zip", ("materials/hud/light.vmt", "light"));
+        var pack = Path.Combine(_dir, "Hud Colours.zip");
+        using (var zip = ZipFile.Open(pack, ZipArchiveMode.Create))
+        {
+            zip.CreateEntryFromFile(dark, "Variants/Dark.zip");
+            zip.CreateEntryFromFile(light, "Variants/Light.zip");
+        }
+
+        var folder = ArchiveIngest.Extract(pack, Path.Combine(_dir, "staging"));
+
+        Assert.Equal("dark", File.ReadAllText(Path.Combine(folder, "Variants", "Dark", "materials", "hud", "dark.vmt")));
+        Assert.Equal("light", File.ReadAllText(Path.Combine(folder, "Variants", "Light", "materials", "hud", "light.vmt")));
+        Assert.Empty(Directory.EnumerateFiles(folder, "*.zip", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public void Unpacking_stops_at_the_byte_budget_whatever_the_archive_claims()
+    {
+        var zip = MakeZip("big.zip", ("sound/a.wav", new string('a', 4000)), ("sound/b.wav", new string('b', 4000)));
+
+        Assert.Throws<ArchiveException>(() => ArchiveIngest.Extract(zip, Path.Combine(_dir, "staging"), maxBytes: 5000));
+        Assert.Empty(Directory.EnumerateFiles(Path.Combine(_dir, "staging"), "*", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public void Written_bytes_are_counted_even_when_sizes_are_understated()
+    {
+        var budget = new ArchiveIngest.Budget(10, "liar.zip");
+        using var output = new ArchiveIngest.MeteredStream(new MemoryStream(), budget);
+
+        output.Write(new byte[8]);
+
+        Assert.Throws<ArchiveException>(() => output.Write(new byte[8]));
+    }
+
     [Theory]
     [InlineData("../x")]
     [InlineData("a/../../x")]

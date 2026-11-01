@@ -40,17 +40,19 @@ public sealed class ModLibrary
     private readonly PreloaderEngine _engine;
     private readonly AppPaths _paths;
     private readonly ThumbnailStore _thumbnails;
+    private readonly Func<string?> _tfPath;
     private readonly object _gate = new();
     private IReadOnlyList<LibraryMod> _library = [];
     private IReadOnlyList<ModOverlap> _overlaps = [];
     private IReadOnlyList<CompatIssue> _issues = [];
     private CancellationTokenSource? _analysis;
 
-    public ModLibrary(PreloaderEngine engine, AppPaths paths, ThumbnailStore thumbnails)
+    public ModLibrary(PreloaderEngine engine, AppPaths paths, ThumbnailStore thumbnails, Func<string?>? tfPath = null)
     {
         _engine = engine;
         _paths = paths;
         _thumbnails = thumbnails;
+        _tfPath = tfPath ?? (() => null);
         State = JsonFile.Load(paths.ModStateFile, ModJson.Default.ModState, () => new ModState(), out _);
     }
 
@@ -124,71 +126,71 @@ public sealed class ModLibrary
         && a.Options.ToEngine() == b.Options.ToEngine() && a.LibrarySignature == b.LibrarySignature;
 
     /// <summary>
-    /// Imports files, folders and archives. Archives are unpacked off the UI
-    /// thread; mods that imported cleanly are kept and enabled even when other
-    /// items in the same batch fail.
+    /// Unpacks an archive (off the UI thread) and asks the engine what is in it,
+    /// without touching the library. Dispose the plan to clean up.
     /// </summary>
-    public async Task<ImportOutcome> ImportAsync(IReadOnlyList<string> paths, IProgress<ImportProgress>? progress, CancellationToken cancellation = default)
+    public async Task<ImportPlan> PrepareAsync(string path, IProgress<ImportProgress>? progress, CancellationToken cancellation = default)
     {
-        var failures = new List<string>();
-        var direct = new List<string>();
-        var extracted = new List<string>();
-        var staging = new List<string>();
-
+        var name = Path.GetFileName(path);
+        string? staging = null;
+        var target = path;
         try
         {
-            var archives = paths.Where(ArchiveIngest.IsArchive).ToList();
-            for (var i = 0; i < archives.Count; i++)
+            if (ArchiveIngest.IsArchive(path))
             {
-                var archive = archives[i];
-                progress?.Report(new ImportProgress($"Unpacking {Path.GetFileName(archive)}…", (double)i / Math.Max(1, archives.Count) * 0.4));
-                try
-                {
-                    var folder = await Task.Run(() => ArchiveIngest.Extract(archive, _paths.ImportStagingDir, null, cancellation), cancellation).ConfigureAwait(false);
-                    extracted.Add(folder);
-                    staging.Add(Path.GetDirectoryName(folder)!);
-                }
-                catch (ArchiveException ex)
-                {
-                    failures.Add(ex.Message);
-                }
+                var unpacking = new InlineProgress<double>(f => progress?.Report(new ImportProgress($"Unpacking {name}…", f * 0.3)));
+                progress?.Report(new ImportProgress($"Unpacking {name}…", 0));
+                target = await Task.Run(() => ArchiveIngest.Extract(path, _paths.ImportStagingDir, unpacking, cancellation), cancellation).ConfigureAwait(false);
+                staging = Path.GetDirectoryName(target);
             }
-            direct.AddRange(paths.Where(p => !ArchiveIngest.IsArchive(p)));
-
-            if (direct.Count == 0 && extracted.Count == 0)
-                return new ImportOutcome([], failures);
-
-            var engineProgress = new InlineProgress<EngineProgress>(p => progress?.Report(new ImportProgress(p.Message, 0.4 + p.Percent / 100.0 * 0.6)));
-            var (result, items) = await _engine.ImportAsync(direct, extracted, engineProgress, cancellation).ConfigureAwait(false);
-            failures.AddRange(items.Where(i => !i.Ok).Select(i => $"{i.Source}: {i.Message}"));
-            if (items.Count == 0 && !result.Success)
-                failures.Add(result.ErrorSummary);
-
-            var imported = items.SelectMany(i => i.Mods).ToList();
-            await RefreshAsync(cancellation).ConfigureAwait(false);
-            if (imported.Count > 0)
-            {
-                lock (_gate)
-                {
-                    // Fresh imports go to the top (highest priority) and are switched on.
-                    foreach (var mod in imported.Where(m => m.IsNew).Reverse())
-                    {
-                        State.Order.RemoveAll(e => e.Name == mod.Name && e.Kind == mod.Kind);
-                        State.Order.Insert(0, new ModEntry { Name = mod.Name, Kind = mod.Kind, Enabled = true });
-                    }
-                }
-                SaveState();
-                Rebuild();
-                DesiredChanged?.Invoke();
-                ScheduleAnalysis();
-            }
-            return new ImportOutcome(items, failures);
+            progress?.Report(new ImportProgress($"Looking inside {name}…", 0.3));
+            var (inspection, problem) = await _engine.InspectAsync(target, _tfPath(), cancellation).ConfigureAwait(false);
+            if (inspection is null)
+                throw new ArchiveException(problem ?? $"{name} couldn't be read.");
+            return new ImportPlan(path, target, staging, inspection);
         }
-        finally
+        catch
         {
-            foreach (var dir in staging)
-                ArchiveIngest.TryDelete(dir);
+            if (staging is not null)
+                ArchiveIngest.TryDelete(staging);
+            throw;
         }
+    }
+
+    /// <summary>
+    /// Imports a prepared plan, or only <paramref name="parts"/> of it. Mods that
+    /// are new go to the top of the order and are switched on. <paramref name="name"/>
+    /// names the mod when the plan holds just one.
+    /// </summary>
+    public async Task<ImportOutcome> ImportAsync(ImportPlan plan, IReadOnlyCollection<string>? parts, IProgress<ImportProgress>? progress,
+        string? name = null, CancellationToken cancellation = default)
+    {
+        name = name is not null && plan.Parts.Count == 1 ? ArchiveIngest.SafeFolderName(name) : null;
+        var engineProgress = new InlineProgress<EngineProgress>(p => progress?.Report(new ImportProgress(p.Message, 0.4 + p.Percent / 100.0 * 0.6)));
+        var (result, items) = await _engine.ImportAsync(plan.Unpacked ? [] : [plan.Path], plan.Unpacked ? [plan.Path] : [],
+            engineProgress, parts, _tfPath(), name, cancellation).ConfigureAwait(false);
+        var failures = items.Where(i => !i.Ok).Select(i => $"{i.Source}: {i.Message}").ToList();
+        if (items.Count == 0 && !result.Success)
+            failures.Add(result.ErrorSummary);
+
+        var imported = items.SelectMany(i => i.Mods).ToList();
+        await RefreshAsync(cancellation).ConfigureAwait(false);
+        if (imported.Count > 0)
+        {
+            lock (_gate)
+            {
+                foreach (var mod in imported.Where(m => m.IsNew).Reverse())
+                {
+                    State.Order.RemoveAll(e => e.Name == mod.Name && e.Kind == mod.Kind);
+                    State.Order.Insert(0, new ModEntry { Name = mod.Name, Kind = mod.Kind, Enabled = true });
+                }
+            }
+            SaveState();
+            Rebuild();
+            DesiredChanged?.Invoke();
+            ScheduleAnalysis();
+        }
+        return new ImportOutcome(items, failures);
     }
 
     public void SetEnabled(string name, ModKind kind, bool enabled)

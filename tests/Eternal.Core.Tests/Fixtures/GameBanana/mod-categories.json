@@ -1,0 +1,92 @@
+[
+ {
+  "_idRow": 163,
+  "_sName": "Castaways",
+  "_nItemCount": 568,
+  "_nCategoryCount": 3,
+  "_sUrl": "https://gamebanana.com/mods/cats/163",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609b4f2f75829.png"
+ },
+ {
+  "_idRow": 17411,
+  "_sName": "Decal Tool",
+  "_nItemCount": 18,
+  "_nCategoryCount": 4,
+  "_sUrl": "https://gamebanana.com/mods/cats/17411",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/629ffbcf870c3.png"
+ },
+ {
+  "_idRow": 1090,
+  "_sName": "Effects",
+  "_nItemCount": 1355,
+  "_nCategoryCount": 14,
+  "_sUrl": "https://gamebanana.com/mods/cats/1090",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609b4a3beeef7.png"
+ },
+ {
+  "_idRow": 2774,
+  "_sName": "Game files",
+  "_nItemCount": 628,
+  "_nCategoryCount": 8,
+  "_sUrl": "https://gamebanana.com/mods/cats/2774",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609b4ae889f96.png"
+ },
+ {
+  "_idRow": 1644,
+  "_sName": "GUIs",
+  "_nItemCount": 2712,
+  "_nCategoryCount": 8,
+  "_sUrl": "https://gamebanana.com/mods/cats/1644",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609b49a79d865.png"
+ },
+ {
+  "_idRow": 5371,
+  "_sName": "Maps",
+  "_nItemCount": 6793,
+  "_nCategoryCount": 22,
+  "_sUrl": "https://gamebanana.com/mods/cats/5371",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609533647ede3.png"
+ },
+ {
+  "_idRow": 396,
+  "_sName": "Prefabs",
+  "_nItemCount": 184,
+  "_nCategoryCount": 6,
+  "_sUrl": "https://gamebanana.com/mods/cats/396",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609b4bd3c94dd.png"
+ },
+ {
+  "_idRow": 39068,
+  "_sName": "Serverside Weapons",
+  "_nItemCount": 6,
+  "_nCategoryCount": 0,
+  "_sUrl": "https://gamebanana.com/mods/cats/39068",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/68aab8e4086a9.png"
+ },
+ {
+  "_idRow": 7951,
+  "_sName": "Skins",
+  "_nItemCount": 20069,
+  "_nCategoryCount": 26,
+  "_sUrl": "https://gamebanana.com/mods/cats/7951",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609533577f2e6.png"
+ },
+ {
+  "_idRow": 587,
+  "_sName": "Textures",
+  "_nItemCount": 290,
+  "_nCategoryCount": 4,
+  "_sUrl": "https://gamebanana.com/mods/cats/587",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/609b4eaa85056.png"
+ }
+]

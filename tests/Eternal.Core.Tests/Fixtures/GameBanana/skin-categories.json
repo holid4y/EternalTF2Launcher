@@ -1,0 +1,56 @@
+[
+ {
+  "_idRow": 8018,
+  "_sName": "All Class",
+  "_nItemCount": 2302,
+  "_nCategoryCount": 17,
+  "_sUrl": "https://gamebanana.com/mods/cats/8018",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6a7e8094eb667.png"
+ },
+ {
+  "_idRow": 8220,
+  "_sName": "Festive Item Decorations",
+  "_nItemCount": 34,
+  "_nCategoryCount": 0,
+  "_sUrl": "https://gamebanana.com/mods/cats/8220",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6a7e7f26cb8bb.png"
+ },
+ {
+  "_idRow": 8011,
+  "_sName": "Health and Ammo",
+  "_nItemCount": 127,
+  "_nCategoryCount": 0,
+  "_sUrl": "https://gamebanana.com/mods/cats/8011",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6223cbd35e721.png"
+ },
+ {
+  "_idRow": 8000,
+  "_sName": "Intelligence Briefcase",
+  "_nItemCount": 98,
+  "_nCategoryCount": 0,
+  "_sUrl": "https://gamebanana.com/mods/cats/8000",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6223c57a7b1a6.png"
+ },
+ {
+  "_idRow": 8162,
+  "_sName": "Lightwarp",
+  "_nItemCount": 124,
+  "_nCategoryCount": 0,
+  "_sUrl": "https://gamebanana.com/mods/cats/8162",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6223eb55df512.png"
+ },
+ {
+  "_idRow": 8010,
+  "_sName": "Map Props/Decals",
+  "_nItemCount": 145,
+  "_nCategoryCount": 0,
+  "_sUrl": "https://gamebanana.com/mods/cats/8010",
+  "_bIsObsolete": false,
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6223efdfc4ded.png"
+ }
+]

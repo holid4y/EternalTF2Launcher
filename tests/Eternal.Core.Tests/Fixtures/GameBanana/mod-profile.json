@@ -1,0 +1,437 @@
+{
+ "_idRow": 725576,
+ "_nStatus": "0",
+ "_bIsPrivate": false,
+ "_bAccessorIsSubmitter": false,
+ "_bIsTrashed": false,
+ "_bIsWithheld": false,
+ "_sName": "The Female Scout (FemScout)",
+ "_sCommentsMode": "open",
+ "_tsDateModified": 1793540314,
+ "_tsDateAdded": 1791497769,
+ "_sProfileUrl": "https://gamebanana.com/mods/725576",
+ "_aPreviewMedia": {
+  "_aImages": [
+   {
+    "_sType": "screenshot",
+    "_sBaseUrl": "https://images.gamebanana.com/img/ss/mods",
+    "_sFile": "6ac80fc7a9ba5.jpg",
+    "_sFile220": "220-90_6ac80fc7a9ba5.jpg",
+    "_hFile220": 124,
+    "_wFile220": 220,
+    "_sFile530": "530-90_6ac80fc7a9ba5.jpg",
+    "_hFile530": 298,
+    "_wFile530": 530,
+    "_sFile100": "100-90_6ac80fc7a9ba5.jpg",
+    "_hFile100": 56,
+    "_wFile100": 100
+   },
+   {
+    "_sType": "screenshot",
+    "_sBaseUrl": "https://images.gamebanana.com/img/ss/mods",
+    "_sFile": "6ac8105207d59.jpg",
+    "_sFile100": "100-90_6ac8105207d59.jpg",
+    "_hFile100": 56,
+    "_wFile100": 100
+   },
+   {
+    "_sType": "screenshot",
+    "_sBaseUrl": "https://images.gamebanana.com/img/ss/mods",
+    "_sFile": "6ae73ee385430.jpg",
+    "_sFile100": "100-90_6ae73ee385430.jpg",
+    "_hFile100": 56,
+    "_wFile100": 100
+   },
+   {
+    "_sType": "screenshot",
+    "_sBaseUrl": "https://images.gamebanana.com/img/ss/mods",
+    "_sFile": "6ac81066b4e7f.jpg",
+    "_sFile100": "100-90_6ac81066b4e7f.jpg",
+    "_hFile100": 56,
+    "_wFile100": 100
+   },
+   {
+    "_sType": "screenshot",
+    "_sBaseUrl": "https://images.gamebanana.com/img/ss/mods",
+    "_sFile": "6ae73ef1480ae.jpg",
+    "_sFile100": "100-90_6ae73ef1480ae.jpg",
+    "_hFile100": 56,
+    "_wFile100": 100
+   },
+   {
+    "_sType": "screenshot",
+    "_sBaseUrl": "https://images.gamebanana.com/img/ss/mods",
+    "_sFile": "6ac80ffc25926.jpg",
+    "_sFile100": "100-90_6ac80ffc25926.jpg",
+    "_hFile100": 56,
+    "_wFile100": 100
+   }
+  ]
+ },
+ "_nUpdatesCount": 3,
+ "_bHasUpdates": true,
+ "_tsDateUpdated": 1793540404,
+ "_nAllTodosCount": 0,
+ "_bHasTodos": false,
+ "_nPostCount": 26,
+ "_aTags": [
+  {
+   "_sTitle": "Casual Compatibility",
+   "_sValue": "Cueki's Casual Preloader"
+  },
+  {
+   "_sTitle": "Software Used",
+   "_sValue": "Blender"
+  },
+  {
+   "_sTitle": "Software Used",
+   "_sValue": "Crowbar"
+  },
+  {
+   "_sTitle": "Software Used",
+   "_sValue": "GIMP"
+  },
+  {
+   "_sTitle": "Software Used",
+   "_sValue": "Notepad++"
+  },
+  {
+   "_sTitle": "Software Used",
+   "_sValue": "VTFEdit"
+  }
+ ],
+ "_bCreatedBySubmitter": true,
+ "_bIsPorted": false,
+ "_nThanksCount": 4,
+ "_sInitialVisibility": "show",
+ "_sDownloadUrl": "https://gamebanana.com/mods/download/725576",
+ "_nDownloadCount": 956,
+ "_aFiles": [
+  {
+   "_idRow": 1872608,
+   "_sFile": "femmescout_7c957.rar",
+   "_nFilesize": 158855410,
+   "_tsDateAdded": 1793540150,
+   "_nDownloadCount": 0,
+   "_sDownloadUrl": "https://gamebanana.com/dl/1872608",
+   "_sMd5Checksum": "1736fcf8285684769a8dd8d1089b6d03",
+   "_sAnalysisState": "done",
+   "_sAnalysisResult": "ok",
+   "_sAnalysisResultVerbose": "File passed preliminary analysis",
+   "_sAvState": "done",
+   "_sAvResult": "clean",
+   "_bIsArchived": false,
+   "_bHasContents": true,
+   "_aModManagerIntegrations": [
+    {
+     "_sIconClasses": "ModboyIcon",
+     "_idToolRow": 6321,
+     "_aGameRowIds": [
+      4254,
+      2,
+      4660,
+      4,
+      34,
+      262,
+      263,
+      6651,
+      312,
+      9,
+      5,
+      249,
+      292,
+      222,
+      3456,
+      296,
+      4537,
+      297,
+      5418,
+      3370,
+      5306,
+      4214,
+      10,
+      5237,
+      73,
+      66,
+      124,
+      157,
+      150,
+      5531,
+      5694,
+      1843,
+      6,
+      6137,
+      6131,
+      2929,
+      6705,
+      8679,
+      7553
+     ],
+     "_sModManagerAlias": "Modboy",
+     "_sInstallerName": "Modboy",
+     "_idSubmitterRow": 142413,
+     "_sInstallerUrl": "https://gamebanana.com/tools/6321",
+     "_sIconUrl": "https://images.gamebanana.com/img/ico/tools/60b4e38695538.png",
+     "_sDownloadUrl": "modboy://Mod,725576,1872608"
+    }
+   ]
+  }
+ ],
+ "_nSubscriberCount": 24,
+ "_sLicense": "<a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\"><img alt=\"Creative Commons License\" style=\"border-width:0\" src=\"https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png\" /></a><br />This work is licensed under a <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-nc-nd/4.0/\">Creative Commons Attribution-NonCommercial-NoDerivs 4.0 Unported License</a>.",
+ "_sDescription": "Add another to the pile",
+ "_bGenerateTableOfContents": false,
+ "_sText": "<b>Replaces the Scout with the (second) most popular TF2 genderswap, FemScout!</b><br><br><img src=\"https://images.squidge.org/images/2026/10/08/FemmeScout.gif\" width=\"25%\"><br><br>Includes:<br><br><span class=\"GreenColor\">Casual Compatibility!</span><br><br>Model + Skirt Variation<br><br>Full Cosmetic Support! (As of Scream Fortress 2026)<br><br>Hud Elements<br><br>Facial Flexes<br><br>Eye Tracking<br><br>Voicelines (By DustyOldRoses)<br><br>Uber + Zombie Skins<br><br>And more!<br><br>Made for these two requests:<br><br>acheaqua's\u00a0<a href=\"https://gamebanana.com/requests/51077\">Newer femscout</a><br><br>drplatpus's\u00a0<a href=\"https://gamebanana.com/requests/73625\">Newest Femscout</a>",
+ "_bIsObsolete": false,
+ "_nLikeCount": 56,
+ "_nViewCount": 5543,
+ "_sVersion": "1.3",
+ "_bAcceptsDonations": false,
+ "_bShowRipePromo": true,
+ "_aSubmitter": {
+  "_idRow": 3382719,
+  "_sName": "Mincoiin",
+  "_sUserTitle": "Professional Dumbass",
+  "_sHonoraryTitle": "",
+  "_tsJoinDate": 1715828162,
+  "_sAvatarUrl": "https://images.gamebanana.com/img/av/69ca007e88456.png",
+  "_sSigUrl": "https://images.gamebanana.com/img/sig/69ca0252f3f2f.png",
+  "_sProfileUrl": "https://gamebanana.com/members/3382719",
+  "_sPointsUrl": "https://gamebanana.com/members/logs/pointslog/3382719",
+  "_sMedalsUrl": "https://gamebanana.com/members/stats/medals/3382719",
+  "_bIsOnline": false,
+  "_sLocation": "<a href=\"https://gamebanana.com\">Home</a> > <a href=\"https://gamebanana.com/games/297\"><img src=\"https://images.gamebanana.com/img/ico/games/4f5a605d0eb52.png\"/><span>Team Fortress 2</span></a> > <a href=\"https://gamebanana.com/mods/games/297\">Mods</a> > <a href=\"https://gamebanana.com/mods/cats/7951\">Skins</a> > <a href=\"https://gamebanana.com/mods/cats/7962\">The Scout</a> > <a href=\"https://gamebanana.com/mods/cats/7963\">Player Model</a> > <a href=\"https://gamebanana.com/mods/725576\">The Female Scout (FemScout)</a>",
+  "_sOnlineTitle": "",
+  "_sOfflineTitle": "",
+  "_nPoints": 74758,
+  "_nPointsRank": 318,
+  "_aNormalMedals": [
+   [
+    "m_age_1.png",
+    "One month a member",
+    "normal",
+    1888552
+   ],
+   [
+    "m_age_2.png",
+    "6 months a member",
+    "normal",
+    2450703
+   ],
+   [
+    "m_age_3.png",
+    "1 year a member",
+    "normal",
+    3188492
+   ],
+   [
+    "mods1.png",
+    "Submitted 5 Mods",
+    "normal",
+    3854084
+   ],
+   [
+    "m_pr_1.png",
+    "Reached 1,000 Points",
+    "normal",
+    3918352
+   ],
+   [
+    "m_pr_2.png",
+    "Reached 2,500 Points",
+    "normal",
+    3997544
+   ],
+   [
+    "mods2.png",
+    "Submitted 10 Mods",
+    "normal",
+    4161017
+   ],
+   [
+    "m_pr_3.png",
+    "Reached 7,500 Points",
+    "normal",
+    4225369
+   ],
+   [
+    "thanks_recvd_1.png",
+    "Received thanks 5 times",
+    "normal",
+    4598941
+   ],
+   [
+    "m_pr_4.png",
+    "Reached 25,000 Points",
+    "normal",
+    4605919
+   ],
+   [
+    "subscribers_1.png",
+    "Reached 10 subscribers",
+    "normal",
+    4656722
+   ],
+   [
+    "m_age_4.png",
+    "2 years a member",
+    "normal",
+    4846880
+   ]
+  ],
+  "_aRareMedals": [
+   [
+    "mods3.png",
+    "Submitted 15 Mods",
+    "rare",
+    4654324
+   ],
+   [
+    "subscribers_2.png",
+    "Reached 50 subscribers",
+    "rare",
+    4684119
+   ],
+   [
+    "thanks_recvd_2.png",
+    "Received thanks 50 times",
+    "rare",
+    4706514
+   ],
+   [
+    "mods4.png",
+    "Submitted 20 Mods",
+    "rare",
+    4744314
+   ]
+  ],
+  "_aLegendaryMedals": [
+   [
+    "subscribers_3.png",
+    "Reached 100 subscribers",
+    "legendary",
+    4728480
+   ]
+  ],
+  "_bHasRipe": false,
+  "_nBuddyCount": 0,
+  "_nSubscriberCount": 389,
+  "_aDonationMethods": [],
+  "_bAccessorIsBuddy": false,
+  "_bBuddyRequestExistsWithAccessor": false,
+  "_bAccessorIsSubscribed": false,
+  "_aBio": [
+   {
+    "_sTitle": "First Game ever played",
+    "_sValue": "Team Fortress 2"
+   },
+   {
+    "_sTitle": "Favorite Game Genre",
+    "_sValue": "FPS"
+   },
+   {
+    "_sTitle": "Favorite Band",
+    "_sValue": "Tally Hall"
+   },
+   {
+    "_sTitle": "Coke or Pepsi",
+    "_sValue": "Coke"
+   },
+   {
+    "_sTitle": "Favorite CS Map",
+    "_sValue": "de_mansion"
+   }
+  ],
+  "_aDefaultLicenseChecklist": [
+   "yes",
+   "ask",
+   "ask",
+   "ask",
+   "ask",
+   "ask",
+   "no",
+   "ask"
+  ],
+  "_sDefaultLicense": "",
+  "_sHdAvatarUrl": "https://images.gamebanana.com/img/av/69ca045b028ae.png"
+ },
+ "_bFollowLinks": true,
+ "_aGame": {
+  "_idRow": 297,
+  "_sName": "Team Fortress 2",
+  "_sAbbreviation": "TF2",
+  "_sProfileUrl": "https://gamebanana.com/games/297",
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/games/4f5a605d0eb52.png",
+  "_sBannerUrl": "https://images.gamebanana.com/img/ico/games/4f5a605d0eb52.png",
+  "_nSubscriberCount": 44017,
+  "_bHasSubmissionQueue": false,
+  "_bAccessorIsSubscribed": false
+ },
+ "_aCategory": {
+  "_idRow": 7963,
+  "_sName": "Player Model",
+  "_sModelName": "ModCategory",
+  "_sProfileUrl": "https://gamebanana.com/mods/cats/7963",
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/sct.png",
+  "_bIsObsolete": false
+ },
+ "_aSuperCategory": {
+  "_idRow": 7962,
+  "_sName": "The Scout",
+  "_sModelName": "ModCategory",
+  "_sProfileUrl": "https://gamebanana.com/mods/cats/7962",
+  "_sIconUrl": "https://images.gamebanana.com/img/ico/ModCategory/6223de977bd60.png"
+ },
+ "_aCredits": [
+  {
+   "_sGroupName": "Mod Creator",
+   "_aAuthors": [
+    {
+     "_sRole": "Mod Creator",
+     "_idRow": 3382719,
+     "_sName": "Mincoiin",
+     "_sProfileUrl": "https://gamebanana.com/members/3382719",
+     "_sAvatarUrl": "https://images.gamebanana.com/img/av/69ca007e88456.png",
+     "_bIsOnline": false
+    }
+   ]
+  },
+  {
+   "_sGroupName": "Modeler",
+   "_aAuthors": [
+    {
+     "_sRole": "Female Scout model creator",
+     "_sName": "Zeton",
+     "_sUrl": "https://steamcommunity.com/id/zeton54"
+    }
+   ]
+  },
+  {
+   "_sGroupName": "Texturer",
+   "_aAuthors": [
+    {
+     "_sRole": "UberCharge + Zombie texture creator",
+     "_idRow": 1777468,
+     "_sName": "LineMan",
+     "_sUpicUrl": "https://images.gamebanana.com/img/upic/693643287fc7b.png",
+     "_sProfileUrl": "https://gamebanana.com/members/1777468",
+     "_sAvatarUrl": "https://images.gamebanana.com/img/av/6936409f3123a.png",
+     "_bIsOnline": false
+    }
+   ]
+  },
+  {
+   "_sGroupName": "Voicelines",
+   "_aAuthors": [
+    {
+     "_sRole": "Voice Actor",
+     "_idRow": 984174,
+     "_sName": "DustyOldRoses",
+     "_sProfileUrl": "https://gamebanana.com/members/984174",
+     "_sAvatarUrl": "https://images.gamebanana.com/img/av/984174.jpg",
+     "_bIsOnline": false
+    }
+   ]
+  }
+ ]
+}

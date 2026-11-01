@@ -22,28 +22,62 @@ public static class ArchiveIngest
     public static bool IsArchive(string path) => Extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
 
     /// <returns>The folder holding the archive's contents (named after the archive).</returns>
-    public static string Extract(string archivePath, string stagingRoot, IProgress<double>? progress = null, CancellationToken cancellation = default)
+    public static string Extract(string archivePath, string stagingRoot, IProgress<double>? progress = null,
+        CancellationToken cancellation = default, long maxBytes = MaxTotalBytes)
     {
         var name = SafeFolderName(Path.GetFileNameWithoutExtension(archivePath));
         var destination = Path.Combine(stagingRoot, Guid.NewGuid().ToString("N")[..8], name);
         Directory.CreateDirectory(destination);
+        var budget = new Budget(maxBytes, Path.GetFileName(archivePath));
+        try
+        {
+            Unpack(archivePath, destination, budget, progress, cancellation);
+            UnpackNested(destination, budget, depth: 1, cancellation);
+            return destination;
+        }
+        catch
+        {
+            TryDelete(Path.GetDirectoryName(destination)!);
+            throw;
+        }
+    }
 
+    // Some uploads put each variant in its own archive inside the download.
+    private static void UnpackNested(string folder, Budget budget, int depth, CancellationToken cancellation)
+    {
+        if (depth > 2)
+            return;
+        foreach (var inner in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Where(IsArchive).ToList())
+        {
+            var target = Path.Combine(Path.GetDirectoryName(inner)!, SafeFolderName(Path.GetFileNameWithoutExtension(inner)));
+            for (var n = 2; Directory.Exists(target) || File.Exists(target); n++)
+                target = Path.Combine(Path.GetDirectoryName(inner)!, $"{SafeFolderName(Path.GetFileNameWithoutExtension(inner))} {n}");
+            Directory.CreateDirectory(target);
+            Unpack(inner, target, budget, null, cancellation);
+            File.Delete(inner);
+            UnpackNested(target, budget, depth + 1, cancellation);
+        }
+    }
+
+    private static void Unpack(string archivePath, string destination, Budget budget, IProgress<double>? progress, CancellationToken cancellation)
+    {
+        var label = Path.GetFileName(archivePath);
         try
         {
             using var archive = ArchiveFactory.OpenArchive(archivePath, new ReaderOptions());
             var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
             if (entries.Count > MaxEntries)
-                throw new ArchiveException($"{Path.GetFileName(archivePath)} has too many files ({entries.Count}).");
+                throw new ArchiveException($"{label} has too many files ({entries.Count}).");
             if (entries.Any(e => e.IsEncrypted))
-                throw new ArchiveException($"{Path.GetFileName(archivePath)} is password-protected.");
+                throw new ArchiveException($"{label} is password-protected.");
 
             long total = 0;
             var targets = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var entry in entries)
             {
                 total += Math.Max(0, entry.Size);
-                if (total > MaxTotalBytes)
-                    throw new ArchiveException($"{Path.GetFileName(archivePath)} expands to more than {MaxTotalBytes >> 30} GiB.");
+                if (total > budget.Remaining)
+                    throw new ArchiveException($"{label} expands to more than {budget.Limit >> 20} MB.");
                 if (entry.Key is null)
                     continue;
                 targets[entry.Key] = ResolveTarget(destination, entry.Key);
@@ -58,7 +92,7 @@ public static class ArchiveIngest
                 if (key is null || !targets.TryGetValue(key, out var target))
                     return;
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                using (var output = File.Create(target))
+                using (var output = new MeteredStream(File.Create(target), budget))
                     copy(output);
                 written += Math.Max(0, size);
                 if (total > 0)
@@ -85,18 +119,59 @@ public static class ArchiveIngest
                     });
                 }
             }
-            return destination;
         }
         catch (Exception ex) when (ex is not ArchiveException and not OperationCanceledException)
         {
             Log.Warn($"Extracting {archivePath} failed", ex);
-            TryDelete(Path.GetDirectoryName(destination)!);
-            throw new ArchiveException($"{Path.GetFileName(archivePath)} could not be read: {ex.Message}");
+            throw new ArchiveException($"{label} could not be read: {ex.Message}");
         }
-        catch
+    }
+
+    /// <summary>What may still be written for one download, counted as it is written: an archive's own size fields can lie.</summary>
+    internal sealed class Budget(long limit, string label)
+    {
+        private long _used;
+
+        public long Limit => limit;
+        public long Remaining => limit - _used;
+
+        public void Spend(int bytes)
         {
-            TryDelete(Path.GetDirectoryName(destination)!);
-            throw;
+            _used += bytes;
+            if (_used > limit)
+                throw new ArchiveException($"{label} expands to more than {limit >> 20} MB.");
+        }
+    }
+
+    internal sealed class MeteredStream(Stream inner, Budget budget) : Stream
+    {
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => inner.Length;
+        public override long Position { get => inner.Position; set => throw new NotSupportedException(); }
+        public override void Flush() => inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            budget.Spend(count);
+            inner.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            budget.Spend(buffer.Length);
+            inner.Write(buffer);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                inner.Dispose();
+            base.Dispose(disposing);
         }
     }
 

@@ -17,6 +17,11 @@ public sealed record ImportItemResult(string Source, bool Ok, string Message, IR
 
 public sealed record BuildOptions(bool DisablePaintColors, bool ShowConsole, bool FixModelPaths, bool SkipQuickPrecache);
 
+/// <summary>One mod inside an import: a VPK, a mod folder or loose game files. <see cref="Conflicts"/> lists the parts changing the same files.</summary>
+public sealed record ImportPart(string Source, string Name, string Kind, int Files, long Size, IReadOnlyList<string> Conflicts);
+
+public sealed record Inspection(IReadOnlyList<ImportPart> Parts, IReadOnlyList<string> Skipped, IReadOnlyList<string> Documents);
+
 public sealed class PreloaderEngine
 {
     private readonly EngineClient _client;
@@ -69,10 +74,32 @@ public sealed class PreloaderEngine
             : [];
     }
 
+    public async Task<(Inspection? Inspection, string? Problem)> InspectAsync(string path, string? tfPath, CancellationToken cancellation = default)
+    {
+        var args = new List<string> { "inspect" };
+        if (!string.IsNullOrWhiteSpace(tfPath))
+            args.Add($"--tf-path={tfPath}");
+        args.AddRange(["--", path]);
+        var result = await _client.RunAsync(args, EngineCommandKind.Query, cancellation: cancellation).ConfigureAwait(false);
+        if (!result.Success)
+            return (null, result.ErrorSummary);
+        var parts = Array(result.Data, "parts").Select(p => new ImportPart(
+            Str(p, "source"), Str(p, "name"), Str(p, "kind"), Int(p, "files"), Long(p, "size"),
+            Strings(p, "conflicts"))).Where(p => p.Source.Length > 0).ToArray();
+        return (new Inspection(parts, Strings(result.Data, "skipped"), Strings(result.Data, "documents")), null);
+    }
+
     public async Task<(EngineResult Result, IReadOnlyList<ImportItemResult> Items)> ImportAsync(
-        IReadOnlyList<string> paths, IReadOnlyList<string> extracted, IProgress<EngineProgress>? progress, CancellationToken cancellation = default)
+        IReadOnlyList<string> paths, IReadOnlyList<string> extracted, IProgress<EngineProgress>? progress,
+        IReadOnlyCollection<string>? parts = null, string? tfPath = null, string? name = null, CancellationToken cancellation = default)
     {
         var args = new List<string> { "import" };
+        if (!string.IsNullOrWhiteSpace(name))
+            args.Add($"--name={name}");
+        if (!string.IsNullOrWhiteSpace(tfPath))
+            args.Add($"--tf-path={tfPath}");
+        foreach (var part in parts ?? [])
+            args.Add($"--part={part}");
         foreach (var dir in extracted)
             args.Add($"--extracted={dir}");
         if (paths.Count > 0)
@@ -130,7 +157,13 @@ public sealed class PreloaderEngine
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? fallback : fallback;
 
     private static int Int(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.TryGetInt32(out var i) ? i : 0;
+        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : 0;
+
+    private static long Long(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var i) ? i : 0;
+
+    private static string[] Strings(JsonElement e, string name) =>
+        Array(e, name).Where(s => s.ValueKind == JsonValueKind.String).Select(s => s.GetString() ?? "").ToArray();
 
     private static double Num(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
