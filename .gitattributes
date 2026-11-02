@@ -16,3 +16,8 @@
 *.py text eol=lf
 *.desktop text eol=lf
 *.yml text eol=lf
+
+# Vendored Windows tools and game archives
+*.exe binary
+*.dll binary
+*.vpk binary

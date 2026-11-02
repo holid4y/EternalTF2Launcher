@@ -114,8 +114,8 @@ def install(tf_path: Path, order: list[str], particle_order: list[str], options:
     skip_precache = options.skip_quickprecache
     if not skip_precache and wine_available() is False:
         skip_precache = True
-        warnings.append("Wine is not installed, so QuickPrecache was skipped. Custom models used "
-                        "as map props may not load until Wine is installed.")
+        warnings.append("Wine is not installed, so QuickPrecache was skipped. Custom props, robots, pickups "
+                        "and flags may not load until Wine is installed.")
 
     _prepare()
     selections = particle_selections(particle_order)

@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -270,6 +271,87 @@ class SafeImportTest(unittest.TestCase):
         self.assertEqual(list(old.glob("*.vpk")), [])
         shutil.rmtree(old)
 
+    def test_unpacking_keeps_the_files_beside_the_vpk(self):
+        addons, _ = library_dirs()
+        mixed = make_mod(addons, "Mixed Pyro", {
+            "materials/models/player/pyro/pyro_red.vmt": b"loose",
+            "models/player/pyro.vvd": b"loose vvd",
+            "mod.json": b'{"type": "model"}',
+        })
+        with tempfile.TemporaryDirectory() as tmp:
+            vpk = make_vpk(Path(tmp) / "pyro.vpk", {"models/player/pyro.mdl": b"pyro", "models/player/pyro.vvd": b"vpk vvd"})
+            shutil.move(vpk, mixed / "pyro.vpk")
+
+        problems = library.unpack_vpk_folders(["Mixed Pyro"], lambda *_: None)
+
+        self.assertEqual(problems, [])
+        self.assertEqual((mixed / "models" / "player" / "pyro.mdl").read_bytes(), b"pyro")
+        self.assertEqual((mixed / "materials" / "models" / "player" / "pyro" / "pyro_red.vmt").read_bytes(), b"loose")
+        self.assertEqual((mixed / "models" / "player" / "pyro.vvd").read_bytes(), b"loose vvd")
+        self.assertEqual(json.loads((mixed / "mod.json").read_text())["type"], "model")
+        self.assertEqual(list(mixed.glob("*.vpk")), [])
+        shutil.rmtree(mixed)
+
+    def test_a_vpk_inside_a_mod_folder_imports_once(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = make_mod(Path(tmp), "Pack", {"models/weapons/a.mdl": b"a"})
+            make_vpk(pack / "extra.vpk", {"materials/b.vmt": b"b"})
+
+            result = run_cli("import", "--extracted", str(pack))["data"]["results"][0]
+
+        self.assertTrue(result["ok"], result["message"])
+        self.assertEqual(sorted(m["name"] for m in result["mods"]), ["Pack", "extra"])
+        self.assertEqual(list((addons / "Pack").glob("*.vpk")), [])
+        self.assertTrue((addons / "extra" / "materials" / "b.vmt").is_file())
+        shutil.rmtree(addons / "Pack")
+        shutil.rmtree(addons / "extra")
+
+    def test_textures_zipped_without_materials_land_in_materials(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            skin = make_mod(Path(tmp), "Battle Hardened Soldier", {
+                "models/player/soldier/soldier_red.vtf": b"red",
+                "models/player/soldier/soldier_red.vmt": b"vmt",
+                "screens/01.jpg": b"jpg",
+            })
+
+            result = run_cli("import", "--extracted", str(skin))["data"]["results"][0]
+
+        mod = addons / "Battle Hardened Soldier"
+        self.assertTrue(result["ok"], result["message"])
+        self.assertEqual((mod / "materials" / "models" / "player" / "soldier" / "soldier_red.vtf").read_bytes(), b"red")
+        self.assertTrue((mod / "materials" / "models" / "player" / "soldier" / "soldier_red.vmt").is_file())
+        self.assertFalse((mod / "models").exists())
+        shutil.rmtree(mod)
+
+    def test_a_vpk_packed_one_folder_too_high_is_lifted(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            vpk = make_vpk(Path(tmp) / "Alternate Lines.vpk", {
+                "femspy/sound/vo/scout_dominationspy04.wav": b"spy",
+                "femheavy/sound/vo/scout_dominationhvy10.wav": b"heavy",
+            })
+
+            result = run_cli("import", str(vpk))["data"]["results"][0]
+
+        mod = addons / "Alternate Lines"
+        self.assertTrue(result["ok"], result["message"])
+        self.assertEqual((mod / "sound" / "vo" / "scout_dominationspy04.wav").read_bytes(), b"spy")
+        self.assertEqual((mod / "sound" / "vo" / "scout_dominationhvy10.wav").read_bytes(), b"heavy")
+        self.assertFalse((mod / "femspy").exists())
+        shutil.rmtree(mod)
+
+    def test_mods_already_in_the_library_are_tidied_too(self):
+        addons, _ = library_dirs()
+        old = make_mod(addons, "Old Skin", {"models/player/soldier/soldier_red.vtf": b"red", "mod.json": b"{}"})
+
+        library.tidy_library(["Old Skin"])
+
+        self.assertTrue((old / "materials" / "models" / "player" / "soldier" / "soldier_red.vtf").is_file())
+        self.assertFalse((old / "models").exists())
+        shutil.rmtree(old)
+
     def test_a_damaged_vpk_inside_a_library_mod_is_left_as_it_was(self):
         addons, _ = library_dirs()
         old = addons / "Cut Pyro"
@@ -440,15 +522,25 @@ class PartsTest(unittest.TestCase):
 
         self.assertFalse(result["ok"])
 
+    def test_a_generic_mod_folder_takes_the_name_above_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "machine_vs_machine"
+            make_mod(root / "Robot animations only" / "tf", "models", {"player/scout_animations.mdl": b"a"})
+            make_mod(root / "Robots on player animations" / "tf", "models", {"bots/demo/bot_demo_animations.mdl": b"b"})
+
+            parts = library.inspect(root)["parts"]
+
+        self.assertEqual(sorted(p["name"] for p in parts), ["Robot animations only", "Robots on player animations"])
+
     def test_parts_that_would_share_a_name_get_numbered(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "Pack"
-            make_mod(root / "a", "custom", {"materials/a.vmt": b"x"})
-            make_mod(root / "b", "custom", {"materials/b.vmt": b"x"})
+            make_mod(root / "red", "Sniper", {"materials/a.vmt": b"x"})
+            make_mod(root / "blu", "Sniper", {"materials/b.vmt": b"x"})
 
             names = sorted(p["name"] for p in run_cli("inspect", str(root))["data"]["parts"])
 
-        self.assertEqual(names, ["Pack", "Pack 2"])
+        self.assertEqual(names, ["Sniper", "Sniper 2"])
 
     def test_inspecting_something_that_is_not_a_mod_says_so(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -493,22 +585,26 @@ class HudConversionTest(unittest.TestCase):
 
 
 class StudioMdlTest(unittest.TestCase):
-    def compiler(self):
+    def compiler(self, game: Path = Path("/games/$(touch pwned)/Team Fortress 2")):
         from core.quickprecache.studio_mdl import StudioMDL, StudioMDLVersion
 
         compiler = StudioMDL.__new__(StudioMDL)
-        compiler.game_path = Path("/games/$(touch pwned)/Team Fortress 2")
+        compiler.game_path = game
         compiler.bundled_studiomdl_path = Path("/sdk/studiomdl.exe")
         compiler.studio_mdl_version = StudioMDLVersion.STUDIOMDL32
         return compiler
 
-    def run_compile(self, returncode):
-        process = mock.MagicMock()
-        process.stdout = iter(["compiling\n"])
-        process.wait.return_value = returncode
-        with mock.patch("subprocess.Popen", return_value=process) as popen:
-            ok = self.compiler().make_model(Path("/tmp/a b/`id`.qc"))
-        return ok, popen.call_args
+    def run_compile(self, returncode, game: Path | None = None, qc: Path = Path("/tmp/a b/`id`.qc"), writes=True):
+        def run(args, **kwargs):
+            if writes and game is not None:
+                (game / "tf" / "models").mkdir(parents=True, exist_ok=True)
+                (game / "tf" / "models" / "precache_0.mdl").write_bytes(b"IDST")
+            return mock.Mock(returncode=returncode, stdout="compiling\n")
+
+        precache.reset()
+        with mock.patch("subprocess.run", side_effect=run) as call:
+            ok = (self.compiler(game) if game else self.compiler()).make_model(qc)
+        return ok, call.call_args
 
     def test_paths_reach_the_compiler_as_arguments(self):
         ok, call = self.run_compile(0)
@@ -518,13 +614,72 @@ class StudioMdlTest(unittest.TestCase):
         self.assertFalse(call.kwargs.get("shell", False))
         qc = str(Path("/tmp/a b/`id`.qc"))
         self.assertIn(qc if sys.platform == "win32" else f"Z:{qc}", call.args[0])
+        self.assertTrue(call.kwargs.get("timeout"))
 
     def test_failed_compiles_become_a_build_warning(self):
-        precache.reset()
         ok, _ = self.run_compile(1)
 
         self.assertFalse(ok)
-        self.assertTrue(any("QuickPrecache" in w for w in precache.warnings()))
+        self.assertTrue(any("QuickPrecache" in w and "exited with 1" in w for w in precache.warnings()))
+
+    @unittest.skipIf(sys.platform == "win32", "Wine is only used off Windows")
+    def test_wine_gets_its_own_prefix_and_no_windows(self):
+        from core.config import config
+
+        _, call = self.run_compile(0)
+
+        env = call.kwargs["env"]
+        self.assertEqual(Path(env["WINEPREFIX"]), config.project_dir / "wine")
+        self.assertEqual(env["DISPLAY"], "")
+        self.assertEqual(env["WAYLAND_DISPLAY"], "")
+        self.assertIn("winemenubuilder.exe=d", env["WINEDLLOVERRIDES"])
+        self.assertIn("mscoree", env["WINEDLLOVERRIDES"])
+
+    def test_a_compile_that_writes_no_model_failed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            qc = Path(tmp) / "precache_0.qc"
+            qc.write_text('$modelname "precache_0.mdl"\n$includemodel "bots/pyro/bot_pyro.mdl"\n')
+
+            wrote, _ = self.run_compile(0, Path(tmp) / "game", qc)
+            silent, _ = self.run_compile(0, Path(tmp) / "empty", qc, writes=False)
+
+        self.assertTrue(wrote)
+        self.assertFalse(silent)
+        self.assertTrue(any("precache_0.mdl" in w for w in precache.warnings()))
+
+    def test_a_stuck_compile_is_stopped(self):
+        precache.reset()
+        with mock.patch("subprocess.run", side_effect=subprocess.TimeoutExpired("wine", 300)):
+            ok = self.compiler().make_model(Path("/tmp/precache_0.qc"))
+
+        self.assertFalse(ok)
+        self.assertTrue(any("precache_0.qc" in w for w in precache.warnings()))
+
+    def test_missing_studiomdl_is_named(self):
+        from core.quickprecache.quick_precache import QuickPrecache
+        from core.quickprecache.studio_mdl import StudioMDL
+
+        precache.install()
+        precache.reset()
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(StudioMDL, "_get_studio_mdl_version", return_value=StudioMDLVersionMissing()):
+            ok = QuickPrecache(Path(tmp)).run(auto=True)
+
+        self.assertFalse(ok)
+        self.assertTrue(any("studiomdl.exe" in w for w in precache.warnings()))
+
+    def test_the_bundled_studiomdl_ships_with_its_dlls_and_license(self):
+        studio = ENGINE_DIR / "vendor" / "casual-pre-loader" / "core" / "quickprecache" / "studio"
+
+        for name in ("studiomdl.exe", "tier0.dll", "vstdlib.dll", "bin/FileSystem_Stdio.dll", "bin/MaterialSystem.dll",
+                     "bin/StudioRender.dll", "bin/mdllib.dll", "LICENSE", "thirdpartylegalnotices.txt"):
+            self.assertTrue((studio / name).is_file(), name)
+
+
+def StudioMDLVersionMissing():
+    from core.quickprecache.studio_mdl import StudioMDLVersion
+
+    return StudioMDLVersion.MISSING
 
 
 class MetadataTest(unittest.TestCase):
@@ -695,8 +850,6 @@ class ManifestTest(unittest.TestCase):
 class StdoutTest(unittest.TestCase):
     def test_output_is_utf8_whatever_the_console_encoding(self):
         # Windows pipes default to the ANSI code page; mod names can be anything.
-        import subprocess
-
         with tempfile.TemporaryDirectory() as tmp:
             mod = make_mod(Path(tmp), "\u30e2\u30c3\u30c9 \u00e9", {"materials/vgui/a.vmt": b"x"})
             env = dict(os.environ, PYTHONIOENCODING="cp1252")

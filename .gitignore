@@ -1,6 +1,8 @@
 # Build outputs
 **/bin/
 **/obj/
+# studiomdl's own DLL folder, vendored from upstream, not a build output
+!engine/vendor/casual-pre-loader/core/quickprecache/studio/bin/
 artifacts/
 build/
 installer/Output/

@@ -6,11 +6,13 @@ list. A model with a garbage header in that chain crashes TF2 at the main menu
 instead.
 
 Upstream also runs studiomdl through a shell on Linux and reports success when
-compiles fail; here the compiler gets an argument list and failures become a
-build warning.
+compiles fail; here the compiler gets an argument list, Wine runs in a prefix of
+the launcher's own without opening windows, and failures become a build warning.
 """
 
 import logging
+import os
+import re
 import struct
 import subprocess
 import sys
@@ -24,6 +26,9 @@ _OFF_NUMTEXTURES = 204
 _HEADER = _OFF_NUMTEXTURES + 4
 # Garbage reads as huge or negative counts; real TF2 models stay far below this.
 _MAX_COUNT = 4096
+# The first compile also creates the Wine prefix, which takes a while.
+_COMPILE_TIMEOUT = 300
+_MODEL_NAME = re.compile(r'^\s*\$modelname\s+"([^"]+)"', re.MULTILINE | re.IGNORECASE)
 
 # Models left out by the last scan and where they were found. Upstream scans twice per install.
 skipped: dict[str, str] = {}
@@ -46,8 +51,8 @@ def warnings(owner: Callable[[str], str | None] = lambda model: None) -> list[st
                      f"so TF2 doesn't crash at the menu: {', '.join(names[:3])}{more}. "
                      "If that mod looks wrong in game, turn it off.")
     if failed:
-        found.append("QuickPrecache didn't finish, so custom models on map props may not load. "
-                     "engine.log in the launcher's logs folder has the details.")
+        found.append(f"QuickPrecache didn't finish ({failed[0]}), so custom props, robots, pickups and flags "
+                     "may not load. engine.log in the launcher's logs folder has the details.")
     return found
 
 
@@ -112,6 +117,31 @@ def _check_vpk(vpk_path: Path, models: set[str]) -> set[str]:
     return kept
 
 
+def _wine_env() -> dict[str, str]:
+    from core.config import config
+
+    env = dict(os.environ)
+    env.update({
+        # Never the player's own ~/.wine.
+        "WINEPREFIX": str(config.project_dir / "wine"),
+        "WINEDEBUG": "-all",
+        # No Mono or Gecko install prompt, and no menu entries for what runs in the prefix.
+        "WINEDLLOVERRIDES": "mscoree,mshtml=;winemenubuilder.exe=d",
+        # studiomdl is a console tool; with no display Wine opens no windows.
+        "DISPLAY": "",
+        "WAYLAND_DISPLAY": "",
+    })
+    return env
+
+
+def _model_name(qc_file: Path) -> str | None:
+    try:
+        match = _MODEL_NAME.search(qc_file.read_text(errors="replace"))
+    except OSError:
+        return None
+    return match.group(1) if match else None
+
+
 def _make_model(self, qc_file: Path) -> bool:
     from core.quickprecache.studio_mdl import StudioMDLVersion
 
@@ -120,24 +150,33 @@ def _make_model(self, qc_file: Path) -> bool:
         return False
     exe = str(self.bundled_studiomdl_path if self.studio_mdl_version == StudioMDLVersion.BUNDLED_SDK
               else self.game_path / self.studio_mdl_version.value)
-    tf = str(self.game_path / "tf")
+    tf = self.game_path / "tf"
     if sys.platform == "win32":
-        args = [exe, "-game", tf, "-nop4", "-verbose", str(qc_file)]
+        args, env = [exe, "-game", str(tf), "-nop4", "-verbose", str(qc_file)], None
     else:
         # Wine maps Z: to /. As a list, nothing in these paths is read by a shell.
-        args = ["wine", exe, "-game", f"Z:{tf}", "-nop4", "-verbose", f"Z:{qc_file}"]
+        args, env = ["wine", exe, "-game", f"Z:{tf}", "-nop4", "-verbose", f"Z:{qc_file}"], _wine_env()
     log.info("compiling %s", qc_file.name)
     try:
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
+        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace",
+                                env=env, timeout=_COMPILE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        failed.append(f"{qc_file.name} was still compiling after {_COMPILE_TIMEOUT} s")
+        return False
     except OSError as exc:
         failed.append(f"{qc_file.name}: {exc}")
         return False
-    for line in process.stdout:
-        log.info(line.rstrip())
-    code = process.wait()
-    if code != 0:
-        failed.append(f"{qc_file.name} exited with {code}")
-    return code == 0
+    for line in result.stdout.splitlines():
+        log.info(line)
+    if result.returncode != 0:
+        failed.append(f"{qc_file.name} exited with {result.returncode}")
+        return False
+    # studiomdl can exit cleanly without writing anything when it can't start properly under Wine.
+    name = _model_name(qc_file)
+    if name and not (tf / "models" / name).is_file():
+        failed.append(f"{qc_file.name} wrote no {name}")
+        return False
+    return True
 
 
 def install() -> None:
@@ -155,13 +194,23 @@ def install() -> None:
     if not callable(getattr(StudioMDL, "make_model", None)):
         raise RuntimeError("casual-pre-loader no longer has StudioMDL.make_model; update eternal_engine/precache.py")
     StudioMDL.make_model = _make_model
+    find = StudioMDL.__init__
+
+    def named_find(self, game_path: Path) -> None:
+        try:
+            find(self, game_path)
+        except RuntimeError:
+            failed.append("studiomdl.exe wasn't found in the game or the launcher")
+            raise
+
+    StudioMDL.__init__ = named_find
 
     run = QuickPrecache.run
 
     def checked_run(self, auto: bool = False, list_file: str = "", flush: bool = False) -> bool:
         ok = run(self, auto, list_file, flush)
-        if not ok:
-            failed.append("QuickPrecache stopped with an error")
+        if not ok and not failed:
+            failed.append("it stopped with an error")
         return ok
 
     QuickPrecache.run = checked_run

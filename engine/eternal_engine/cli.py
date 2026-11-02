@@ -276,6 +276,7 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
             skip_quickprecache=args.skip_quickprecache,
         )
         unpacked = library.unpack_vpk_folders(args.addons, progress)
+        library.tidy_library(args.addons)
         data, warnings = build.install(args.tf_path, args.addons, args.particles, options, progress)
         warnings[:0] = unpacked
         try:

@@ -2,8 +2,10 @@
 """Vendor cueki/casual-pre-loader into engine/vendor/casual-pre-loader.
 
 Only upstream's engine files are copied (core/, data/, backup/ and the
-license). Nothing under vendor/ is edited by hand: launcher-specific behaviour
-lives in engine/eternal_engine, so updating is just running this script again.
+license), with the studiomdl submodule QuickPrecache compiles with on Linux,
+where TF2 ships no studiomdl.exe. Nothing under vendor/ is edited by hand:
+launcher-specific behaviour lives in engine/eternal_engine, so updating is just
+running this script again.
 
     python scripts/sync-preloader.py                  # latest main
     python scripts/sync-preloader.py --ref v2.3.1     # a tag, branch or commit
@@ -23,7 +25,10 @@ REPO_URL = "https://github.com/cueki/casual-pre-loader.git"
 ROOT = Path(__file__).resolve().parent.parent
 VENDOR = ROOT / "engine" / "vendor" / "casual-pre-loader"
 COPIED = ("core", "data", "backup", "LICENSE", "README.md")
-IGNORED = shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo")
+STUDIO = Path("core") / "quickprecache" / "studio"
+# Valve's SDK license asks for these to travel with the binaries.
+STUDIO_FILES = ("studiomdl.exe", "LICENSE", "thirdpartylegalnotices.txt")
+IGNORED = shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo", ".git")
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -35,6 +40,7 @@ def checkout(ref: str, workdir: Path) -> Path:
     clone = workdir / "casual-pre-loader"
     git("clone", "--quiet", "--filter=blob:none", REPO_URL, str(clone))
     git("checkout", "--quiet", ref, cwd=clone)
+    git("submodule", "update", "--init", "--quiet", STUDIO.as_posix(), cwd=clone)
     return clone
 
 
@@ -42,6 +48,10 @@ def copy_tree(source: Path) -> None:
     missing = [name for name in COPIED if not (source / name).exists()]
     if missing:
         sys.exit(f"{source} does not look like casual-pre-loader (missing {', '.join(missing)})")
+    missing = [name for name in STUDIO_FILES if not (source / STUDIO / name).is_file()]
+    if missing:
+        sys.exit(f"{source / STUDIO} is missing {', '.join(missing)}; "
+                 f"run git submodule update --init {STUDIO.as_posix()} in that clone")
 
     staging = VENDOR.with_name(VENDOR.name + ".new")
     shutil.rmtree(staging, ignore_errors=True)
@@ -60,11 +70,13 @@ def copy_tree(source: Path) -> None:
     version = re.search(r"VERSION\s*=\s*['\"]([^'\"]+)", (source / "core" / "version.py").read_text())
     commit = git("rev-parse", "HEAD", cwd=source)
     committed = git("show", "-s", "--format=%cI", "HEAD", cwd=source)
+    studiomdl = git("rev-parse", "HEAD", cwd=source / STUDIO)
     (staging / "UPSTREAM").write_text(
         f"repository: {REPO_URL}\n"
         f"commit: {commit}\n"
         f"committed: {committed}\n"
         f"version: {version.group(1) if version else 'unknown'}\n"
+        f"studiomdl: {studiomdl}\n"
         f"synced: {datetime.now(UTC).isoformat(timespec='seconds')}\n",
         encoding="utf-8",
     )

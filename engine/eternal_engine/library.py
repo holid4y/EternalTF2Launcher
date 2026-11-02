@@ -26,6 +26,7 @@ DOCUMENTS = {".txt", ".md", ".rtf", ".pdf", ".url", ".htm", ".html", ".nfo", ".d
              ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".psd", ".xcf", ".blend", ".qc", ".smd", ".dmx"}
 # Custom maps have names the game doesn't know, but only one place to go.
 MAP_FILES = {".bsp", ".nav"}
+TEXTURES = {".vtf", ".vmt"}
 
 
 class LibraryError(Exception):
@@ -239,10 +240,12 @@ def _vpk_mod_name(stem: str) -> str:
     return stem[:-4] if len(stem) > 4 and stem.lower().endswith("_dir") else stem
 
 
-def _import_vpks(importer, name: str, paths: list[Path], progress: Progress) -> tuple[bool, str]:
+def _import_vpks(importer, name: str, paths: list[Path], progress: Progress,
+                 beside: Path | None = None) -> tuple[bool, str]:
     """Upstream's VPK import keeps whatever bytes it managed to read, so a cut-off
     download would replace a working mod. Unpack and check every file first, then
-    import the result as one folder."""
+    import the result as one folder. The other files of `beside`, the folder the
+    VPKs sit in, go in on top: TF2 read those and never the VPKs."""
     with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
         staging = Path(tmp) / name
         staging.mkdir()
@@ -253,6 +256,12 @@ def _import_vpks(importer, name: str, paths: list[Path], progress: Progress) -> 
                 extract_vpk(archive, names, staging, path.name)
             finally:
                 archive.close()
+        if beside is not None:
+            for file in beside.rglob("*"):
+                if file.is_file() and not (file.parent == beside and file.suffix.lower() == ".vpk"):
+                    target = staging / file.relative_to(beside)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(file, target)
         return _import_folder(importer, staging, progress, name)
 
 
@@ -272,11 +281,12 @@ def unpack_vpk_folders(names: Iterable[str], progress: Progress) -> list[str]:
 
     problems = []
     for name in names:
-        vpks = _vpks_in(_config().addons_dir / check_name(name))
+        folder = _config().addons_dir / check_name(name)
+        vpks = _vpks_in(folder)
         if not vpks:
             continue
         try:
-            ok, message = _import_vpks(ImportService(), name, vpks, progress)
+            ok, message = _import_vpks(ImportService(), name, vpks, progress, beside=folder)
         except (ArchiveError, LibraryError, OSError) as exc:
             ok, message = False, str(exc)
         if ok:
@@ -287,9 +297,73 @@ def unpack_vpk_folders(names: Iterable[str], progress: Progress) -> list[str]:
     return problems
 
 
+def tidy_library(names: Iterable[str]) -> None:
+    """Mods imported before _tidy existed get the same fixes before a build."""
+    for name in names:
+        try:
+            _tidy(_config().addons_dir / check_name(name))
+        except OSError as exc:
+            log.warning("could not tidy %s: %s", name, exc)
+
+
 def _import_folder(importer, folder: Path, progress: Progress, override: str | None = None) -> tuple[bool, str]:
-    return _replacing([override or folder.name],
-                      lambda: importer.process_folder(folder, override_name=override, progress_callback=progress))
+    name = override or folder.name
+
+    def run() -> tuple[bool, str]:
+        ok, message = importer.process_folder(folder, override_name=override, progress_callback=progress)
+        if ok:
+            _tidy(_config().addons_dir / name)
+        return ok, message
+
+    return _replacing([name], run)
+
+
+def _child(folder: Path, name: str) -> Path | None:
+    return next((c for c in folder.iterdir() if c.is_dir() and c.name.lower() == name), None)
+
+
+def _move_missing(source: Path, target: Path) -> None:
+    for file in sorted(p for p in source.rglob("*") if p.is_file()):
+        destination = target / file.relative_to(source)
+        if not destination.exists():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            file.rename(destination)
+    shutil.rmtree(source)
+
+
+def _tidy(mod: Path) -> None:
+    """Two packing mistakes leave a mod doing nothing in game: its folders one level
+    too deep (femspy/sound/... for sound/...), and textures zipped relative to
+    materials/ (models/player/x.vtf for materials/models/player/x.vtf). TF2 reads
+    textures from materials/ only, so moving them can't break anything."""
+    from core.constants import VALID_MOD_ROOT_FOLDERS
+
+    if not mod.is_dir():
+        return
+    roots = {name.lower() for name in VALID_MOD_ROOT_FOLDERS}
+    children = [c for c in mod.iterdir() if c.is_dir()]
+    if not any(c.name.lower() in roots for c in children):
+        for child in children:
+            if _looks_like_mod(child):
+                _move_missing(child, mod)
+
+    models = _child(mod, "models")
+    if models is None:
+        return
+    textures = [p for p in models.rglob("*") if p.is_file() and p.suffix.lower() in TEXTURES]
+    if not textures:
+        return
+    materials = _child(mod, "materials") or mod / "materials"
+    for file in textures:
+        destination = materials / "models" / file.relative_to(models)
+        if not destination.exists():
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            file.rename(destination)
+    for folder in sorted((p for p in models.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+        if not any(folder.iterdir()):
+            folder.rmdir()
+    if not any(models.iterdir()):
+        models.rmdir()
 
 
 def _looks_like_mod(folder: Path) -> bool:
@@ -303,12 +377,16 @@ def _looks_like_mod(folder: Path) -> bool:
 
 
 def _find_mod_roots(validator, root: Path) -> list[Path]:
+    """Folders laid out like a mod. Upstream turns down a folder for holding VPKs;
+    here those VPKs are parts of their own, so the folder still counts."""
     found, queue = [], [(root, 0)]
     while queue:
         folder, depth = queue.pop(0)
-        if _looks_like_mod(folder) and validator.validate_folder(folder).is_valid:
-            found.append(folder)
-            continue
+        if _looks_like_mod(folder):
+            result = validator.validate_folder(folder)
+            if result.is_valid or result.type_detected == "vpk_container":
+                found.append(folder)
+                continue
         if depth < MAX_SEARCH_DEPTH:
             queue.extend((child, depth + 1) for child in sorted(folder.iterdir()) if child.is_dir())
     return found
@@ -396,6 +474,13 @@ def _loose_parts(root: Path, names: dict[str, str]) -> tuple[list[Part], list[st
     return parts, skipped
 
 
+def _part_name(folder: Path, root: Path) -> str:
+    """A mod folder called tf or custom says nothing; the nearest folder above it that does names the mod."""
+    while folder != root and folder.name.lower() in GENERIC_FOLDERS:
+        folder = folder.parent
+    return root.name if folder == root else folder.name
+
+
 def _unique_names(parts: list[Part]) -> list[Part]:
     seen: Counter[str] = Counter()
     result = []
@@ -422,8 +507,7 @@ def find_parts(path: Path, tf: Path | None = None) -> tuple[list[Part], list[str
 
     parts = [_vpk_part(vpk, path) for vpk in normalize_inputs(path.rglob("*.vpk"))]
     for folder in _find_mod_roots(StructureValidator(), path):
-        name = path.name if folder == path or folder.name.lower() in GENERIC_FOLDERS else folder.name
-        parts.append(Part(_relative(folder, path), name, "folder", _game_files(folder),
+        parts.append(Part(_relative(folder, path), _part_name(folder, path), "folder", _game_files(folder),
                           sum(p.stat().st_size for p in folder.rglob("*") if p.is_file())))
     skipped = []
     if not parts:
@@ -458,7 +542,13 @@ def _import_part(importer, root: Path, part: Part, progress: Progress) -> tuple[
     if part.kind == "vpk":
         return _import_vpks(importer, part.name, [location], progress)
     if part.kind == "folder":
-        return _import_folder(importer, location, progress, part.name)
+        if not any(location.rglob("*.[vV][pP][kK]")):
+            return _import_folder(importer, location, progress, part.name)
+        # Its VPKs are parts of their own, and upstream refuses a folder holding any.
+        with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
+            staging = Path(tmp) / part.name
+            shutil.copytree(location, staging, ignore=lambda _, names: [n for n in names if n.lower().endswith(".vpk")])
+            return _import_folder(importer, staging, progress, part.name)
     with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
         staging = Path(tmp) / part.name
         for target, source in part.placement:
