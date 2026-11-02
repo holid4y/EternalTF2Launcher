@@ -34,6 +34,22 @@ public sealed class ArchiveAndEngineTests : IDisposable
     }
 
     [Fact]
+    public void A_folder_stored_as_an_empty_file_still_unpacks()
+    {
+        // Some Windows zip tools write a folder as an empty file with no trailing slash, before or after its contents.
+        var zip = MakeZip("Machine vs Machine.zip",
+            ("Robot Animations", ""),
+            ("Robot Animations/tf/models/player/scout_animations.mdl", "mdl"),
+            ("Bots/tf/models/bots/demo/bot_demo_animations.mdl", "bot"),
+            ("Bots", ""));
+
+        var folder = ArchiveIngest.Extract(zip, Path.Combine(_dir, "staging"));
+
+        Assert.Equal("mdl", File.ReadAllText(Path.Combine(folder, "Robot Animations", "tf", "models", "player", "scout_animations.mdl")));
+        Assert.Equal("bot", File.ReadAllText(Path.Combine(folder, "Bots", "tf", "models", "bots", "demo", "bot_demo_animations.mdl")));
+    }
+
+    [Fact]
     public void Solid_7z_archives_unpack_with_their_folders()
     {
         // Solid RAR and 7z archives take the single-pass path; a mod folder inside the archive is kept.

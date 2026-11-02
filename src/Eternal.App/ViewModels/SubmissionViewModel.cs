@@ -248,7 +248,7 @@ public sealed partial class SubmissionViewModel : ObservableObject
         if (installed.Count > 0)
             _mods.Notify($"Installed {string.Join(", ", installed)}. {(installed.Count == 1 ? "It's" : "They're")} switched on, at the top of your mod list.");
         else if (_closed.IsCancellationRequested && rows.FirstOrDefault(r => r.Failed) is { } failed)
-            _mods.Notify($"{Summary.Name} wasn't installed. {failed.Status}");
+            _mods.Notify($"{Summary.Name} wasn't installed. {failed.Status}", isError: true);
     }
 
     private async Task<IReadOnlyList<string>> InstallFileAsync(FileRow row, string downloads, CancellationToken cancellation)

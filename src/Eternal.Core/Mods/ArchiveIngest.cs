@@ -83,6 +83,16 @@ public static class ArchiveIngest
                 targets[entry.Key] = ResolveTarget(destination, entry.Key);
             }
 
+            // Some zip tools store a folder as an empty file; anything with files inside it is a folder.
+            var folders = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            foreach (var target in targets.Values)
+            {
+                for (var dir = Path.GetDirectoryName(target); dir is not null && dir.Length > destination.Length; dir = Path.GetDirectoryName(dir))
+                    folders.Add(dir);
+            }
+            foreach (var key in targets.Where(t => folders.Contains(t.Value)).Select(t => t.Key).ToList())
+                targets.Remove(key);
+
             // Solid RAR/7z archives decompress in one pass; random access would
             // re-read the whole stream for every file.
             long written = 0;

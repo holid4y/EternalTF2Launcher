@@ -289,6 +289,27 @@ public sealed class ModLibrary
     public void ThumbnailChanged() => Rebuild();
 
     /// <summary>Remembers where mods came from (e.g. a GameBanana file) for update checks.</summary>
+    /// <summary>
+    /// The library name for an install from <paramref name="submission"/> (a source
+    /// prefix such as "gamebanana:123:"): that submission's earlier install keeps its
+    /// name, and a name some other mod has is never taken over.
+    /// </summary>
+    public string FreeName(string name, string submission)
+    {
+        lock (_gate)
+            return FreeName(State.Order.ToList(), ArchiveIngest.SafeFolderName(name), submission);
+    }
+
+    internal static string FreeName(IEnumerable<ModEntry> order, string name, string submission)
+    {
+        var taken = order.Where(e => e.Source?.StartsWith(submission, StringComparison.Ordinal) != true)
+            .Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var free = name;
+        for (var n = 2; taken.Contains(free); n++)
+            free = $"{name} {n}";
+        return free;
+    }
+
     public void SetSource(IEnumerable<string> names, string source)
     {
         var set = names.ToHashSet(StringComparer.Ordinal);

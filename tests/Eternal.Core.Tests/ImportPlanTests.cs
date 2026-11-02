@@ -41,3 +41,38 @@ public sealed class ImportPlanTests
         Assert.Equal(["NEW"], ImportPlan.DefaultChoice(parts));
     }
 }
+
+public sealed class InstallNameTests
+{
+    private static ModEntry Entry(string name, string? source = null) => new() { Name = name, Kind = ModKind.Addon, Source = source };
+
+    [Fact]
+    public void A_free_name_is_kept()
+    {
+        Assert.Equal("Female Sniper", ModLibrary.FreeName([Entry("Classic Hitsound")], "Female Sniper", "gamebanana:194725:"));
+    }
+
+    [Fact]
+    public void Reinstalling_the_same_submission_reuses_its_name()
+    {
+        var order = new[] { Entry("Female Sniper", "gamebanana:194725:1100") };
+
+        Assert.Equal("Female Sniper", ModLibrary.FreeName(order, "Female Sniper", "gamebanana:194725:"));
+    }
+
+    [Fact]
+    public void Another_mods_name_is_never_taken_over()
+    {
+        var order = new[] { Entry("female sniper"), Entry("Female Sniper 2", "gamebanana:1:2") };
+
+        Assert.Equal("Female Sniper 3", ModLibrary.FreeName(order, "Female Sniper", "gamebanana:194725:"));
+    }
+
+    [Fact]
+    public void A_sound_with_a_mods_id_is_another_submission()
+    {
+        var order = new[] { Entry("Hitsound", "gamebanana:500:9") };
+
+        Assert.Equal("Hitsound 2", ModLibrary.FreeName(order, "Hitsound", "gamebanana-sound:500:"));
+    }
+}

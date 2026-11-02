@@ -167,7 +167,7 @@ public sealed partial class ModsViewModel : PageViewModel
         GameBanana.Show(submission);
     }
 
-    internal void Notify(string message) => _main.Notify(message);
+    internal void Notify(string message, bool isError = false) => _main.Notify(message, isError);
 
     public ObservableCollection<ModRowViewModel> Rows { get; } = [];
     public ObservableCollection<ModRowViewModel> Visible { get; } = [];
@@ -393,7 +393,7 @@ public sealed partial class ModsViewModel : PageViewModel
         }
         else if (imported.Count > 0)
         {
-            _main.Notify($"Imported {string.Join(", ", imported)}. They're switched on, at the top of your list.");
+            _main.Notify($"Imported {string.Join(", ", imported)}. {(imported.Count == 1 ? "It's" : "They're")} switched on, at the top of your list.");
         }
     }
 
@@ -443,6 +443,8 @@ public sealed partial class ModsViewModel : PageViewModel
                     return ImportResult.Cancelled;
             }
 
+            if (modName is not null && source is not null)
+                modName = _services.Mods.FreeName(modName, source[..(source.LastIndexOf(':') + 1)]);
             var outcome = await _services.Mods.ImportAsync(plan, parts, progress, modName, cancellation);
             var names = outcome.Items.SelectMany(i => i.Mods).Select(m => m.Name).Distinct().ToList();
             if (source is not null && names.Count > 0)
