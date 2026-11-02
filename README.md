@@ -36,6 +36,10 @@ Your public TF2 inventory with item art, quality colours and attributes. Prices 
 
 Eight themes, any accent colour, your TF2 screenshots or a picture of your own as a blurred background, interface size, compact rows, and which tabs show up in which order.
 
+### Updates
+
+From 2.1.1 on, the launcher checks GitHub for a new release when it starts and every six hours. A new version downloads in the background and installs when you quit, or right away with Restart now. A download is only kept when its size and SHA-256 match what GitHub lists for it, and it can only come from github.com. Both the check and the automatic install can be turned off under Launcher, Updates. Copies that weren't installed with the installer, install.sh or the portable zip only say that a new version is out.
+
 ## Install
 
 Download a release from the [Releases](../../releases) page. Release builds include the .NET runtime and the mod engine, so you don't need to install .NET or Python.
@@ -43,15 +47,15 @@ Download a release from the [Releases](../../releases) page. Release builds incl
 ### Linux
 
 ```sh
-tar xf EternalLauncher-2.1.0-linux-x64.tar.gz
+tar xf EternalLauncher-2.1.1-linux-x64.tar.gz
 cd EternalLauncher && ./install.sh
 ```
 
-This installs for your user only (`~/.local/share/eternal-launcher`), adds a menu entry and the `eternal-launcher` command. `./install.sh --remove` uninstalls and keeps your settings. QuickPrecache, the preloader step that keeps custom models on map props loaded, uses Wine on Linux; without `wine` installed it is skipped and the Mods tab says so.
+This installs for your user only (`~/.local/share/eternal-launcher`), adds a menu entry and the `eternal-launcher` command. `./install.sh --remove` uninstalls and keeps your settings. QuickPrecache, the preloader step that loads custom props, robots, pickups and flags, compiles with studiomdl, which Linux TF2 doesn't ship; the launcher brings upstream's copy and runs it with Wine, in a prefix of its own under `~/.local/share/eternal-launcher/engine/wine`. Without `wine` installed the step is skipped and the Mods tab says so. Player and weapon models don't need it.
 
 ### Windows
 
-Run `EternalLauncher-2.1.0-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
+Run `EternalLauncher-2.1.1-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
 
 Upgrading from 1.x keeps your settings, profiles, thumbnails and mod library; they are imported on first start.
 
@@ -131,7 +135,7 @@ The launcher runs the engine once per command (`engine/run.py`) and reads one JS
 
 The adapter in `engine/eternal_engine` points upstream at the launcher's data and cache folders and journals every install and uninstall. Upstream patches `tf2_misc_dir.vpk` and `gameinfo.txt` in place, so an interrupted build is found on the next start, and the game files are restored before anything else touches them.
 
-It also changes a few things upstream does. The mod list is reversed before installing, because upstream lets later files overwrite earlier ones, so the mod higher in the launcher's list wins, as the conflict report says. Paths inside ZIPs and VPKs are checked before anything is extracted, and a mod being replaced by an import is kept until the new copy is in place. A HUD VPK in `tf/custom` is only deleted after its unpacked copy is complete. Models with a broken header stay out of QuickPrecache, where one would crash TF2 at the main menu, and studiomdl runs without a shell. Upstream's JSON files are written to a temporary file and moved into place, so a command that gets stopped can't leave half a file behind. Each install writes `last_install_manifest.json` with the files it put in the game folder.
+It also changes a few things upstream does. The mod list is reversed before installing, because upstream lets later files overwrite earlier ones, so the mod higher in the launcher's list wins, as the conflict report says. Paths inside ZIPs and VPKs are checked before anything is extracted, and a mod being replaced by an import is kept until the new copy is in place. A HUD VPK in `tf/custom` is only deleted after its unpacked copy is complete. Models with a broken header stay out of QuickPrecache, where one would crash TF2 at the main menu, and studiomdl runs without a shell, with a time limit, and only counts as done when it wrote its model. Upstream's JSON files are written to a temporary file and moved into place, so a command that gets stopped can't leave half a file behind. Each install writes `last_install_manifest.json` with the files it put in the game folder.
 
 ### Updating the preloader
 
