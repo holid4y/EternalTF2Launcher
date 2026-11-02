@@ -17,6 +17,9 @@ public partial class App : Application
     internal static AppPaths Paths { get; set; } = AppPaths.Detect();
     internal static SingleInstance? Instance { get; set; }
 
+    /// <summary>Set once the player quits; errors from tearing down the desktop integration are expected after it.</summary>
+    internal static bool Quitting { get; set; }
+
     private AppServices? _services;
     private MainViewModel? _main;
     private bool _shuttingDown;
@@ -41,6 +44,7 @@ public partial class App : Application
                 desktop.ShutdownRequested += OnShutdownRequested;
                 window.Opened += (_, _) => _ = _main.StartAsync();
                 window.ExitRequested += () => desktop.Shutdown();
+                _main.QuitRequested += () => desktop.Shutdown();
                 if (Instance is not null)
                     Instance.ActivationRequested += () => Dispatcher.UIThread.Post(window.Reveal);
                 TrayIconSetup.Setup(this, window, _services, theme, () => desktop.Shutdown());
@@ -70,6 +74,8 @@ public partial class App : Application
             return;
         e.Cancel = true;
         _shuttingDown = true;
+        Quitting = true;
+        Log.Info("Quitting");
         try
         {
             await _main.PrepareForExitAsync();
@@ -79,6 +85,10 @@ public partial class App : Application
         {
             Log.Error("Shutdown cleanup failed", ex);
         }
+        _main.Updates.FinishOnExit();
+        // Replacing the list disposes the tray now, while the UI thread still runs, so
+        // its bus objects don't outlive it; Avalonia's own exit then has none left.
+        TrayIcon.SetIcons(this, []);
         ((IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!).Shutdown();
     }
 }

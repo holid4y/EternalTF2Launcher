@@ -23,6 +23,9 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public bool MinimizeOnLaunch { get; set; }
     public bool CloseToTray { get; set; }
     public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Download updates as soon as they're out and install them when the launcher closes.</summary>
+    public bool AutoUpdate { get; set; } = true;
     public string LogLevel { get; set; } = "Info";
     public bool ClearLogsOnStart { get; set; }
 

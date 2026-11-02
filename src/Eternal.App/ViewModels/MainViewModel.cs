@@ -6,12 +6,12 @@ using Eternal.App.Services;
 using Eternal.App.Theming;
 using Eternal.Core;
 using Eternal.Core.Engine;
-using Eternal.Core.Feed;
 using Eternal.Core.Logging;
 using Eternal.Core.Mods;
 using Eternal.Core.Platform;
 using Eternal.Core.Settings;
 using Eternal.Core.Steam;
+using Eternal.Core.Updates;
 
 namespace Eternal.App.ViewModels;
 
@@ -24,13 +24,30 @@ public sealed partial class TabViewModel(string id, string title, PageViewModel 
     [ObservableProperty] private bool _hasAlert;
 }
 
-public sealed partial class NoticeViewModel(string message, bool isError, Action<NoticeViewModel> dismiss) : ObservableObject
+public sealed partial class NoticeViewModel : ObservableObject, IHoldable
 {
-    public string Message { get; } = message;
-    public bool IsError { get; } = isError;
+    private readonly Action<NoticeViewModel> _dismiss;
+    private readonly Countdown _countdown;
+
+    public NoticeViewModel(string message, bool isError, Action<NoticeViewModel> dismiss)
+    {
+        Message = message;
+        IsError = isError;
+        _dismiss = dismiss;
+        _countdown = new Countdown(Countdown.ToRead(message, isError), Dismiss);
+    }
+
+    public string Message { get; }
+    public bool IsError { get; }
+
+    public bool Held { set => _countdown.Held = value; }
 
     [RelayCommand]
-    private void Dismiss() => dismiss(this);
+    private void Dismiss()
+    {
+        _countdown.Stop();
+        _dismiss(this);
+    }
 }
 
 public enum PlayState { Ready, Preparing, Starting, Running, Unavailable }
@@ -50,6 +67,8 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         Mods = new ModsViewModel(services, this);
         Backpack = new BackpackViewModel(services, this);
         Config = new ConfigViewModel(services, this);
+        Updates = new UpdateViewModel(services, this, UpdateClient.Shared,
+            typeof(MainViewModel).Assembly.GetName().Version ?? new Version(2, 0, 0));
         Launcher = new LauncherViewModel(services, this, theme);
 
         BuildTabs();
@@ -76,6 +95,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
     public ObservableCollection<NoticeViewModel> Notices { get; } = [];
+    public UpdateViewModel Updates { get; }
 
     [ObservableProperty] private TabViewModel? _selectedTab;
     [ObservableProperty] private DialogViewModel? _dialog;
@@ -89,7 +109,6 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     [ObservableProperty] private double _dockProgress;
     [ObservableProperty] private bool _dockIndeterminate;
     [ObservableProperty] private string _launchSummary = "";
-    [ObservableProperty] private UpdateInfo? _update;
 
     public bool CanPlay => PlayState is PlayState.Ready or PlayState.Preparing && _launch is null;
 
@@ -137,19 +156,13 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         }
         RefreshDock();
         Mods.EngineStarted();
-        if (_services.Launcher.Settings.CheckForUpdates)
-        {
-            var current = typeof(MainViewModel).Assembly.GetName().Version ?? new Version(2, 0, 0);
-            Update = await FeedService.CheckForUpdateAsync(current);
-        }
+        Updates.Start();
     }
 
-    [RelayCommand]
-    private void OpenUpdate()
-    {
-        if (Update is not null)
-            Shell.OpenUrl(Update.Url);
-    }
+    /// <summary>Asks the app to close the way the Quit menu item does.</summary>
+    public event Action? QuitRequested;
+
+    public void RequestQuit() => QuitRequested?.Invoke();
 
     public void Notify(string message, bool isError = false)
     {
@@ -157,7 +170,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             return;
         Notices.Add(new NoticeViewModel(message, isError, n => Notices.Remove(n)));
         while (Notices.Count > 3)
-            Notices.RemoveAt(0);
+            Notices[0].DismissCommand.Execute(null);
     }
 
     private void RefreshDock()

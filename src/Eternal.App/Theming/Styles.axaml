@@ -77,6 +77,11 @@
   <Style Selector="Border.pill.danger > TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
   </Style>
+  <Style Selector="Border.toast">
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="BoxShadow" Value="0 8 24 0 #66000000" />
+  </Style>
   <Style Selector="Border.notice">
     <Setter Property="Background" Value="{DynamicResource WarningSoftBrush}" />
     <Setter Property="CornerRadius" Value="3" />

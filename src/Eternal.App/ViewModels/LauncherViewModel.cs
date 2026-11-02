@@ -65,6 +65,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         _minimizeOnLaunch = s.MinimizeOnLaunch;
         _closeToTray = s.CloseToTray;
         _checkForUpdates = s.CheckForUpdates;
+        _autoUpdate = s.AutoUpdate;
         _currency = s.Currency;
         _logLevel = s.LogLevel;
         _clearLogsOnStart = s.ClearLogsOnStart;
@@ -105,6 +106,9 @@ public sealed partial class LauncherViewModel : PageViewModel
     [ObservableProperty] private bool _minimizeOnLaunch;
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _checkForUpdates;
+    [ObservableProperty] private bool _autoUpdate;
+
+    public UpdateViewModel Updates => _main.Updates;
     [ObservableProperty] private string _currency;
     [ObservableProperty] private string _logLevel;
     [ObservableProperty] private bool _clearLogsOnStart;
@@ -189,7 +193,17 @@ public sealed partial class LauncherViewModel : PageViewModel
     partial void OnCompactChanged(bool value) => Save(s => s.Density = value ? UiDensity.Compact : UiDensity.Comfortable, restyle: true);
     partial void OnMinimizeOnLaunchChanged(bool value) => Save(s => s.MinimizeOnLaunch = value);
     partial void OnCloseToTrayChanged(bool value) => Save(s => s.CloseToTray = value);
-    partial void OnCheckForUpdatesChanged(bool value) => Save(s => s.CheckForUpdates = value);
+    partial void OnCheckForUpdatesChanged(bool value)
+    {
+        Save(s => s.CheckForUpdates = value);
+        _main.Updates.SettingsChanged();
+    }
+
+    partial void OnAutoUpdateChanged(bool value)
+    {
+        Save(s => s.AutoUpdate = value);
+        _main.Updates.SettingsChanged();
+    }
     partial void OnCurrencyChanged(string value) => Save(s => s.Currency = value);
     partial void OnClearLogsOnStartChanged(bool value) => Save(s => s.ClearLogsOnStart = value);
     partial void OnStartTabChanged(string value) => Save(s => s.StartTab = value);

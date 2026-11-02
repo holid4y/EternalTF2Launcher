@@ -7,7 +7,6 @@ namespace Eternal.Core.Feed;
 
 public sealed record NewsItem(string Title, string Summary, string Url, string? ImageUrl, DateTimeOffset Date, string Source);
 
-public sealed record UpdateInfo(string Version, string Url);
 
 public static partial class FeedService
 {
@@ -57,24 +56,4 @@ public static partial class FeedService
         }
         return items.Take(count).ToArray();
     }
-
-    public static async Task<UpdateInfo?> CheckForUpdateAsync(Version current, CancellationToken cancellation = default)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(await Http.Client.GetStringAsync(
-                "https://api.github.com/repos/holid4y/EternalTF2Launcher/releases/latest", cancellation).ConfigureAwait(false));
-            var tag = Str(doc.RootElement, "tag_name")?.TrimStart('v', 'V') ?? "";
-            var url = Str(doc.RootElement, "html_url") ?? "";
-            return Version.TryParse(tag, out var latest) && latest > current ? new UpdateInfo(tag, url) : null;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
-        {
-            Log.Debug($"Update check failed: {ex.Message}");
-            return null;
-        }
-    }
-
-    private static string? Str(JsonElement e, string name) =>
-        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 }

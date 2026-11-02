@@ -34,7 +34,18 @@ internal static class Program
         // Held only so the Windows installer can tell the launcher is running.
         using var installerMutex = OperatingSystem.IsWindows() ? new Mutex(false, "ProjectEternalLauncher_Mutex") : null;
 
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashReport.Write(paths, e.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            // Avalonia's DBus connection closes after the UI thread has stopped and
+            // reports that as a cancelled call; by then everything has been saved.
+            if (App.Quitting && e.ExceptionObject is OperationCanceledException { StackTrace: { } stack }
+                && stack.Contains("Tmds.DBus", StringComparison.Ordinal))
+            {
+                Log.Info("Desktop bus closed while quitting");
+                return;
+            }
+            CrashReport.Write(paths, e.ExceptionObject as Exception);
+        };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             // Avalonia probes optional desktop services over DBus (input methods,
@@ -51,6 +62,7 @@ internal static class Program
             App.Paths = paths;
             App.Instance = instance;
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+            App.Quitting = true;
             return 0;
         }
         catch (Exception ex)
