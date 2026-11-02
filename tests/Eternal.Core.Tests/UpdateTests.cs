@@ -305,6 +305,7 @@ public sealed class UpdateInstallTests : IDisposable
 
         UpdateInstaller.Launch(update, launcher.Id, reopen);
         Assert.False(File.Exists(installed));
+        Assert.DoesNotContain('\r', await File.ReadAllTextAsync(Path.Combine(work, "apply.sh")));
 
         Assert.Equal("ok", await ResultOf(update));
         Assert.True(launcher.HasExited);

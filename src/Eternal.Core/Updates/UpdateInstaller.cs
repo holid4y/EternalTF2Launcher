@@ -101,7 +101,8 @@ public static class UpdateInstaller
         else
         {
             var script = Path.Combine(update.WorkDir, "apply.sh");
-            File.WriteAllText(script, LinuxScript);
+            // This file is checked out with CRLF on some machines, and sh reads "fi\r" as no fi.
+            File.WriteAllText(script, LinuxScript.ReplaceLineEndings("\n"));
             // setsid keeps the script alive after the launcher's session ends.
             start = File.Exists("/usr/bin/setsid") ? new ProcessStartInfo("/usr/bin/setsid") : new ProcessStartInfo("/bin/sh");
             if (start.FileName == "/usr/bin/setsid")
