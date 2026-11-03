@@ -111,9 +111,6 @@ const reveal = new IntersectionObserver((entries) => {
 }, { rootMargin: "100000px 0px -10% 0px" });
 document.querySelectorAll("[data-reveal]").forEach((el) => reveal.observe(el));
 
-const marquee = document.querySelector(".marquee");
-new IntersectionObserver(([entry]) => marquee.classList.toggle("is-paused", !entry.isIntersecting)).observe(marquee);
-
 const stage = document.querySelectorAll(".story-stage img");
 const steps = document.querySelectorAll(".step");
 const follow = new IntersectionObserver((entries) => {

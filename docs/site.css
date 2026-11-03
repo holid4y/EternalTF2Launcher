@@ -267,25 +267,10 @@ strong, dt { font-weight: 600; }
 @media (hover: hover) and (pointer: fine) { .foot-links ul a:hover { text-decoration: underline; } }
 
 
-.marquee { overflow: clip; padding: 18px 0; background: var(--ink); color: var(--bg); transition: background-color var(--t-theme) ease, color var(--t-theme) ease; }
-.marquee-track { display: flex; width: max-content; }
-.marquee-list { display: flex; align-items: center; list-style: none; }
-.marquee-list li {
-  display: flex; align-items: center; gap: clamp(20px, 2.4vw, 36px); padding-right: clamp(20px, 2.4vw, 36px);
-  font: 800 clamp(36px, 5vw, 80px)/1 var(--display); text-transform: uppercase; white-space: nowrap;
-}
-.marquee-list img { width: 0.8em; height: 0.8em; padding: 0.08em; background: var(--bg); border-radius: var(--radius); transition: background-color var(--t-theme) ease; }
-
-
 .word { display: inline-block; overflow: clip; padding: 0.1em 0 0.06em; margin: -0.1em 0 -0.06em; vertical-align: top; }
 .word > span { display: inline-block; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .marquee-track { animation: marquee 48s linear infinite; }
-  .marquee.is-paused .marquee-track { animation-play-state: paused; }
-  @media (hover: hover) and (pointer: fine) { .marquee:hover .marquee-track { animation-play-state: paused; } }
-  @keyframes marquee { to { transform: translateX(-50%); } }
-
   .js .hero h1:not(.split) { opacity: 0; }
   .js .split .word > span { transform: translateY(110%); transition: transform 900ms var(--ease-expo); transition-delay: calc(var(--w, 0) * 60ms); }
   .js .hero h1 .word > span { transition-delay: calc(var(--w, 0) * 70ms + 80ms); }
@@ -319,8 +304,6 @@ strong, dt { font-weight: 600; }
       .hero-shot a { animation: recede linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
       @keyframes recede { to { translate: 0 12%; scale: 0.92; } }
     }
-    .marquee-list { animation: marquee-push linear both; animation-timeline: scroll(root); animation-range: 0 150vh; }
-    @keyframes marquee-push { to { translate: -14vw 0; } }
     .credits-hat { animation: hat-tip linear both; animation-timeline: view(); }
     @keyframes hat-tip { from { rotate: -10deg; translate: 0 32px; } to { rotate: 8deg; translate: 0 -32px; } }
     .foot-name { animation: name-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 100%; }
@@ -350,9 +333,6 @@ strong, dt { font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .marquee-track { animation: none; width: auto; padding: 0 var(--margin); }
-  .marquee-list { flex-wrap: wrap; row-gap: 8px; }
-  .marquee-list[aria-hidden] { display: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
