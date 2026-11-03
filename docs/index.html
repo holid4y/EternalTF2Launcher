@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <title>Eternal, a TF2 launcher for your mods</title>
-<meta name="description" content="A free, open-source Team Fortress 2 launcher for Windows and Linux. It keeps your mods in one list, loads them in Casual, browses GameBanana, explains TF2's settings and prices your backpack.">
+<meta name="description" content="A free, open-source Team Fortress 2 launcher for Windows and Linux. It keeps your mods in one list, loads them in Casual, browses GameBanana and community servers, explains TF2's settings, edits your screenshots and prices your backpack.">
 <link rel="icon" type="image/png" href="assets/logos/mann-co.png">
 <link rel="preload" href="assets/fonts/BarlowCondensed-ExtraBold.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="site.css">
@@ -13,6 +13,7 @@
   document.documentElement.classList.add("js");
   try {
     var saved = localStorage.getItem("eternal-theme");
+    if (saved === "midnight") saved = "unusual";
     if (saved) document.documentElement.dataset.theme = saved;
   } catch (e) {}
 </script>
@@ -25,8 +26,10 @@
   <nav aria-label="Sections">
     <a href="#mods">Mods</a>
     <a href="#gamebanana">GameBanana</a>
+    <a href="#servers">Servers</a>
     <a href="#config">Config</a>
     <a href="#backpack">Backpack</a>
+    <a href="#screenshots">Screenshots</a>
     <a href="#themes">Themes</a>
     <a href="#install">Install</a>
   </nav>
@@ -43,7 +46,7 @@
         <a class="button button-ink" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
         <a class="link" href="https://github.com/holid4y/EternalTF2Launcher">Source on GitHub</a>
       </div>
-      <p class="facts">Version 2.1.1 · Windows and Linux · Free and open source</p>
+      <p class="facts">Version 2.2.0 · Windows and Linux · Free and open source</p>
     </div>
     <figure class="hero-shot">
       <a href="assets/screens/themes/mann-co-2x.webp" aria-label="Open the screenshot at full size"><img data-shot src="assets/screens/themes/mann-co-1x.webp" srcset="assets/screens/themes/mann-co-1x.webp 1366w, assets/screens/themes/mann-co-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Mods tab: seven mods in load order, six switched on, tabs for the library and GameBanana, and the Play button at the bottom"></a>
@@ -112,6 +115,29 @@
         <figcaption>A download with two versions of the same animations.</figcaption>
       </figure>
     </div>
+    <figure class="gb-wide" data-reveal>
+      <a class="shot" href="assets/screens/grid-2x.webp"><img src="assets/screens/grid-1x.webp" srcset="assets/screens/grid-1x.webp 1366w, assets/screens/grid-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The mod library as a grid of cards, each with its GameBanana picture, its place in the load order and an on/off switch, with a slider above it for the card size" loading="lazy"></a>
+      <figcaption>Your library and GameBanana both switch between a list and a grid, with a slider for the card size. Mods installed from GameBanana bring their picture with them.</figcaption>
+    </figure>
+  </section>
+
+  <section id="servers" class="servers" aria-labelledby="servers-title">
+    <div class="section-head">
+      <h2 id="servers-title" data-reveal>Servers near you</h2>
+      <p class="statement" data-reveal>The Servers tab lists community servers in your region and asks each one for its map, players and ping. Double-click to join. If TF2 isn't open yet, it starts with your mods and settings and goes straight in.</p>
+    </div>
+    <div class="gb-browse">
+      <figure class="gb-shot" data-reveal>
+        <a class="shot" href="assets/screens/servers-2x.webp"><img src="assets/screens/servers-1x.webp" srcset="assets/screens/servers-1x.webp 1366w, assets/screens/servers-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The Servers tab: community servers in the player's region sorted by ping, with their game mode, map and player count, and one of them open on the right with its details and a Join button" loading="lazy"></a>
+      </figure>
+      <dl class="points">
+        <div data-reveal><dt>Fake players stay out</dt><dd>Some servers claim a crowd their own player list doesn't have. Those are marked and hidden until you ask for them.</dd></div>
+        <div data-reveal><dt>Honest pings</dt><dd>When a server answers through a relay near you, its ping is shown as what the distance allows, not the number the relay sends back.</dd></div>
+        <div data-reveal><dt>Your favorites, everywhere</dt><dd>Favorites and history are the game's own, so a server you star in TF2 shows up here and the other way round.</dd></div>
+        <div data-reveal><dt>Join when free</dt><dd>On a full server it keeps checking for ten minutes and joins as soon as a slot opens.</dd></div>
+      </dl>
+    </div>
+    <p class="source-note" data-reveal>The list comes from GameMonitoring, plus teamwork.tf's community lists if you add your own key in the launcher's settings.</p>
   </section>
 
   <section id="config" class="config" aria-labelledby="config-title">
@@ -120,7 +146,9 @@
       <p class="statement" data-reveal>Every option says what it does, whether it costs frames and what TF2's default is. Anything you leave alone stays with TF2.</p>
       <dl class="points">
         <div data-reveal><dt>Binds by pressing the key</dt><dd>Click, press the key, mouse button or scroll wheel, then type the command.</dd></div>
-        <div data-reveal><dt>Profiles to start from</dt><dd>Competitive, Max Performance, Max Quality and Balanced, or your own. A profile can include your mods too, and it can be sent to a friend as a file.</dd></div>
+        <div data-reveal><dt>Profiles to start from</dt><dd>Competitive, Max Performance, Max Quality and Balanced, or your own.</dd></div>
+        <div data-reveal><dt>Share your setup</dt><dd>Copy it as a code to paste in any chat, or save one file that also carries mods that aren't on GameBanana. Importing shows what changes first, then downloads the GameBanana mods by their exact file and puts everything in order.</dd></div>
+        <div data-reveal><dt>See-through weapons</dt><dd>One switch, with any HUD. The launcher adds what it needs on top of your HUD instead of editing it.</dd></div>
         <div data-reveal><dt>Search by name or cvar</dt><dd>Type "fov" or "viewmodel_fov", either finds it.</dd></div>
       </dl>
     </div>
@@ -164,7 +192,19 @@ bind "f" "voicemenu 0 0"
       <h2 id="backpack-title" data-reveal>Backpack prices</h2>
       <p data-reveal>Eternal reads your public TF2 inventory from Steam and prices it with backpack.tf data from pricedb.io, in keys and refined.</p>
       <p data-reveal>Pick an item to see what sellers ask, what buyers offer and its Steam Market price in your currency. You can sort by value and filter by quality, class or tradability.</p>
+      <p data-reveal>Renamed items show their new name, with the original above it, and their custom description. Add your own Steam Web API key and items with a decal show it too.</p>
     </div>
+  </section>
+
+  <section id="screenshots" class="screens" aria-labelledby="screens-title">
+    <div class="screens-text">
+      <h2 id="screens-title" data-reveal>Your screenshots</h2>
+      <p data-reveal>Every TF2 screenshot Steam keeps for you, in one place. Crop or turn one, blur out names, fix the light, add text or arrows, then copy it or put it on your Steam profile.</p>
+      <p data-reveal>An edit is saved over the same file, so Steam can still upload it, and the original is kept for Revert. Once Steam has uploaded a screenshot, Copy link gives you its steamcommunity.com page.</p>
+    </div>
+    <figure class="screens-shot" data-reveal>
+      <a class="shot" href="assets/screens/screenshots-2x.webp"><img src="assets/screens/screenshots-1x.webp" srcset="assets/screens/screenshots-1x.webp 1366w, assets/screens/screenshots-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Screenshots tab: five TF2 screenshots in a grid, one marked as on the Steam profile, and its Edit, Copy and Copy link buttons on the right" loading="lazy"></a>
+    </figure>
   </section>
 
   <section id="themes" class="themes" aria-labelledby="themes-title">
@@ -197,9 +237,9 @@ bind "f" "voicemenu 0 0"
         <img src="assets/screens/themes/toxic-1x.webp" width="1366" height="820" alt="" loading="lazy">
         <span class="strip strip-toxic"><img src="assets/logos/toxic.png" alt="" width="28" height="28"><span>Toxic</span><span>Dark</span></span>
       </button>
-      <button type="button" class="tile" data-pick="midnight" aria-pressed="false">
-        <img src="assets/screens/themes/midnight-1x.webp" width="1366" height="820" alt="" loading="lazy">
-        <span class="strip strip-midnight"><img src="assets/logos/midnight.png" alt="" width="28" height="28"><span>Midnight</span><span>Dark</span></span>
+      <button type="button" class="tile" data-pick="unusual" aria-pressed="false">
+        <img src="assets/screens/themes/unusual-1x.webp" width="1366" height="820" alt="" loading="lazy">
+        <span class="strip strip-unusual"><img src="assets/logos/unusual.png" alt="" width="28" height="28"><span>Unusual</span><span>Dark</span></span>
       </button>
       <button type="button" class="tile" data-pick="minimal" aria-pressed="false">
         <img src="assets/screens/themes/minimal-1x.webp" width="1366" height="820" alt="" loading="lazy">
@@ -214,17 +254,17 @@ bind "f" "voicemenu 0 0"
       <p data-reveal>Both downloads include everything they need, so there's no .NET or Python to install first.</p>
       <p data-reveal>Coming from 1.x? Your settings, profiles and mods carry over on the first start.</p>
       <p data-reveal>From 2.1.1 on it updates itself when you quit. You can turn that off in its settings.</p>
-      <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" data-reveal>Download 2.1.1</a>
+      <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" data-reveal>Download 2.2.0</a>
     </div>
     <div class="slip slip-steps" data-reveal>
       <h3>Windows</h3>
       <ul>
-        <li><span>Run EternalLauncher-2.1.1-win-x64-setup.exe</span><span>no admin rights</span></li>
+        <li><span>Run EternalLauncher-2.2.0-win-x64-setup.exe</span><span>no admin rights</span></li>
         <li><span>Or unzip the portable build anywhere</span><span>keeps its data next to it</span></li>
       </ul>
       <h3>Linux</h3>
       <ul>
-        <li><code>tar xf EternalLauncher-2.1.1-linux-x64.tar.gz</code></li>
+        <li><code>tar xf EternalLauncher-2.2.0-linux-x64.tar.gz</code></li>
         <li><code>cd EternalLauncher &amp;&amp; ./install.sh</code><span>adds a menu entry</span></li>
         <li><span>Install wine too, for custom props and robots</span><span>optional</span></li>
         <li><span>Changed your mind? <code>./install.sh --remove</code></span><span>keeps your settings</span></li>
@@ -266,7 +306,7 @@ bind "f" "voicemenu 0 0"
       <li><a href="https://github.com/holid4y/EternalTF2Launcher">Source code</a></li>
       <li><a href="https://github.com/holid4y/EternalTF2Launcher/issues">Report a problem</a></li>
     </ul>
-    <p>Eternal TF2 Launcher 2.1.1 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
+    <p>Eternal TF2 Launcher 2.2.0 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
   </div>
   <div class="foot-legal">
     <p>Not affiliated with Valve. Team Fortress 2 is a trademark of Valve Corporation.</p>

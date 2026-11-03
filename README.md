@@ -18,23 +18,31 @@ When a download holds several versions of a mod (a 54 and a 70 FOV build, say, o
 
 ### GameBanana
 
-The Mods tab has a GameBanana browser for TF2 mods and sounds, with every category, search and sorting. Each mod's page shows its pictures, description and files, and you tick the files you want. Downloads are checked against GameBanana's size, MD5 checksum and virus scan before they're installed, and they only come from gamebanana.com.
+The Mods tab has a GameBanana browser for TF2 mods and sounds, with every category, search and sorting. Each mod's page shows its pictures, description and files, and you tick the files you want. Downloads are checked against GameBanana's size, MD5 checksum and virus scan before they're installed, and they only come from gamebanana.com. Mods installed from GameBanana show its picture in your library unless you set your own, and both the library and the browser switch between a list and a grid with a size slider.
+
+### Servers
+
+Community servers in your region, with name, game mode, map, players, bots and ping, asked straight from each server. The list comes from GameMonitoring, plus teamwork.tf's community lists with your own teamwork.tf key. Servers that claim more players than their player list shows are tagged and hidden by default, Valve's own servers are left out, and a ping that comes back from a relay near you instead of the server itself is shown as what the distance allows. Join starts TF2 with your mods and goes straight in, or sends the running game there. Favorites and history are shared with the game's own server browser; changes to Steam's files wait until Steam is closed, or for Restart Steam now.
+
+### Screenshots
+
+The TF2 screenshots Steam keeps for your account. Crop, turn, flip, blur or pixelate parts, adjust brightness, contrast and saturation, and add text, arrows and boxes. Saving writes over the same file and thumbnail so Steam can still upload it, and the original is kept for Revert. Upload opens Steam's uploader, Copy link gives the steamcommunity.com page once it's uploaded, and Delete moves the file to the trash.
 
 ### Config
 
-Every setting has a short explanation, tags for FPS impact and launch options, and a reset button. Settings you never change are left to TF2. Binds are set by pressing the key, your own launch options are kept, and the launch line and autoexec block update as you edit. Search finds settings by name or by cvar.
+Every setting has a short explanation, tags for FPS impact and launch options, and a reset button. See-through weapons work with any HUD: the launcher writes its own folder in `tf/custom` that adds the panel on top of the HUD in effect and turns on the settings the effect needs, without touching the HUD's files. Settings you never change are left to TF2. Binds are set by pressing the key, your own launch options are kept, and the launch line and autoexec block update as you edit. Search finds settings by name or by cvar.
 
 ### Profiles
 
-Built-in presets (Competitive, Max Performance, Max Quality, Balanced) plus your own snapshots, which can include the mods you have enabled. Profiles export to JSON, and 1.x profiles can be imported.
+Built-in presets (Competitive, Max Performance, Max Quality, Balanced) plus your own snapshots, which can include the mods you have enabled. Share copies your whole setup as a code (settings, binds, launch options, autoexec lines, and the mod order with each GameBanana file) or saves it as a `.eternal` file that also carries mods that aren't on GameBanana. Importing shows what will change, then downloads the GameBanana mods, installs the packed ones and restores the order. JSON profiles from 2.x and 1.x still import.
 
 ### Backpack
 
-Your public TF2 inventory with item art, quality colours and attributes. Prices come from backpack.tf through pricedb.io, in keys and refined, and the Steam Community Market price is shown in your currency. Items sort by value and filter by quality, class or tradability.
+Your public TF2 inventory with item art, quality colours and attributes. Prices come from backpack.tf through pricedb.io, in keys and refined, and the Steam Community Market price is shown in your currency. Items sort by value and filter by quality, class or tradability. Renamed items show their new name with the original above it, plus their custom description; with your own Steam Web API key, items with a decal show it.
 
 ### Personalisation
 
-Eight themes, any accent colour, your TF2 screenshots or a picture of your own as a blurred background, interface size, compact rows, and which tabs show up in which order.
+Eight themes (Unusual replaced Midnight), any accent colour, your TF2 screenshots or a picture of your own as a blurred background, interface size, compact rows, and which tabs show up in which order.
 
 ### Updates
 
@@ -47,7 +55,7 @@ Download a release from the [Releases](../../releases) page. Release builds incl
 ### Linux
 
 ```sh
-tar xf EternalLauncher-2.1.1-linux-x64.tar.gz
+tar xf EternalLauncher-2.2.0-linux-x64.tar.gz
 cd EternalLauncher && ./install.sh
 ```
 
@@ -55,7 +63,7 @@ This installs for your user only (`~/.local/share/eternal-launcher`), adds a men
 
 ### Windows
 
-Run `EternalLauncher-2.1.1-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
+Run `EternalLauncher-2.2.0-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
 
 Upgrading from 1.x keeps your settings, profiles, thumbnails and mod library; they are imported on first start.
 
@@ -91,7 +99,7 @@ Cvar names, ranges and defaults were checked against TF2's own binaries and `cfg
 | Mod library, logs, preload state | `%LOCALAPPDATA%\Eternal TF2 Launcher` | `~/.local/share/eternal-launcher` |
 | Image, price and backpack caches | `%LOCALAPPDATA%\Eternal TF2 Launcher\cache` | `~/.cache/eternal-launcher` |
 
-`game.json` holds TF2 settings, `launcher.json` the launcher's own options, `mods.json` the load order. Logs are in `logs/launcher.log` and `logs/engine.log`. A damaged settings file is replaced by its last good copy, or by defaults with the bad file kept aside; the launcher starts either way.
+`game.json` holds TF2 settings, `launcher.json` the launcher's own options (and the optional service keys, readable only by you on Linux), `servers.json` your launcher favorites and recent servers, `mods.json` the load order. `steam-writes.json` lists changes waiting for Steam to close, with backups of each Steam file in `steam-backups/`; the originals of edited screenshots are in `screenshot-originals/`. Logs are in `logs/launcher.log` and `logs/engine.log`. A damaged settings file is replaced by its last good copy, or by defaults with the bad file kept aside; the launcher starts either way.
 
 ## Building from source
 

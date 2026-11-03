@@ -12,13 +12,13 @@
 [data-theme="australium"] { --bg: #14110B; --surface: #1F1A11; --raised: #2A2317; --ink: #F1E7CF; --muted: #BBAA88; --accent: #E2B13C; --on-accent: #1A1404; }
 [data-theme="carbon"] { --bg: #111111; --surface: #1A1A1A; --raised: #242424; --ink: #E8E8E8; --muted: #ABABAB; --accent: #D8D8D8; --on-accent: #111111; }
 [data-theme="toxic"] { --bg: #0F120E; --surface: #171B15; --raised: #20251D; --ink: #E6EDDC; --muted: #A9B39B; --accent: #8FC044; --on-accent: #0E1407; }
-[data-theme="midnight"] { --bg: #0E1113; --surface: #161A1D; --raised: #1F2428; --ink: #E2E8EC; --muted: #A3ADB4; --accent: #4FC3DB; --on-accent: #061317; }
+[data-theme="unusual"] { --bg: #120F16; --surface: #1B1621; --raised: #251E2D; --ink: #ECE4F2; --muted: #B3A8BF; --accent: #9A62C6; --on-accent: #FBF4FF; }
 [data-theme="minimal"] { --bg: #F2EFEA; --surface: #E8E4DD; --raised: #DDD8CF; --ink: #1D1A16; --muted: #5B544B; --accent: #1D1A16; --on-accent: #F2EFEA; }
 
 :root {
   --display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --text: "Barlow", system-ui, sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace; /* taste-skill-ignore: only code and pre use it */
+  --mono: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
   /* Five sizes: title, section, lead, body, small. */
   --s-1: clamp(52px, 5.6vw, 96px);
   --s-2: clamp(36px, 4.6vw, 72px);
@@ -129,7 +129,10 @@ strong, dt { font-weight: 600; }
 .js .step:not(.is-on) h3 { color: var(--muted); }
 
 /* GameBanana: carries on from the Mods story on the same ground. */
-.gamebanana { padding: 0 var(--margin) var(--section); }
+.gamebanana, .servers { padding: 0 var(--margin) var(--section); }
+.gb-wide { margin-top: 72px; max-width: 66%; display: grid; gap: 12px; }
+.gb-wide figcaption, .source-note { font-size: var(--s-5); color: var(--muted); transition: color var(--t-theme) ease; }
+.source-note { margin-top: 32px; max-width: 60ch; }
 .gb-browse, .gb-pair { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px; }
 .gb-browse { align-items: center; }
 .gb-shot { grid-column: 1 / span 8; }
@@ -170,6 +173,14 @@ strong, dt { font-weight: 600; }
 .backpack-shot { grid-column: 1 / span 7; }
 .backpack-text { grid-column: 8 / span 5; display: grid; gap: 24px; }
 
+/* Screenshots: text first, picture on the right. */
+.screens {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px; align-items: center;
+  padding: 0 var(--margin) var(--section);
+}
+.screens-text { grid-column: 1 / span 5; display: grid; gap: 24px; }
+.screens-shot { grid-column: 6 / span 7; }
+
 /* Themes: every tile is the launcher in that theme, with its colours on the label. */
 .themes { padding: var(--section) var(--margin); background: var(--raised); transition: background-color var(--t-theme) ease; }
 .themes-head { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 24px; align-items: end; margin-bottom: 48px; }
@@ -196,7 +207,7 @@ strong, dt { font-weight: 600; }
 .strip-australium { background: #E2B13C; color: #1A1404; }
 .strip-carbon { background: #D8D8D8; color: #111111; }
 .strip-toxic { background: #8FC044; color: #0E1407; }
-.strip-midnight { background: #4FC3DB; color: #061317; }
+.strip-unusual { background: #9A62C6; color: #FBF4FF; }
 .strip-minimal { background: #1D1A16; color: #F2EFEA; }
 
 /* Install: the steps printed on a slip. */
@@ -292,10 +303,11 @@ strong, dt { font-weight: 600; }
   .step { min-height: 0; justify-content: start; }
   .step img { display: block; border-radius: var(--radius); margin-bottom: 8px; }
   .js .step:not(.is-on) h3 { color: inherit; }
-  .config-text, .config-shot, .autoexec-text, .slip-code, .backpack-text, .install-text, .slip-steps,
+  .config-text, .config-shot, .autoexec-text, .slip-code, .backpack-text, .screens-text, .screens-shot, .install-text, .slip-steps,
   .faq h2, .answers, .credits-hat, .credits-text, .foot-links ul, .foot-links p { grid-column: 1 / -1; }
   .gb-shot, .gb-browse .points, .gb-pair figure { grid-column: 1 / -1; }
-  .gb-pair { margin-top: 56px; }
+  .gb-pair, .gb-wide { margin-top: 56px; }
+  .gb-wide { max-width: none; }
   .backpack-shot { grid-column: 1 / -1; order: 1; }
   .backpack-text { order: 0; }
   .answers { columns: 1; }
