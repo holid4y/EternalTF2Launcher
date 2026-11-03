@@ -3,12 +3,6 @@ using System.Text;
 
 namespace Eternal.Core.Profiles;
 
-/// <summary>
-/// A whole setup as one line of text to paste anywhere: settings, binds,
-/// launch options, autoexec lines and the mod order, with GameBanana mods
-/// pointing at the exact file to download. Mods added by hand can't fit in
-/// a line of text; they travel in a <see cref="ProfileBundle"/>.
-/// </summary>
 public static class ShareCode
 {
     public const string Prefix = "ETERNAL1:";
@@ -24,7 +18,6 @@ public static class ShareCode
         return Prefix + Convert.ToBase64String(packed.ToArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
-    /// <summary>Accepts the code with any spacing or line breaks a chat app added.</summary>
     public static ProfileImport Decode(string code)
     {
         var text = new string(code.Where(c => !char.IsWhiteSpace(c)).ToArray());

@@ -21,7 +21,6 @@ public static class Regions
 
     private static readonly Dictionary<string, ServerRegion> ByCountry = Build();
 
-    // Rough lower bounds for a round trip between regions, from fibre distance. Nothing real answers faster.
     private static readonly Dictionary<(ServerRegion, ServerRegion), int> Floors = new()
     {
         [(ServerRegion.NorthAmerica, ServerRegion.SouthAmerica)] = 90,
@@ -51,20 +50,12 @@ public static class Regions
         from == to || from == ServerRegion.Unknown || to == ServerRegion.Unknown ? 0
         : Floors.TryGetValue((from, to), out var ms) || Floors.TryGetValue((to, from), out ms) ? ms : 0;
 
-    /// <summary>
-    /// A ping under half of what the distance allows: the server answers through
-    /// a relay near the player (DDoS protection does this), not from where it plays.
-    /// </summary>
     public static bool IsRelayed(ServerRegion player, ServerRegion server, int ping) =>
         ping >= 0 && ping < MinimumPing(player, server) / 2;
 
     public static ServerRegion OfCountry(string? code) =>
         code is { Length: 2 } && ByCountry.TryGetValue(code.ToUpperInvariant(), out var region) ? region : ServerRegion.Unknown;
 
-    /// <summary>
-    /// The region whose servers answer fastest, judged by the median ping of at
-    /// least five of them, so one oddly fast server elsewhere doesn't decide it.
-    /// </summary>
     public static ServerRegion Nearest(IEnumerable<(ServerRegion Region, int Ping)> samples)
     {
         var best = ServerRegion.Unknown;

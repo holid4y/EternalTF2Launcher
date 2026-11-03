@@ -2,7 +2,7 @@
 @font-face { font-family: "Barlow"; src: url("assets/fonts/Barlow-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Barlow Condensed"; src: url("assets/fonts/BarlowCondensed-ExtraBold.ttf") format("truetype"); font-weight: 800; font-display: swap; }
 
-/* The launcher's own themes, colour for colour (src/Eternal.App/Theming/Themes.cs). */
+
 :root, [data-theme="mann-co"] {
   --bg: #15110E; --surface: #201A16; --raised: #2B231E;
   --ink: #EEE4CC; --muted: #B9AA90; --accent: #CF6A32; --on-accent: #1B110A;
@@ -19,7 +19,7 @@
   --display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --text: "Barlow", system-ui, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
-  /* Five sizes: title, section, lead, body, small. */
+
   --s-1: clamp(52px, 5.6vw, 96px);
   --s-2: clamp(36px, 4.6vw, 72px);
   --s-3: clamp(22px, 1.8vw, 28px);
@@ -78,11 +78,11 @@ strong, dt { font-weight: 600; }
 
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
 
-/* Screenshots are always shown whole: their own width and height, never cropped or zoomed. */
+
 .shot { display: block; border-radius: var(--radius); overflow: hidden; background: var(--surface); cursor: zoom-in; }
 .shot img { width: 100%; height: auto; }
 
-/* Bar: sits on the hero field like the launcher's own header. */
+
 .bar {
   position: absolute; inset: 0 0 auto 0; z-index: 3; display: flex; align-items: center; justify-content: space-between;
   padding: 20px var(--margin); color: var(--on-accent);
@@ -101,7 +101,7 @@ strong, dt { font-weight: 600; }
   .bar nav a:hover::after { transform: scaleX(1); transform-origin: left; }
 }
 
-/* Hero: the launcher on its accent field, with what it is and the download. */
+
 .hero {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px;
   align-content: center; align-items: start;
@@ -119,7 +119,7 @@ strong, dt { font-weight: 600; }
 .hero-shot a { display: block; overflow: clip; border-radius: var(--radius); }
 .hero-shot img { border-radius: var(--radius); }
 
-/* Mods: the story holds a screenshot while the steps scroll past. */
+
 .mods { padding: var(--section) var(--margin); }
 .section-head { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 24px; align-items: end; margin-bottom: 72px; }
 .section-head h2 { grid-column: 1 / span 6; }
@@ -138,7 +138,7 @@ strong, dt { font-weight: 600; }
 .step h3 { transition: color var(--t-hover) ease; }
 .js .step:not(.is-on) h3 { color: var(--muted); }
 
-/* GameBanana: carries on from the Mods story on the same ground. */
+
 .gamebanana, .servers { padding: 0 var(--margin) var(--section); }
 .gb-wide { margin-top: 72px; max-width: 66%; display: grid; gap: 12px; }
 .gb-wide figcaption, .source-note { font-size: var(--s-5); color: var(--muted); transition: color var(--t-theme) ease; }
@@ -151,7 +151,7 @@ strong, dt { font-weight: 600; }
 .gb-pair figure { grid-column: span 6; display: grid; gap: 12px; }
 .gb-pair figcaption { font-size: var(--s-5); color: var(--muted); transition: color var(--t-theme) ease; }
 
-/* Config: what the tab looks like, and what it promises. */
+
 .config, .autoexec { background: var(--surface); transition: background-color var(--t-theme) ease; }
 .config {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 48px; align-items: start;
@@ -175,7 +175,7 @@ strong, dt { font-weight: 600; }
 .slip-code { grid-column: 6 / span 7; }
 .slip-code pre { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 
-/* Backpack: the mirror of Config, picture first. */
+
 .backpack {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px; align-items: center;
   padding: var(--section) var(--margin);
@@ -183,7 +183,7 @@ strong, dt { font-weight: 600; }
 .backpack-shot { grid-column: 1 / span 7; }
 .backpack-text { grid-column: 8 / span 5; display: grid; gap: 24px; }
 
-/* Screenshots: text first, picture on the right. */
+
 .screens {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px; align-items: center;
   padding: 0 var(--margin) var(--section);
@@ -191,7 +191,7 @@ strong, dt { font-weight: 600; }
 .screens-text { grid-column: 1 / span 5; display: grid; gap: 24px; }
 .screens-shot { grid-column: 6 / span 7; }
 
-/* Themes: every tile is the launcher in that theme, with its colours on the label. */
+
 .themes { padding: var(--section) var(--margin); background: var(--raised); transition: background-color var(--t-theme) ease; }
 .themes-head { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 24px; align-items: end; margin-bottom: 48px; }
 .themes-head h2 { grid-column: 1 / span 6; }
@@ -220,7 +220,7 @@ strong, dt { font-weight: 600; }
 .strip-unusual { background: #9A62C6; color: #FBF4FF; }
 .strip-minimal { background: #1D1A16; color: #F2EFEA; }
 
-/* Install: the steps printed on a slip. */
+
 .install {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px; align-items: start;
   padding: var(--section) var(--margin);
@@ -236,7 +236,7 @@ strong, dt { font-weight: 600; }
 .slip-steps code { overflow-wrap: anywhere; }
 .slip-end { display: flex; align-items: center; min-height: 52px; margin-top: 20px; padding: 0 16px; background: var(--bg); color: var(--ink); font: 800 var(--s-3)/1.1 var(--display); text-transform: uppercase; }
 
-/* Questions: answered as reading text. */
+
 .faq {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 40px; align-items: start;
   padding: var(--section) var(--margin); background: var(--surface); transition: background-color var(--t-theme) ease;
@@ -252,12 +252,12 @@ strong, dt { font-weight: 600; }
 .credits-hat { grid-column: 2 / span 3; width: 100%; max-width: 320px; }
 .credits-text { grid-column: 6 / span 6; display: grid; gap: 24px; justify-items: start; }
 
-/* Footer: the name first, then where to go. */
+
 .foot {
   overflow: clip; display: grid; gap: 48px; padding: 32px var(--margin);
   background: var(--ink); color: var(--bg); transition: background-color var(--t-theme) ease, color var(--t-theme) ease;
 }
-/* The wordmark is the one size outside the scale: it is drawn to the width of the page. */
+
 .foot-name { font: 800 21.5vw/0.8 var(--display); text-transform: uppercase; letter-spacing: -0.02em; margin-left: -0.04em; }
 .foot-links { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); row-gap: 24px; align-items: start; }
 .foot-links ul { grid-column: 1 / span 5; display: grid; gap: 8px; }
@@ -266,7 +266,7 @@ strong, dt { font-weight: 600; }
 .foot-legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; font-size: var(--s-5); }
 @media (hover: hover) and (pointer: fine) { .foot-links ul a:hover { text-decoration: underline; } }
 
-/* What loads in Casual, running past under the hero. */
+
 .marquee { overflow: clip; padding: 18px 0; background: var(--ink); color: var(--bg); transition: background-color var(--t-theme) ease, color var(--t-theme) ease; }
 .marquee-track { display: flex; width: max-content; }
 .marquee-list { display: flex; align-items: center; list-style: none; }
@@ -276,7 +276,7 @@ strong, dt { font-weight: 600; }
 }
 .marquee-list img { width: 0.8em; height: 0.8em; padding: 0.08em; background: var(--bg); border-radius: var(--radius); transition: background-color var(--t-theme) ease; }
 
-/* Headings are split into words by the script, each rising from behind its own baseline. */
+
 .word { display: inline-block; overflow: clip; padding: 0.1em 0 0.06em; margin: -0.1em 0 -0.06em; vertical-align: top; }
 .word > span { display: inline-block; }
 
@@ -297,16 +297,16 @@ strong, dt { font-weight: 600; }
   .js .hero-text > :nth-child(3) { transition-delay: 480ms; }
   .js .hero.is-in .hero-text > * { opacity: 1; transform: none; }
 
-  /* The hero picture opens like a shutter and settles into its frame. */
+
   .js .hero-shot { clip-path: inset(0 0 100% 0); transition: clip-path 1100ms var(--ease-expo) 200ms; }
   .js .hero-shot img { transform: scale(1.08); transition: transform 1600ms var(--ease-soft) 200ms; }
   .js .hero.is-in .hero-shot { clip-path: inset(0); }
   .js .hero.is-in .hero-shot img { transform: none; }
-  /* If the script never runs, the first screen still shows after a moment. */
+
   .js .hero h1, .js .hero-text > *, .js .hero-shot { animation: shown 1ms 2.5s forwards; }
   @keyframes shown { to { opacity: 1; transform: none; clip-path: none; } }
 
-  /* Every other screenshot opens the same way when it is reached; one that sits beside its text opens away from it. */
+
   .js [data-reveal].shutter { opacity: 1; transform: none; clip-path: inset(0 0 100% 0); transition: clip-path 1000ms var(--ease-expo) calc(var(--i, 0) * 80ms); }
   .js [data-reveal].shutter[data-from="left"] { clip-path: inset(0 100% 0 0); }
   .js [data-reveal].shutter[data-from="right"] { clip-path: inset(0 0 0 100%); }
@@ -328,7 +328,7 @@ strong, dt { font-weight: 600; }
   }
 }
 
-/* On a phone one paragraph fills the screen, so text is there to read at once; only wider screens bring it in. */
+
 @media (prefers-reduced-motion: no-preference) and (min-width: 641px) {
   .js [data-reveal] {
     opacity: 0; transform: translateY(24px);
@@ -344,7 +344,7 @@ strong, dt { font-weight: 600; }
   .js [data-reveal].is-in { opacity: 1; transform: none; }
 }
 
-/* Picking a theme washes the page over from the tile that was clicked. */
+
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 .is-switching, .is-switching * { transition: none !important; }
 

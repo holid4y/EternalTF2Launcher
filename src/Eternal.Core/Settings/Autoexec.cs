@@ -11,10 +11,6 @@ public sealed record AutoexecResult(AutoexecStatus Status, string? Path = null, 
     public bool Applied => Status is AutoexecStatus.Written or AutoexecStatus.Unchanged;
 }
 
-/// <summary>
-/// autoexec.cfg split into the player's own text and the block the launcher owns.
-/// Markers are unchanged from 1.x so existing files keep working.
-/// </summary>
 public sealed class AutoexecDocument
 {
     public const string BeginMarker = "// === ETERNAL LAUNCHER MANAGED BLOCK — do not edit between these markers ===";
@@ -37,7 +33,6 @@ public sealed class AutoexecDocument
         var begin = Array.FindIndex(lines, l => l.Trim() == BeginMarker);
         var end = begin < 0 ? -1 : Array.FindIndex(lines, begin + 1, l => l.Trim() == EndMarker);
 
-        // A half-deleted block is treated as the player's text so nothing is lost.
         if (begin < 0 || end < 0)
             return new AutoexecDocument(string.Join('\n', lines).TrimEnd(), [], false);
 
@@ -76,7 +71,6 @@ public static partial class ManagedBlock
         && bind.Command.Length <= 255
         && bind.Command.IndexOfAny(['"', '\r', '\n']) < 0;
 
-    /// <summary>Lines for every touched autoexec setting, grouped by category, then binds.</summary>
     public static List<string> Build(GameSettings settings)
     {
         var lines = new List<string>();
@@ -113,10 +107,6 @@ public static partial class ManagedBlock
 
 public static class AutoexecFile
 {
-    /// <summary>
-    /// mastercomfig ships its own autoexec.cfg inside a VPK, which shadows
-    /// tf/cfg/autoexec.cfg; it runs cfg/overrides/autoexec.cfg instead.
-    /// </summary>
     public static string Locate(string tfPath)
     {
         var custom = Path.Combine(tfPath, "custom");
@@ -127,11 +117,6 @@ public static class AutoexecFile
             : Path.Combine(tfPath, "cfg", "autoexec.cfg");
     }
 
-    /// <summary>
-    /// Replaces the managed block. An unreadable existing file is never
-    /// overwritten, the previous version is kept as autoexec.cfg.eternal-backup,
-    /// and a file that changes while we work is re-read instead of clobbered.
-    /// </summary>
     public static AutoexecResult Write(string? tfPath, IReadOnlyList<string> managedLines, string? replaceUserContent = null)
     {
         if (string.IsNullOrWhiteSpace(tfPath) || !File.Exists(Path.Combine(tfPath, "gameinfo.txt")))

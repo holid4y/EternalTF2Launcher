@@ -6,11 +6,6 @@ using Eternal.Core.Logging;
 
 namespace Eternal.Core.Inventory;
 
-/// <summary>
-/// Decal pictures. Steam's public inventory doesn't say which picture an item
-/// carries; Valve's item API does (attributes 152 and 227 hold the two halves of
-/// the upload id), and that API needs the player's own Steam Web API key.
-/// </summary>
 public sealed partial class DecalLookup(HttpClient http, string key)
 {
     private const int TextureLow = 152;
@@ -25,7 +20,6 @@ public sealed partial class DecalLookup(HttpClient http, string key)
 
     public static bool IsValidKey(string? key) => key is not null && KeyPattern().IsMatch(key);
 
-    /// <summary>Item id to upload id, for every item in the backpack that has a decal.</summary>
     public async Task<IReadOnlyDictionary<string, ulong>> DecalsAsync(string steamId64, CancellationToken cancellation = default)
     {
         if (!IsValidKey(key) || !ulong.TryParse(steamId64, NumberStyles.None, CultureInfo.InvariantCulture, out _))
@@ -63,7 +57,6 @@ public sealed partial class DecalLookup(HttpClient http, string key)
         return result;
     }
 
-    /// <summary>Where Steam serves the uploaded picture.</summary>
     public async Task<string?> UrlAsync(ulong ugc, CancellationToken cancellation = default)
     {
         if (Urls.TryGetValue(ugc, out var known))

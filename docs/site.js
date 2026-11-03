@@ -5,7 +5,6 @@ const tiles = document.querySelectorAll("[data-pick]");
 const heroShot = document.querySelector("[data-shot]");
 const calm = matchMedia("(prefers-reduced-motion: reduce)");
 
-// Picking a theme recolours the page and swaps the hero screenshot to the launcher in that theme.
 function showTheme(id) {
   root.dataset.theme = id;
   for (const tile of tiles) tile.setAttribute("aria-pressed", String(tile.dataset.pick === id));
@@ -25,12 +24,10 @@ function pick(tile, event) {
     try {
       localStorage.setItem("eternal-theme", id);
     } catch {
-      // private windows may refuse storage; the theme still applies for this visit
     }
   };
   if (!document.startViewTransition || calm.matches || root.dataset.theme === id) return apply();
 
-  // A keyboard press has no pointer position, so the new colours spread from the tile's middle.
   const box = tile.getBoundingClientRect();
   const x = event.detail ? event.clientX : box.left + box.width / 2;
   const y = event.detail ? event.clientY : box.top + box.height / 2;
@@ -49,7 +46,6 @@ function pick(tile, event) {
 for (const tile of tiles) tile.addEventListener("click", (event) => pick(tile, event));
 showTheme(root.dataset.theme || "mann-co");
 
-// Headings rise word by word, so each word gets its own mask.
 function splitWords(heading) {
   let n = 0;
   for (const node of [...heading.childNodes]) {
@@ -75,7 +71,6 @@ function splitWords(heading) {
 }
 document.querySelectorAll(".hero h1, h2[data-reveal]").forEach(splitWords);
 
-// The code and install slips fill in line by line once they land.
 for (const code of document.querySelectorAll(".slip-code code")) {
   code.replaceChildren(...code.textContent.split("\n").map((text) => {
     const line = document.createElement("span");
@@ -94,12 +89,10 @@ for (const figure of document.querySelectorAll("figure[data-reveal]")) {
 }
 for (const tile of tiles) tile.setAttribute("data-reveal", "");
 
-// Parts of a section come in one after another, once.
 for (const section of document.querySelectorAll("section, footer")) {
   section.querySelectorAll("[data-reveal]").forEach((el, i) => el.style.setProperty("--i", Math.min(i, 8)));
 }
 
-// Once a part has arrived it drops the reveal styles, so its own hover and press timings apply again.
 function settle(el) {
   el.addEventListener("transitionend", function done(event) {
     if (event.target !== el || (event.propertyName !== "transform" && event.propertyName !== "clip-path")) return;
@@ -108,8 +101,6 @@ function settle(el) {
   });
 }
 
-// The top margin is effectively unbounded, so a part that a fast flick or a jump carries straight past
-// the screen still counts as reached and comes in.
 const reveal = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
@@ -120,11 +111,9 @@ const reveal = new IntersectionObserver((entries) => {
 }, { rootMargin: "100000px 0px -10% 0px" });
 document.querySelectorAll("[data-reveal]").forEach((el) => reveal.observe(el));
 
-// The band only runs while it can be seen.
 const marquee = document.querySelector(".marquee");
 new IntersectionObserver(([entry]) => marquee.classList.toggle("is-paused", !entry.isIntersecting)).observe(marquee);
 
-// The Mods story: the held screenshot follows the step in the middle of the screen.
 const stage = document.querySelectorAll(".story-stage img");
 const steps = document.querySelectorAll(".step");
 const follow = new IntersectionObserver((entries) => {

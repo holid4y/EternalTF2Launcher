@@ -46,11 +46,6 @@ public sealed record SortChoice(BrowseSort Sort, string Label)
     public override string ToString() => Label;
 }
 
-/// <summary>
-/// GameBanana's TF2 mods and sounds, browsed by category, search and sort a page
-/// at a time. A newer query cancels the one in flight, so results never arrive
-/// out of order.
-/// </summary>
 public sealed partial class GameBananaViewModel : ObservableObject
 {
     private readonly AppServices _services;
@@ -117,7 +112,6 @@ public sealed partial class GameBananaViewModel : ObservableObject
         Reload(firstPage: true);
     }
 
-    /// <summary>Shows a submission's page, e.g. from the Home tab's feed.</summary>
     public void Show(Submission submission)
     {
         Activate();
@@ -154,7 +148,6 @@ public sealed partial class GameBananaViewModel : ObservableObject
         _ = SearchSoonAsync((_typing = new CancellationTokenSource()).Token);
     }
 
-    // Waits for the player to stop typing, so each keystroke isn't a request.
     private async Task SearchSoonAsync(CancellationToken typing)
     {
         try

@@ -11,11 +11,6 @@ using SkiaSharp;
 
 namespace Eternal.App.Views;
 
-/// <summary>
-/// The gallery loads pictures as cards scroll into view; the editor turns
-/// pointer drags on the picture into crops and marks. Shapes being dragged are
-/// drawn on top as plain outlines and only rendered into the picture once let go.
-/// </summary>
 public partial class ScreenshotsView : UserControl
 {
     private static readonly IBrush Dim = new SolidColorBrush(Color.FromArgb(150, 0, 0, 0));
@@ -110,7 +105,6 @@ public partial class ScreenshotsView : UserControl
         }
     }
 
-    /// <summary>Where the picture actually sits inside the stage, since it is scaled to fit and centred.</summary>
     private Rect PictureRect()
     {
         if (_editor?.Preview is not { } preview || Stage.Bounds.Width <= 0 || Stage.Bounds.Height <= 0)
@@ -187,7 +181,6 @@ public partial class ScreenshotsView : UserControl
             w = Math.Sign(w == 0 ? 1 : w) * Math.Abs(h) * ratio;
         var x = Math.Clamp(start.X + w, bounds.Left, bounds.Right);
         var y = Math.Clamp(start.Y + h, bounds.Top, bounds.Bottom);
-        // Hitting an edge shortens one side; shorten the other to match.
         var fitW = Math.Min(Math.Abs(x - start.X), Math.Abs(y - start.Y) * ratio);
         return new Point(start.X + Math.Sign(w) * fitW, start.Y + Math.Sign(h) * fitW / ratio);
     }

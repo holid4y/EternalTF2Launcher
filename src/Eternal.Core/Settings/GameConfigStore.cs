@@ -3,19 +3,11 @@ using Eternal.Core.Persistence;
 
 namespace Eternal.Core.Settings;
 
-/// <summary>
-/// game.json and autoexec.cfg can fail separately; a setting that never
-/// reached the game is not a success.
-/// </summary>
 public sealed record SaveReport(bool ConfigSaved, string? ConfigError, AutoexecResult Autoexec, ViewmodelResult? Viewmodels = null)
 {
     public bool FullyApplied => ConfigSaved && Autoexec.Applied;
 }
 
-/// <summary>
-/// Owns game.json. Edits are written shortly after the last change and
-/// flushed before launching TF2 or exiting.
-/// </summary>
 public sealed class GameConfigStore : IDisposable
 {
     private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
@@ -62,10 +54,6 @@ public sealed class GameConfigStore : IDisposable
         _timer.Change(Debounce, Timeout.InfiniteTimeSpan);
     }
 
-    /// <summary>
-    /// Replaces the player's section of autoexec.cfg on the next save (used
-    /// when a profile carries its own lines). Kept until a write succeeds.
-    /// </summary>
     public void SetPendingUserContent(string? content)
     {
         lock (_gate)
@@ -92,7 +80,6 @@ public sealed class GameConfigStore : IDisposable
         return SaveAsync();
     }
 
-    /// <summary>Re-applies the managed block without changing settings (e.g. after the TF2 path changes).</summary>
     public Task<SaveReport> ReapplyAsync()
     {
         lock (_gate)

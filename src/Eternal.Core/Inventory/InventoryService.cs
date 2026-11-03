@@ -14,10 +14,6 @@ public class InventoryException(string message) : Exception(message);
 
 public sealed class InventoryRateLimitedException() : InventoryException("Steam is rate limiting inventory requests.");
 
-/// <summary>
-/// The public TF2 backpack from the Steam Community, read without cookies or
-/// credentials. Each account has its own cache file, served only to that account.
-/// </summary>
 public sealed class InventoryService(string cacheDir)
 {
     private static readonly TimeSpan FreshFor = TimeSpan.FromMinutes(10);
@@ -87,7 +83,6 @@ public sealed class InventoryService(string cacheDir)
         return items;
     }
 
-    /// <summary>Adds one page of a community inventory response; returns the next page cursor.</summary>
     internal static string? ParsePage(string json, List<InventoryItem> items, ref long position)
     {
         using var doc = JsonDocument.Parse(json);
@@ -140,7 +135,6 @@ public sealed class InventoryService(string cacheDir)
 
 public sealed class InventoryCacheFile : IJsonOnDeserialized
 {
-    /// <summary>Raised whenever what an item records changes, so an older cache is fetched again.</summary>
     public const int CurrentFormat = 2;
 
     public int Format { get; set; } = CurrentFormat;

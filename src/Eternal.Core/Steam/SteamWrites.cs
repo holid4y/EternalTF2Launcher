@@ -8,11 +8,6 @@ namespace Eternal.Core.Steam;
 
 public enum SteamWriteKind { AddFavorite, RemoveFavorite, AddHistory, RemoveScreenshot, ResizeScreenshot }
 
-/// <summary>
-/// One change to a Steam file. <see cref="UserDir"/> is the account's userdata
-/// folder; <see cref="Target"/> is a server address or a screenshot's file name
-/// as screenshots.vdf records it ("440/screenshots/x.jpg").
-/// </summary>
 public sealed class SteamWrite
 {
     public SteamWriteKind Kind { get; set; }
@@ -36,12 +31,6 @@ internal sealed partial class SteamWriteJson : JsonSerializerContext;
 
 public sealed record SteamWriteResult(int Applied, bool SteamRunning, IReadOnlyList<string> Problems);
 
-/// <summary>
-/// Changes to Steam's own files (server favorites and history, screenshot
-/// records) wait here until Steam is closed: Steam keeps those files in memory
-/// and writes them back on exit, so an edit made while it runs is lost. Each
-/// file is backed up to the launcher's data folder before it is changed.
-/// </summary>
 public sealed class SteamWriteQueue
 {
     public const string ScreenshotsFile = "760/screenshots.vdf";
@@ -113,7 +102,6 @@ public sealed class SteamWriteQueue
         Changed?.Invoke();
     }
 
-    /// <summary>Writes everything waiting, unless Steam is running.</summary>
     public SteamWriteResult TryApply()
     {
         if (Count == 0)
@@ -199,7 +187,6 @@ public sealed class SteamWriteQueue
     private static string? Find(VdfNode list, string address) =>
         list.Children.FirstOrDefault(c => c.Value is VdfNode n && n.Value("address") == address).Key;
 
-    // The game writes its own entries this way: the address as the name, app id 0.
     private static void Append(VdfNode list, string address, long time)
     {
         var next = list.Children.Select(c => int.TryParse(c.Key, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 0).DefaultIfEmpty(0).Max() + 1;
@@ -231,7 +218,6 @@ public sealed class SteamWriteQueue
                 entry.Set("height", write.Height.ToString(CultureInfo.InvariantCulture));
             }
         }
-        // Steam numbers the entries from zero; keep them that way after a removal.
         var entries = app.Children.ToList();
         foreach (var (key, _) in entries)
             app.Remove(key);

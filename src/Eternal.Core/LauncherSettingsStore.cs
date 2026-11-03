@@ -23,7 +23,6 @@ public sealed class LauncherSettingsStore : IDisposable
 
     public event Action? Changed;
 
-    /// <summary>Reads settings before anything else is set up (log level, portable checks).</summary>
     public static LauncherSettings Peek(AppPaths paths) =>
         JsonFile.Load(paths.LauncherSettingsFile, CoreJson.Default.LauncherSettings, () => new LauncherSettings(), out _);
 
@@ -41,7 +40,6 @@ public sealed class LauncherSettingsStore : IDisposable
         try
         {
             JsonFile.Save(_path, Settings, CoreJson.Default.LauncherSettings);
-            // It can hold the player's API keys; other accounts on the machine have no business reading them.
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(_path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         }

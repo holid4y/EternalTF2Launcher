@@ -39,14 +39,12 @@ public sealed partial class ModRowViewModel : ObservableObject
     public ModItem Item { get; private set; }
     public string Name => Item.Name;
     public string DisplayName => Item.DisplayName;
-    // The preloader labels nearly every mod "Unknown"; only say something when there is something to say.
     public string? Badge => Item.Kind == ModKind.Particle ? "Particles"
         : Item.Type.Equals("hud", StringComparison.OrdinalIgnoreCase) ? "HUD"
         : Item.Type is "" or "Unknown" or "Vpk_Container" ? null : Item.Type;
     public string Meta => Item.Kind == ModKind.Particle || Badge is null ? Files : $"{Badge} · {Files}";
     public string Initials => string.Concat(DisplayName.Split([' ', '_', '-'], StringSplitOptions.RemoveEmptyEntries)
         .Where(w => char.IsLetterOrDigit(w[0])).Take(2).Select(w => char.ToUpperInvariant(w[0])));
-    // The preloader fills in "Content from folder: x" or "Content extracted from x.vpk" when a mod has no description.
     public string Description => string.IsNullOrWhiteSpace(Item.Description)
         || Item.Description.StartsWith("Content from", StringComparison.Ordinal)
         || Item.Description.StartsWith("Content extracted from", StringComparison.Ordinal)
@@ -155,7 +153,6 @@ public sealed partial class ModsViewModel : PageViewModel
     public GameBananaViewModel GameBanana { get; }
     public ViewOptions View { get; }
 
-    /// <summary>True while the GameBanana browser is showing instead of the library.</summary>
     [ObservableProperty] private bool _browsing;
 
     public bool ShowingLibrary => !Browsing;
@@ -381,10 +378,6 @@ public sealed partial class ModsViewModel : PageViewModel
             await ImportAsync([folder]);
     }
 
-    /// <summary>
-    /// Imports files, folders and archives one at a time. When one holds several
-    /// mods the player picks which (see <see cref="ImportPlan.DefaultChoice"/>).
-    /// </summary>
     public async Task ImportAsync(IReadOnlyList<string> paths)
     {
         if (paths.Count == 0 || !await BeginImportAsync())
@@ -436,10 +429,6 @@ public sealed partial class ModsViewModel : PageViewModel
 
     internal void EndImport() => Importing = false;
 
-    /// <summary>
-    /// One file or folder, between <see cref="BeginImportAsync"/> and <see cref="EndImport"/>.
-    /// <paramref name="modName"/> names the mod when the download holds just one.
-    /// </summary>
     internal async Task<ImportResult> ImportOneAsync(string path, string? source, string? modName, CancellationToken cancellation)
     {
         var name = Path.GetFileName(path);
@@ -480,7 +469,6 @@ public sealed partial class ModsViewModel : PageViewModel
         }
     }
 
-    /// <summary>Downloads one GameBanana file (checked against its size and MD5) and imports it like any other mod.</summary>
     internal async Task<ImportResult> InstallGameBananaFileAsync(Eternal.Core.GameBanana.Submission submission, Eternal.Core.GameBanana.SubmissionFile file,
         IProgress<double>? progress, CancellationToken cancellation)
     {
@@ -497,10 +485,6 @@ public sealed partial class ModsViewModel : PageViewModel
         }
     }
 
-    /// <summary>
-    /// Brings in the mods a shared setup needs: files packed in its bundle, and
-    /// GameBanana files fetched by their exact id. Returns what went wrong.
-    /// </summary>
     internal async Task<IReadOnlyList<string>> InstallSharedAsync(IReadOnlyList<SharedModPlan> plan, CancellationToken cancellation)
     {
         if (plan.Count == 0)
@@ -559,7 +543,6 @@ public sealed partial class ModsViewModel : PageViewModel
     private static string Preview(IReadOnlyList<string> paths) =>
         string.Join(", ", paths.Take(3).Select(Path.GetFileName)) + (paths.Count > 3 ? $" and {paths.Count - 3} more" : "");
 
-    /// <summary>Sources (see <see cref="ModEntry.Source"/>) of everything in the library.</summary>
     public IReadOnlySet<string> InstalledSources() =>
         _services.Mods.State.Order.Select(e => e.Source).OfType<string>().ToHashSet(StringComparer.Ordinal);
 

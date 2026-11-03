@@ -7,16 +7,10 @@ public static class Http
 {
     public static HttpClient Client { get; } = Create(DecompressionMethods.All);
 
-    /// <summary>
-    /// For steamcommunity.com, which answers 429 to anonymous inventory and
-    /// market requests that accept compressed responses.
-    /// </summary>
     public static HttpClient Community { get; } = Create(DecompressionMethods.None);
 
-    /// <summary>Hands redirects back to the caller, to check where each one leads before following it.</summary>
     public static HttpClient NoRedirects { get; } = Create(DecompressionMethods.All, redirects: false);
 
-    /// <summary>Reads a response body, refusing anything larger than <paramref name="maxBytes"/>.</summary>
     public static async Task<byte[]> ReadCappedAsync(HttpContent content, int maxBytes, CancellationToken cancellation)
     {
         if (content.Headers.ContentLength > maxBytes)

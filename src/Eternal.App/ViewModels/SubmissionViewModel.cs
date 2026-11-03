@@ -20,7 +20,6 @@ public sealed partial class FileRow(SubmissionFile file, bool installed) : Obser
     public SubmissionFile File { get; } = file;
     public string Name => File.Name;
 
-    /// <summary>The name cut after each underscore and hyphen, so a long file name wraps between its words.</summary>
     public string[] NameParts => Words().Split(File.Name);
 
     public string Size => Format.Size(File.Size);
@@ -30,7 +29,6 @@ public sealed partial class FileRow(SubmissionFile file, bool installed) : Obser
     public bool HasDescription => !string.IsNullOrWhiteSpace(File.Description);
     public bool CanInstall => File.CanInstall;
 
-    /// <summary>Why a file can't be installed, in the player's words; empty when it can.</summary>
     public string Blocker => File.Scan switch
     {
         FileScan.Flagged => "GameBanana's virus scan flagged this file",
@@ -56,7 +54,6 @@ public sealed partial class FileRow(SubmissionFile file, bool installed) : Obser
     }
 }
 
-/// <summary>One GameBanana submission: its pictures, description and files, and installing the files the player picks.</summary>
 public sealed partial class SubmissionViewModel : ObservableObject
 {
     private readonly AppServices _services;
@@ -184,7 +181,6 @@ public sealed partial class SubmissionViewModel : ObservableObject
         RefreshInstallState();
     }
 
-    /// <summary>Stops loading the page. An install already running carries on and reports back with a notification.</summary>
     internal void Close() => _closed.Cancel();
 
     [RelayCommand]

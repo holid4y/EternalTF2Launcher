@@ -56,7 +56,6 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public bool CloseToTray { get; set; }
     public bool CheckForUpdates { get; set; } = true;
 
-    /// <summary>Download updates as soon as they're out and install them when the launcher closes.</summary>
     public bool AutoUpdate { get; set; } = true;
     public string LogLevel { get; set; } = "Info";
     public bool ClearLogsOnStart { get; set; }
@@ -77,10 +76,8 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public BrowseView ScreenshotView { get; set; } = new() { Layout = ViewLayout.Grid, CardWidth = 260 };
     public ServerFilters Servers { get; set; } = new();
 
-    /// <summary>The player's own teamwork.tf key, which adds teamwork's server lists.</summary>
     public string? TeamworkKey { get; set; }
 
-    /// <summary>The player's own Steam Web API key, which lets the Backpack show decal pictures.</summary>
     public string? SteamApiKey { get; set; }
 
     public string Currency { get; set; } = "USD";
@@ -102,10 +99,6 @@ public sealed class LauncherSettings : IJsonOnDeserialized
 
     public static readonly string[] DefaultTabOrder = ["home", "servers", "mods", "backpack", "screenshots", "config", "launcher"];
 
-    /// <summary>
-    /// Tab list in the saved order, with unknown ids dropped. A tab the saved list
-    /// doesn't have yet goes right after the tab it follows by default.
-    /// </summary>
     public List<TabPreference> NormalizedTabs()
     {
         var result = Tabs.Where(t => DefaultTabOrder.Contains(t.Id)).GroupBy(t => t.Id).Select(g => g.First()).ToList();
@@ -117,7 +110,6 @@ public sealed class LauncherSettings : IJsonOnDeserialized
             var after = i == 0 ? -1 : result.FindIndex(t => t.Id == DefaultTabOrder[i - 1]);
             result.Insert(after + 1, new TabPreference { Id = id });
         }
-        // The launcher tab holds these settings; hiding it would lock the player out.
         result.First(t => t.Id == "launcher").Visible = true;
         return result;
     }

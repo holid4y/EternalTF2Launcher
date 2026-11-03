@@ -5,10 +5,6 @@ using Eternal.App.ViewModels;
 
 namespace Eternal.App.Views;
 
-/// <summary>
-/// The list re-sorts while servers answer, and each re-sort resets it. Only a
-/// pick by the player changes the selection, so a reset never empties the pane.
-/// </summary>
 public partial class ServersView : UserControl
 {
     public ServersView()

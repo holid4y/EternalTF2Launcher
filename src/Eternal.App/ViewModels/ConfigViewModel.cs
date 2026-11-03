@@ -236,8 +236,6 @@ public sealed partial class ConfigViewModel : PageViewModel
 
     private IEnumerable<KeyBind> RowsToSave() => Binds.Select(b => b.ToBind()).Where(b => b.Key.Length > 0 || b.Command.Length > 0);
 
-    // A bind edit comes back through Settings.Changed after it's saved. Rebuilding
-    // the rows then would replace the box the player is typing in.
     private bool RowsShowSavedBinds()
     {
         var saved = _services.Game.Settings.Binds;
@@ -272,7 +270,6 @@ public sealed partial class ConfigViewModel : PageViewModel
             row.Capturing = true;
     }
 
-    /// <summary>Called by the view while a bind waits for a key. Returns true when handled.</summary>
     public bool HandleCapture(Key key, MouseButton? mouse = null, int wheel = 0)
     {
         var row = Binds.FirstOrDefault(b => b.Capturing);
@@ -456,10 +453,6 @@ public sealed partial class ConfigViewModel : PageViewModel
         }
     }
 
-    /// <summary>
-    /// Shows what a shared setup will change, then keeps it as a profile, applies
-    /// it, brings in its mods and puts them in its order.
-    /// </summary>
     private async Task ImportSetupAsync(ProfileImport import, IReadOnlyList<BundledMod> bundled, string? staging)
     {
         try
@@ -535,7 +528,6 @@ public sealed partial class ConfigViewModel : PageViewModel
         return string.Join("\n\n", lines);
     }
 
-    /// <summary>Enabled mods that GameBanana can't hand out again, with the folder that holds their files.</summary>
     private List<BundledMod> HandMadeMods()
     {
         var sources = _services.Mods.EnabledSources();
@@ -595,7 +587,6 @@ public sealed partial class ConfigViewModel : PageViewModel
     }
 }
 
-/// <summary>Avalonia keys to Source engine key names.</summary>
 public static class SourceKeys
 {
     public static string? FromMouse(MouseButton button) => button switch

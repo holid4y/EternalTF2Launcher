@@ -2,7 +2,6 @@ namespace Eternal.Core.Platform;
 
 internal static class Proc
 {
-    /// <summary>Linux only: /proc/&lt;pid&gt;/comm is cheap to read and keeps names like "tf_win64.exe" intact under Proton.</summary>
     public static bool AnyNamed(params string[] names)
     {
         try
@@ -19,7 +18,6 @@ internal static class Proc
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    // The process exited between listing and reading.
                 }
             }
         }

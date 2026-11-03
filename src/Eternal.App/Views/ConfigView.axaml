@@ -19,12 +19,10 @@
       <Setter Property="Padding" Value="6" />
       <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
     </Style>
-    <!-- Set here rather than on the controls so the narrow layout below can move them. -->
-    <Style Selector="Grid.setting > :is(Control).control">
+<Style Selector="Grid.setting > :is(Control).control">
       <Setter Property="Grid.Column" Value="1" />
     </Style>
-    <!-- Too narrow for text and control side by side: the control goes under the text. -->
-    <Style Selector="views|ConfigView.narrow Grid.setting > views|SettingInfo">
+<Style Selector="views|ConfigView.narrow Grid.setting > views|SettingInfo">
       <Setter Property="Grid.ColumnSpan" Value="2" />
     </Style>
     <Style Selector="views|ConfigView.narrow Grid.setting > :is(Control).control">

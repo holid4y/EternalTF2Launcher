@@ -4,7 +4,6 @@ using Eternal.Core;
 
 namespace Eternal.App.ViewModels;
 
-/// <summary>List or grid, and how wide grid cards are. Saved per page.</summary>
 public sealed partial class ViewOptions : ObservableObject
 {
     private readonly LauncherSettingsStore _store;

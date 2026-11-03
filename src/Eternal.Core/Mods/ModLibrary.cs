@@ -31,11 +31,6 @@ public sealed record ImportOutcome(IReadOnlyList<ImportItemResult> Items, IReadO
     public bool AnyChanged => Items.Any(i => i.Mods.Count > 0);
 }
 
-/// <summary>
-/// The player's mod list: the engine's library merged with their choices
-/// (enabled, priority). Every change that affects the game raises
-/// <see cref="DesiredChanged"/> so the coordinator can rebuild.
-/// </summary>
 public sealed class ModLibrary
 {
     private readonly PreloaderEngine _engine;
@@ -61,10 +56,8 @@ public sealed class ModLibrary
     public bool Loaded { get; private set; }
     public IReadOnlyList<ModItem> Items { get; private set; } = [];
 
-    /// <summary>Something visible changed (list, flags, conflicts).</summary>
     public event Action? Changed;
 
-    /// <summary>Something that affects the game files changed.</summary>
     public event Action? DesiredChanged;
 
     public ThumbnailStore Thumbnails => _thumbnails;
@@ -105,7 +98,6 @@ public sealed class ModLibrary
         lock (_gate)
         {
             _library = library;
-            // Mods that showed up without going through the launcher start disabled at the bottom.
             foreach (var mod in library.Where(m => !State.Order.Any(e => e.Name == m.Name && e.Kind == m.Kind)))
                 State.Order.Add(new ModEntry { Name = mod.Name, Kind = mod.Kind, Enabled = false });
             State.Order.RemoveAll(e => !library.Any(m => m.Name == e.Name && m.Kind == e.Kind));
@@ -114,7 +106,6 @@ public sealed class ModLibrary
         SaveState();
         Rebuild();
         Log.Info($"Mod library: {Items.Count} mods, {Items.Count(i => i.Enabled)} enabled");
-        // A reload that finds the same mods would otherwise show "changes pending" for nothing.
         if (!Same(before, Desired()))
             DesiredChanged?.Invoke();
         ScheduleAnalysis();
@@ -126,10 +117,6 @@ public sealed class ModLibrary
         && a.Addons.SequenceEqual(b.Addons) && a.Particles.SequenceEqual(b.Particles)
         && a.Options.ToEngine() == b.Options.ToEngine() && a.LibrarySignature == b.LibrarySignature;
 
-    /// <summary>
-    /// Unpacks an archive (off the UI thread) and asks the engine what is in it,
-    /// without touching the library. Dispose the plan to clean up.
-    /// </summary>
     public async Task<ImportPlan> PrepareAsync(string path, IProgress<ImportProgress>? progress, CancellationToken cancellation = default)
     {
         var name = Path.GetFileName(path);
@@ -158,11 +145,6 @@ public sealed class ModLibrary
         }
     }
 
-    /// <summary>
-    /// Imports a prepared plan, or only <paramref name="parts"/> of it. Mods that
-    /// are new go to the top of the order and are switched on. <paramref name="name"/>
-    /// names the mod when the plan holds just one.
-    /// </summary>
     public async Task<ImportOutcome> ImportAsync(ImportPlan plan, IReadOnlyCollection<string>? parts, IProgress<ImportProgress>? progress,
         string? name = null, CancellationToken cancellation = default)
     {
@@ -206,7 +188,6 @@ public sealed class ModLibrary
         Commit();
     }
 
-    /// <summary>Moves a mod to <paramref name="index"/> in priority order (0 = wins every conflict).</summary>
     public void Move(string name, ModKind kind, int index)
     {
         lock (_gate)
@@ -230,15 +211,6 @@ public sealed class ModLibrary
         Commit();
     }
 
-    /// <summary>
-    /// Applies a profile's mod set: listed mods on in the listed order, everything
-    /// else off. Returns the listed mods that are not in the library.
-    /// </summary>
-    /// <summary>
-    /// Switches on exactly the profile's mods, in its order, and the rest off.
-    /// A GameBanana mod is matched by the file it came from first, since the
-    /// same download can sit under another name here. Returns what's missing.
-    /// </summary>
     public IReadOnlyList<string> ApplySelection(Profiles.ProfileMods mods)
     {
         List<string> missing;
@@ -277,7 +249,6 @@ public sealed class ModLibrary
             return Resolve(name, kind, source) is not null;
     }
 
-    /// <summary>The GameBanana file each enabled mod came from, for sharing.</summary>
     public Dictionary<string, string> EnabledSources()
     {
         lock (_gate)
@@ -296,13 +267,11 @@ public sealed class ModLibrary
     {
         var result = await _engine.RemoveAsync(mods.Select(m => (m.Name, m.Kind))).ConfigureAwait(false);
         await RefreshAsync().ConfigureAwait(false);
-        // Thumbnails are keyed by name, which an addon and a particle mod can share.
         foreach (var name in mods.Select(m => m.Name).Distinct().Where(name => Items.All(i => i.Name != name)))
             _thumbnails.Delete(name);
         return result;
     }
 
-    /// <summary>Records the enabled list from a migrated 1.x library.</summary>
     public void AdoptLegacyOrder(IReadOnlyList<string> enabledAddons)
     {
         lock (_gate)
@@ -322,11 +291,6 @@ public sealed class ModLibrary
 
     public void ThumbnailChanged() => Rebuild();
 
-    /// <summary>
-    /// The library name for an install from <paramref name="submission"/> (a source
-    /// prefix such as "gamebanana:123:"): that submission's earlier install keeps its
-    /// name, and a name some other mod has is never taken over.
-    /// </summary>
     public string FreeName(string name, string submission)
     {
         lock (_gate)
@@ -343,7 +307,6 @@ public sealed class ModLibrary
         return free;
     }
 
-    /// <summary>Remembers where mods came from, such as a GameBanana file.</summary>
     public void SetSource(IEnumerable<string> names, string source)
     {
         var set = names.ToHashSet(StringComparer.Ordinal);
@@ -405,7 +368,6 @@ public sealed class ModLibrary
         Changed?.Invoke();
     }
 
-    /// <summary>Conflicts and model checks run after edits settle and never block the list.</summary>
     private void ScheduleAnalysis()
     {
         CancellationTokenSource cts;

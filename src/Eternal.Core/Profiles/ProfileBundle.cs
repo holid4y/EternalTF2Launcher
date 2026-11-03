@@ -9,13 +9,6 @@ public sealed record BundledMod(string Name, ModKind Kind, string Folder);
 
 public sealed record BundleContents(ProfileImport Import, IReadOnlyList<BundledMod> Mods, string Staging);
 
-/// <summary>
-/// A setup in one file: the profile plus the files of mods that can't be
-/// downloaded again from GameBanana. It is a zip ("profile.json", then
-/// "mods/addons/&lt;name&gt;/..." and "mods/particles/&lt;name&gt;/..."), read
-/// with hard limits since anyone can hand one over: no paths outside the mod
-/// folders, a cap on entries and size, and no runaway compression.
-/// </summary>
 public static class ProfileBundle
 {
     public const string Extension = "eternal";
@@ -55,7 +48,6 @@ public static class ProfileBundle
         }
     }
 
-    /// <summary>Unpacks into a folder of its own under <paramref name="stagingRoot"/>; the caller deletes it when done.</summary>
     public static BundleContents Open(string path, string stagingRoot, CancellationToken cancellation = default)
     {
         var staging = Path.Combine(stagingRoot, "bundle-" + Guid.NewGuid().ToString("N")[..8]);
@@ -131,7 +123,6 @@ public static class ProfileBundle
         return (kind, name, Path.Combine(relative));
     }
 
-    // Copies no more than the size the zip declares, so a lying entry can't grow past its budget.
     private static void Extract(ZipArchiveEntry entry, string target)
     {
         using var input = entry.Open();

@@ -22,11 +22,6 @@ public static class Converters
             _ => "None",
         });
 
-    /// <summary>
-    /// Steam's item colours are made for its dark backpack: Unique is served
-    /// dimmed (#7D6D00) and some colours are pale. Takes the colour and the
-    /// ground it sits on and returns a readable brush; no colour means the muted text colour.
-    /// </summary>
     public static readonly IMultiValueConverter ItemColor = new FuncMultiValueConverter<object?, IBrush?>(values =>
     {
         var args = values.ToArray();

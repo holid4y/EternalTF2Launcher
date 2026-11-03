@@ -1,6 +1,5 @@
 namespace Eternal.Core.Servers;
 
-/// <summary>What a server plays, judged by its map name the way players read it.</summary>
 public static class GameModes
 {
     private static readonly (string Prefix, string Mode)[] Prefixes =

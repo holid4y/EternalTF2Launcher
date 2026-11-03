@@ -4,7 +4,6 @@ using Eternal.Core.Platform;
 
 namespace Eternal.Core.Steam;
 
-/// <summary>The Steam client itself: whether it runs, and closing or starting it.</summary>
 public static class SteamProcess
 {
     public static bool IsRunning()
@@ -19,7 +18,6 @@ public static class SteamProcess
         return Proc.AnyNamed("steam");
     }
 
-    /// <summary>Asks Steam to quit the way its own menu does, and waits until it has.</summary>
     public static async Task<bool> ShutdownAsync(string? steamRoot, TimeSpan timeout, CancellationToken cancellation = default)
     {
         if (!IsRunning())
@@ -32,7 +30,6 @@ public static class SteamProcess
             await Task.Delay(500, cancellation).ConfigureAwait(false);
             if (!IsRunning())
             {
-                // Steam writes its files on the way out; give the last write a moment to land.
                 await Task.Delay(1500, cancellation).ConfigureAwait(false);
                 return true;
             }

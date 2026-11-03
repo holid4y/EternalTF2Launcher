@@ -7,11 +7,6 @@ using Eternal.Core.Logging;
 
 namespace Eternal.App.Services;
 
-/// <summary>
-/// Remote pictures (item icons, news art, GameBanana previews) with a disk
-/// cache and a small in-memory cache. Decoding is capped to the size the
-/// picture is shown at, so a 300-item backpack stays light.
-/// </summary>
 public sealed class ImageCache(string directory)
 {
     private const int MemoryLimit = 600;
@@ -47,7 +42,6 @@ public sealed class ImageCache(string directory)
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
             {
-                // Not a picture (an error page, or a file cut short by an older version): fetch it again next time.
                 File.Delete(file);
                 throw;
             }
@@ -69,7 +63,6 @@ public sealed class ImageCache(string directory)
         }
     }
 
-    /// <summary>The downloaded file for an https picture, fetched once and kept on disk.</summary>
     public async Task<string> FileAsync(string url, CancellationToken cancellation = default)
     {
         if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -83,7 +76,6 @@ public sealed class ImageCache(string directory)
         {
             var bytes = await DownloadAsync(url, cancellation).ConfigureAwait(false);
             Directory.CreateDirectory(directory);
-            // Moved into place whole, so an interrupted or parallel download never leaves half a picture.
             var partial = $"{file}.{Guid.NewGuid():N}.part";
             try
             {
@@ -102,7 +94,6 @@ public sealed class ImageCache(string directory)
         }
     }
 
-    // Pictures come from pages written by anyone (news posts, GameBanana uploads); a huge one must not fill memory.
     private static async Task<byte[]> DownloadAsync(string url, CancellationToken cancellation)
     {
         using var response = await Http.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellation).ConfigureAwait(false);

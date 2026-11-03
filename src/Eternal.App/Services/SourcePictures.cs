@@ -5,10 +5,6 @@ using Eternal.Core.Mods;
 
 namespace Eternal.App.Services;
 
-/// <summary>
-/// Gives mods installed from GameBanana their submission's picture. Runs one
-/// submission at a time in the background; a failed fetch is tried again next session.
-/// </summary>
 public sealed class SourcePictures(ModLibrary mods, ImageCache images, GameBananaClient client)
 {
     private readonly object _gate = new();

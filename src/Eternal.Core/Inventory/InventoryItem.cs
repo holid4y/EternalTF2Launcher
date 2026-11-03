@@ -38,16 +38,12 @@ public sealed partial record InventoryItem : IJsonOnDeserialized
     public long Position { get; init; }
     public IReadOnlyList<DescriptionLine> Lines { get; init; } = [];
 
-    /// <summary>The name a Name Tag gave the item, without the quotes TF2 puts around it.</summary>
     public string? CustomName { get; init; }
 
-    /// <summary>What the item is called without its custom name.</summary>
     public string? OriginalName { get; init; }
 
-    /// <summary>The text a Description Tag gave the item.</summary>
     public string? CustomDescription { get; init; }
 
-    /// <summary>Takes a custom decal (Conscientious Objector, Flair!, Photo Badge, Clan Pride…).</summary>
     public bool TakesDecal { get; init; }
 
     void IJsonOnDeserialized.OnDeserialized()
@@ -68,7 +64,6 @@ public sealed partial record InventoryItem : IJsonOnDeserialized
 
     private const string DecalLine = "Custom decals can be applied to this item.";
 
-    // TF2 shows names and descriptions set with tags between two pairs of apostrophes.
     private static string? Quoted(string? text) =>
         text is { Length: > 4 } t && t.StartsWith("''", StringComparison.Ordinal) && t.EndsWith("''", StringComparison.Ordinal) ? t[2..^2].Trim() : null;
 
@@ -147,11 +142,6 @@ public sealed partial record InventoryItem : IJsonOnDeserialized
         };
     }
 
-    /// <summary>
-    /// Names the item may have on backpack.tf, most likely first. Steam keeps
-    /// the "The" article and the Unusual quality word; backpack.tf drops the
-    /// article, names unusuals by effect and prefixes "Non-Craftable".
-    /// </summary>
     public IEnumerable<string> PriceNames()
     {
         var names = new List<string> { MarketHashName.Length > 0 ? MarketHashName : Name };

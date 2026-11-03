@@ -11,7 +11,6 @@ public interface IDialogs
 {
     Task<bool> ConfirmAsync(string title, string message, string confirm = "OK", string cancel = "Cancel", bool danger = false);
     Task AlertAsync(string title, string message);
-    /// <summary>The trimmed answer, possibly empty, or null when cancelled.</summary>
     Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save", bool secret = false);
 }
 
@@ -39,7 +38,6 @@ public sealed partial class DialogViewModel : ObservableObject
     private void Cancel() => _result.TrySetResult(false);
 }
 
-/// <summary>Native file and folder pickers through the main window.</summary>
 public static class Pickers
 {
     private static TopLevel? Top => (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
@@ -86,7 +84,6 @@ public static class Pickers
             await clipboard.SetTextAsync(text);
     }
 
-    /// <summary>Puts the picture on the clipboard, and the file too for apps that paste files.</summary>
     public static async Task<bool> CopyImageAsync(string path)
     {
         if (Top is not { Clipboard: { } clipboard } top)

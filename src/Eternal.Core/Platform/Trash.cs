@@ -3,10 +3,6 @@ using System.Text;
 
 namespace Eternal.Core.Platform;
 
-/// <summary>
-/// Moves files to the desktop's trash so a delete can be undone: the Recycle Bin
-/// on Windows, the freedesktop.org trash on Linux (what file managers use).
-/// </summary>
 public static class Trash
 {
     public static void Move(string path)
@@ -47,7 +43,6 @@ public static class Trash
             FileStream stream;
             try
             {
-                // Creating the info file first claims the name, as the spec asks.
                 stream = new FileStream(infoPath, FileMode.CreateNew, FileAccess.Write);
             }
             catch (IOException) when (File.Exists(infoPath))

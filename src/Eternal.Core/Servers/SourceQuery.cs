@@ -27,12 +27,6 @@ public sealed record ServerInfo(
 
 public sealed record PlayerEntry(string Name, int Score, TimeSpan Time);
 
-/// <summary>
-/// Valve's server queries (A2S_INFO, A2S_PLAYER, A2S_RULES) over UDP, with the
-/// challenge handshake servers have required since 2020. Replies come from
-/// anyone who can send a packet, so every field is bounds-checked, split replies
-/// are capped, and the socket is connected so only the queried server is heard.
-/// </summary>
 public static class SourceQuery
 {
     private const int MaxDatagram = 1400 + 64;
@@ -251,7 +245,6 @@ public static class SourceQuery
         }
         catch (InvalidDataException)
         {
-            // A rules reply cut short still has the rules before the cut.
         }
         return rules;
     }
@@ -317,7 +310,6 @@ public static class SourceQuery
         }
     }
 
-    /// <summary>Server names and player names are free text from strangers: no control characters, bounded length.</summary>
     internal static string Clean(string text)
     {
         var sb = new StringBuilder(Math.Min(text.Length, MaxString));

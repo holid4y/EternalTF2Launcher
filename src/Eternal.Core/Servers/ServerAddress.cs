@@ -4,7 +4,6 @@ using System.Net.Sockets;
 
 namespace Eternal.Core.Servers;
 
-/// <summary>An IPv4 game server address. TF2 only connects over IPv4.</summary>
 public readonly record struct ServerAddress(IPAddress Ip, int Port) : IComparable<ServerAddress>
 {
     public const int DefaultPort = 27015;
@@ -31,7 +30,6 @@ public readonly record struct ServerAddress(IPAddress Ip, int Port) : IComparabl
         return true;
     }
 
-    /// <summary>Not loopback, private, link-local or carrier-grade NAT: an address a public server list can honestly hold.</summary>
     public bool IsPublic
     {
         get
@@ -51,7 +49,6 @@ public readonly record struct ServerAddress(IPAddress Ip, int Port) : IComparabl
     public static bool TryPort(string text, out int port) =>
         int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out port) && port is > 0 and <= 65535;
 
-    // IPAddress.TryParse also takes "1", "0x7f.1" and similar shorthands; a server address is always four numbers.
     private static bool IsDottedQuad(string host)
     {
         var parts = host.Split('.');

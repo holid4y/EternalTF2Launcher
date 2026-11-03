@@ -7,10 +7,6 @@ using Eternal.App.ViewModels;
 
 namespace Eternal.App.Views;
 
-/// <summary>
-/// Keeps an ItemsRepeater's UniformGridLayout at the card size chosen in
-/// <see cref="ViewOptions"/>. Layouts can't hold bindings, so this does it for them.
-/// </summary>
 public static class CardSizing
 {
     private static readonly ConditionalWeakTable<ItemsRepeater, PropertyChangedEventHandler> Handlers = new();

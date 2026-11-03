@@ -27,11 +27,6 @@ public sealed partial class Swatch(SKColor color, string name) : ObservableObjec
     [ObservableProperty] private bool _selected;
 }
 
-/// <summary>
-/// The editor works on a copy scaled to fit the screen and keeps every change
-/// as a list of steps, so undo is free and nothing touches the file until Save
-/// renders the steps onto the full-size picture.
-/// </summary>
 public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDisposable
 {
     private const int PreviewWidth = 1600;
@@ -117,7 +112,6 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         _ => "Pick a tool on the right, or turn and adjust the picture.",
     };
 
-    /// <summary>The picture's width over its height after turning, for keeping crops in proportion.</summary>
     public double Aspect => Edit.Rotation % 180 == 0 ? (double)_source.Width / _source.Height : (double)_source.Height / _source.Width;
 
     partial void OnEditChanged(ImageEdit value)
@@ -143,7 +137,6 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         newValue.Selected = true;
     }
 
-    /// <summary>Slider moves merge into one undo step; anything else is its own step.</summary>
     private void Change(ImageEdit next, bool merge = false)
     {
         if (next == Edit)
@@ -203,7 +196,6 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
             Change(Edit with { Crop = area });
     }
 
-    /// <summary>Adds a box-shaped mark (blur, pixelate, box) or an arrow from one corner to the other.</summary>
     public void AddMark(SKRect area)
     {
         var kind = Tool switch
@@ -263,7 +255,6 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         }
     }
 
-    /// <summary>Renders the preview off the UI thread; a newer edit drops an older render.</summary>
     private async Task RenderAsync()
     {
         _render?.Cancel();

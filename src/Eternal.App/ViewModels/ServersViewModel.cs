@@ -14,12 +14,6 @@ using Eternal.Core.Servers;
 
 namespace Eternal.App.ViewModels;
 
-/// <summary>
-/// The Servers tab. Lists come from public directories (GameMonitoring, plus
-/// teamwork.tf with the player's key) and from the player's own favorites and
-/// history; every server is then asked directly for its name, map, players and
-/// ping, a few dozen at a time, and the list updates as answers arrive.
-/// </summary>
 public sealed partial class ServersViewModel : PageViewModel
 {
     private const int Parallel = 48;
@@ -300,7 +294,6 @@ public sealed partial class ServersViewModel : PageViewModel
             await writer.WriteAsync(row, cancellation).ConfigureAwait(false);
     }
 
-    /// <summary>Runs a producer of servers and queries what it yields, a few dozen at a time.</summary>
     private async Task RunAsync(CancellationToken cancellation, Func<ChannelWriter<ServerRow>, CancellationToken, Task> produce)
     {
         var channel = Channel.CreateUnbounded<ServerRow>(new UnboundedChannelOptions { SingleReader = false, SingleWriter = false });
@@ -359,7 +352,6 @@ public sealed partial class ServersViewModel : PageViewModel
             _updates.Enqueue(() => Error = string.Join(" ", errors.Distinct()));
     }
 
-    // The system's region setting stands in for where the player is; it only adds that country's empty servers.
     private static string? UserCountry()
     {
         try
@@ -489,7 +481,6 @@ public sealed partial class ServersViewModel : PageViewModel
 
         var sorted = Order(rows).ToList();
         Visible.ReplaceAll(sorted);
-        // A reset drops the list's highlight; put it back on the server still being shown in the pane.
         OnPropertyChanged(nameof(Selected));
         var players = sorted.Sum(r => Math.Max(0, r.Players - r.Bots));
         Status = sorted.Count == 0 ? "" : $"{Format.Plural(sorted.Count, "server", "servers")} · {Format.Plural(players, "player", "players")}";

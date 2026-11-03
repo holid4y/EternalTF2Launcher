@@ -134,11 +134,9 @@ public sealed partial class BackpackViewModel : PageViewModel
 
     private async Task LoadAsync(bool force)
     {
-        // Re-detect each time: the player may have switched Steam accounts.
         var account = SteamLocator.ActiveAccount();
         SteamId = _services.Launcher.Settings.SteamIdOverride is { Length: > 0 } custom ? custom : account?.SteamId64;
         Owner = _services.Launcher.Settings.SteamIdOverride is { Length: > 0 } ? $"SteamID {SteamId}" : account?.PersonaName ?? "";
-        // The items on screen must belong to the account named above them, even if loading the new one fails.
         if (SteamId != _itemsOwner)
             ClearItems();
         if (SteamId is null)
@@ -186,7 +184,6 @@ public sealed partial class BackpackViewModel : PageViewModel
         }
     }
 
-    /// <summary>Decal pictures need the player's Steam Web API key; without it the panel says where to add one.</summary>
     private async Task LoadDecalsAsync(string steamId, IReadOnlyList<ItemViewModel> items)
     {
         if (items.Count == 0)
@@ -232,7 +229,6 @@ public sealed partial class BackpackViewModel : PageViewModel
         OnPropertyChanged(nameof(HasItems));
     }
 
-    /// <summary>Steam's limit lifts after a minute or two; try again on our own instead of making the player guess.</summary>
     private void ScheduleRetry()
     {
         if (_retryAttempt >= RetrySeconds.Length)

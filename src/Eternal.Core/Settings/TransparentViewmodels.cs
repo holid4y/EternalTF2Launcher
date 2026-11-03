@@ -9,17 +9,6 @@ public enum ViewmodelStatus { Off, Applied, NoGameFolder, NoLayout, Failed }
 
 public sealed record ViewmodelResult(ViewmodelStatus Status, string? From = null, string? Error = null);
 
-/// <summary>
-/// See-through weapons, the way HUDs that support it do it: a full-screen
-/// panel in hudlayout.res shows a Refract material over the view model, and
-/// that only works with motion blur on (at zero strength), HDR off and MSAA off.
-///
-/// Rather than editing the player's HUD, the launcher writes its own folder
-/// that sorts first in tf/custom. Its hudlayout.res #bases a copy of whichever
-/// layout was in effect (a custom HUD's or the game's own) and adds the panel,
-/// so it works with any HUD and turning it off just removes the folder. Its
-/// info.vdf matters: without one the game ignores a folder's HUD files.
-/// </summary>
 public static class TransparentViewmodels
 {
     public const string FolderName = "!eternal-transparent-viewmodels";
@@ -27,7 +16,6 @@ public static class TransparentViewmodels
     private const string Material = "eternal_viewmodel_refract";
     private const int CurrentUiVersion = 3;
 
-    /// <summary>Written at the very end of the managed block so nothing before it can undo them.</summary>
     public static readonly string[] Cvars =
     [
         "mat_motion_blur_enabled 1",
@@ -112,11 +100,6 @@ public static class TransparentViewmodels
         }
     }
 
-    /// <summary>
-    /// The hudlayout.res the game would load without our folder: tf/custom in
-    /// name order (folders and VPKs alike, the first one that has the file wins),
-    /// then the game's own tf2_misc VPK.
-    /// </summary>
     internal static (string From, byte[] Bytes)? EffectiveLayout(string tfPath)
     {
         var custom = Path.Combine(tfPath, "custom");
@@ -146,10 +129,8 @@ public static class TransparentViewmodels
         return File.Exists(misc) && TryVpk(misc) is { } own ? ("the game's own HUD", own) : null;
     }
 
-    // TF2 drops HUD files from a custom folder unless its info.vdf carries the HUD version the game expects.
     private static string Info(int uiVersion) => $"\"Eternal see-through weapons\"\n{{\n\t\"ui_version\"\t\"{uiVersion}\"\n}}\n";
 
-    /// <summary>The version the HUD in effect declares, which the game has accepted; 3 when there's no custom HUD.</summary>
     private static int UiVersion(string tfPath, string from)
     {
         var info = Path.Combine(tfPath, "custom", from, "info.vdf");
@@ -167,7 +148,6 @@ public static class TransparentViewmodels
         }
     }
 
-    // Parts of a split VPK (name_000.vpk) are data, not something the game mounts on its own.
     private static bool IsMountedVpk(string name) =>
         name.EndsWith(".vpk", StringComparison.OrdinalIgnoreCase)
         && !(name.Length > 8 && name[^8] == '_' && name[^7..^4].All(char.IsAsciiDigit));
@@ -193,11 +173,6 @@ public static class TransparentViewmodels
         AtomicFile.WriteAllBytes(path, bytes, keepBackup: false);
     }
 
-    /// <summary>
-    /// A 4×4 normal map pointing straight out. Its alpha (100 of 255) is how much
-    /// of the scene behind the weapon the Refract material lets through; HUDs that
-    /// ship this effect use the same values. VTF 7.2, ABGR8888, no mipmaps or thumbnail.
-    /// </summary>
     internal static byte[] FlatNormalMap()
     {
         const int width = 4, height = 4, headerSize = 80;
@@ -209,7 +184,6 @@ public static class TransparentViewmodels
         BinaryPrimitives.WriteUInt32LittleEndian(h[12..], headerSize);
         BinaryPrimitives.WriteUInt16LittleEndian(h[16..], width);
         BinaryPrimitives.WriteUInt16LittleEndian(h[18..], height);
-        // No mipmaps, no level of detail, eight-bit alpha.
         BinaryPrimitives.WriteUInt32LittleEndian(h[20..], 0x0100 | 0x0200 | 0x2000);
         BinaryPrimitives.WriteUInt16LittleEndian(h[24..], 1);
         BinaryPrimitives.WriteUInt16LittleEndian(h[26..], 0);

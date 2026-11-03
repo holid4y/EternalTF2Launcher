@@ -10,11 +10,6 @@ namespace Eternal.Core.Profiles;
 
 public sealed record ProfileImport(Profile Profile, int UnknownSettings, bool HasAutoexecText);
 
-/// <summary>
-/// User profiles live in config/profiles/{id}.json. Ids are generated here and
-/// validated on every path operation, so a crafted profile can never name a
-/// file outside that folder.
-/// </summary>
 public sealed partial class ProfileStore
 {
     private const long MaxImportBytes = 1024 * 1024;
@@ -98,7 +93,6 @@ public sealed partial class ProfileStore
             File.Delete(path);
     }
 
-    /// <summary>Reads a shared profile file and keeps it as a new profile.</summary>
     public ProfileImport Import(string path)
     {
         var import = Read(path);
@@ -106,7 +100,6 @@ public sealed partial class ProfileStore
         return import;
     }
 
-    /// <summary>Reads a shared profile file (2.x, 1.x) without saving it.</summary>
     public static ProfileImport Read(string path)
     {
         var info = new FileInfo(path);
@@ -115,10 +108,6 @@ public sealed partial class ProfileStore
         return FromText(File.ReadAllText(path), Path.GetFileNameWithoutExtension(path));
     }
 
-    /// <summary>
-    /// A profile someone shared, checked and cleaned: unknown settings dropped,
-    /// values coerced, binds filtered, a fresh id. The sender's id is never trusted.
-    /// </summary>
     public static ProfileImport FromText(string json, string fallbackName)
     {
         if (json.Length > MaxImportBytes)
@@ -158,7 +147,6 @@ public sealed partial class ProfileStore
             settings.ExtraLaunchArgs = profile.ExtraLaunchArgs;
     }
 
-    /// <summary>Applying the profile would change nothing. Sections a profile leaves out (null) don't count.</summary>
     public static bool Matches(Profile profile, GameSettings settings)
     {
         if (profile.Values.Count == 0)
@@ -170,7 +158,6 @@ public sealed partial class ProfileStore
             if (!setting.ValueEquals(settings.Get(setting), value))
                 return false;
         }
-        // Applying a complete profile clears the launch options it doesn't list.
         if (profile.Complete && SettingsCatalog.All.Any(s => s.IsLaunchOption && settings.IsTouched(s) && !profile.Values.ContainsKey(s.Id)))
             return false;
         if (profile.Binds is not null && !SameBinds(profile.Binds, settings.Binds))
@@ -181,7 +168,6 @@ public sealed partial class ProfileStore
     private static bool SameBinds(IEnumerable<KeyBind> a, IEnumerable<KeyBind> b) =>
         a.Where(ManagedBlock.IsValidBind).Select(Written).SequenceEqual(b.Where(ManagedBlock.IsValidBind).Select(Written));
 
-    // Labels are only shown in the launcher; key names are case-insensitive in TF2.
     private static (string, string) Written(KeyBind bind) => (bind.Key.ToLowerInvariant(), bind.Command);
 
     public Profile? FindMatch(GameSettings settings) =>
@@ -199,7 +185,6 @@ public sealed partial class ProfileStore
         values.Where(kv => SettingsCatalog.Find(kv.Key) is not null)
               .ToDictionary(kv => kv.Key, kv => (JsonNode?)SettingsCatalog.ById[kv.Key].Coerce(kv.Value), StringComparer.Ordinal);
 
-    /// <summary>Reads a v2 profile or converts a 1.x one.</summary>
     internal static Profile Parse(string json)
     {
         var root = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }) as JsonObject
@@ -214,7 +199,6 @@ public sealed partial class ProfileStore
         }
         catch (Exception ex) when (ex is InvalidOperationException or FormatException)
         {
-            // A field of the wrong type, e.g. a number where a name belongs.
             throw new InvalidDataException("Not a profile file.", ex);
         }
 

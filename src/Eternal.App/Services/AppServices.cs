@@ -12,11 +12,6 @@ using Eternal.Core.Steam;
 
 namespace Eternal.App.Services;
 
-/// <summary>
-/// Composition root. Built once, handed to the view models explicitly.
-/// Construction only touches local files and never blocks on the network or
-/// on Python; slow checks run in <see cref="StartAsync"/> after the window is up.
-/// </summary>
 public sealed class AppServices : IAsyncDisposable
 {
     private readonly List<string> _notices = [];
@@ -28,7 +23,6 @@ public sealed class AppServices : IAsyncDisposable
     {
         Paths = paths;
         _findSteamUser = steamUser ?? (() => SteamLocator.UserDataDir());
-        // Only one launcher runs at a time, so anything left in staging is from an import that never finished.
         ArchiveIngest.TryDelete(paths.ImportStagingDir);
         Launcher = new LauncherSettingsStore(paths);
         if (!SteamLocator.IsTf2Folder(Launcher.Settings.TfPath) && SteamLocator.FindTf2() is { } detected)
@@ -86,7 +80,6 @@ public sealed class AppServices : IAsyncDisposable
     public SteamWriteQueue SteamWrites { get; }
     public ServerBook Servers { get; }
 
-    /// <summary>userdata/&lt;id&gt; of the account signed in to Steam, looked up at most every half minute.</summary>
     public string? SteamUserDir
     {
         get
@@ -126,10 +119,6 @@ public sealed class AppServices : IAsyncDisposable
 
     public void RefreshObserved() => Game.Settings.UpdateObserved(ObservedSettings.Read(TfPath));
 
-    /// <summary>
-    /// Engine check, crash recovery, library load. Each step fails on its own
-    /// so one problem never leaves the Mods tab half started. Safe to call again.
-    /// </summary>
     public async Task StartAsync()
     {
         try
@@ -145,7 +134,6 @@ public sealed class AppServices : IAsyncDisposable
             }
             else if (status.PreloadPresent != Preload.Record.Installed)
             {
-                // Steam verified the files, or another tool changed them.
                 Preload.Invalidate();
             }
 

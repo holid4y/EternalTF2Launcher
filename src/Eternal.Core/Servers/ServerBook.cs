@@ -25,12 +25,6 @@ internal sealed partial class ServerBookJson : JsonSerializerContext;
 
 public sealed record BookEntry(ServerAddress Address, string Name, DateTimeOffset? At);
 
-/// <summary>
-/// Favorites and recently played servers. The launcher keeps its own list and
-/// also reads the game's (Steam's serverbrowser_hist.vdf), so a server added in
-/// either place shows in both. Changes to the game's list go through
-/// <see cref="SteamWriteQueue"/>, since Steam overwrites that file while it runs.
-/// </summary>
 public sealed class ServerBook
 {
     private const int RecentKept = 60;
@@ -130,7 +124,6 @@ public sealed class ServerBook
         Changed?.Invoke();
     }
 
-    /// <summary>Keeps a nicer name once the server has answered, in place of a bare address.</summary>
     public void Rename(ServerAddress address, string name)
     {
         var target = address.ToString();

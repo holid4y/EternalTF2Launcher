@@ -7,7 +7,6 @@ using Eternal.Core.Logging;
 
 namespace Eternal.Core.Servers;
 
-/// <summary>A server some public list knows about. Live details come from querying it directly.</summary>
 public sealed record ListedServer(
     ServerAddress Address,
     int QueryPort,
@@ -21,10 +20,6 @@ public sealed record ListedServer(
 
 public sealed class ServerListException(string message, Exception? inner = null) : Exception(message, inner);
 
-/// <summary>
-/// GameMonitoring's open API: TF2 servers sorted by player count, a hundred per
-/// page. No key. About five pages cover every server with people on it.
-/// </summary>
 public sealed class GameMonitoringSource(HttpClient http)
 {
     public const string Name = "GameMonitoring";
@@ -32,7 +27,6 @@ public sealed class GameMonitoringSource(HttpClient http)
     private const int PageSize = 100;
     private const int MaxBytes = 2 * 1024 * 1024;
 
-    /// <summary>Servers with players, then (for <paramref name="country"/>) the empty ones too.</summary>
     public async IAsyncEnumerable<IReadOnlyList<ListedServer>> ListAsync(string? country, int maxPages, [EnumeratorCancellation] CancellationToken cancellation = default)
     {
         await foreach (var page in PagesAsync("", populatedOnly: true, maxPages, cancellation).ConfigureAwait(false))
@@ -114,10 +108,6 @@ public sealed class GameMonitoringSource(HttpClient http)
     }
 }
 
-/// <summary>
-/// teamwork.tf's community server lists, one request per game mode. Needs the
-/// player's own key, which only ever goes to teamwork.tf and never into a log.
-/// </summary>
 public sealed partial class TeamworkSource(HttpClient http, string key)
 {
     public const string Name = "teamwork.tf";

@@ -3,11 +3,6 @@ using System.Text;
 
 namespace Eternal.Core.Settings;
 
-/// <summary>
-/// Reads single files out of Valve's VPK archives (versions 1 and 2): the
-/// directory file lists every entry, and the data sits either right after the
-/// listing or in a numbered archive next to it.
-/// </summary>
 public static class Vpk
 {
     private const uint Signature = 0x55AA1234;
@@ -15,7 +10,6 @@ public static class Vpk
     private const int MaxFile = 4 * 1024 * 1024;
     private const ushort InDirectory = 0x7FFF;
 
-    /// <summary>The file's bytes, or null when the archive doesn't have it.</summary>
     public static byte[]? Read(string dirFile, string path)
     {
         path = path.Replace('\\', '/').ToLowerInvariant();

@@ -3,13 +3,6 @@ using Eternal.Core.Logging;
 
 namespace Eternal.Core.Mods;
 
-/// <summary>
-/// Card images for mods. Kept in the launcher's data folder, never in the mod
-/// library, or they would be packed into the game's VPKs. A picture the player
-/// picks is stored by mod name (file names match 1.x); pictures fetched from a
-/// mod's source page are stored per source under <c>sources/</c>, so mods from
-/// the same submission share one.
-/// </summary>
 public sealed class ThumbnailStore(string directory)
 {
     private static readonly TimeSpan RetryMissingAfter = TimeSpan.FromDays(7);
@@ -45,7 +38,6 @@ public sealed class ThumbnailStore(string directory)
     public string? FindForSource(string? source) =>
         SourceKey(source) is { } key && File.Exists(SourcePath(key)) ? SourcePath(key) : null;
 
-    /// <summary>True when the source's picture is stored, or was looked for recently and doesn't exist.</summary>
     public bool KnowsSource(string key)
     {
         if (File.Exists(SourcePath(key)))
@@ -67,7 +59,6 @@ public sealed class ThumbnailStore(string directory)
         File.WriteAllBytes(SourcePath(key) + ".none", []);
     }
 
-    /// <summary>Deletes stored source pictures no mod points to any more.</summary>
     public void PruneSources(IEnumerable<string?> sources)
     {
         if (!Directory.Exists(SourcesDir))
@@ -81,10 +72,6 @@ public sealed class ThumbnailStore(string directory)
         }
     }
 
-    /// <summary>
-    /// "gamebanana:123:456" becomes "gamebanana-123": one picture per submission,
-    /// whichever of its files was installed. Anything else has no picture to fetch.
-    /// </summary>
     public static string? SourceKey(string? source)
     {
         if (source is null)

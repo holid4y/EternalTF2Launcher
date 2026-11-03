@@ -6,11 +6,6 @@ using Eternal.Core.Settings;
 
 namespace Eternal.Core.Steam;
 
-/// <summary>
-/// Starts TF2 through Steam. The Steam executable with -applaunch passes
-/// arguments untouched and never shows Steam's "launch with these
-/// arguments?" prompt; the steam:// URL is the fallback.
-/// </summary>
 public static class GameLauncher
 {
     public static void Launch(string? steamRoot, IReadOnlyList<string> arguments)
@@ -37,7 +32,6 @@ public static class GameLauncher
             throw new InvalidOperationException("Steam could not be started. Make sure Steam is installed.");
     }
 
-    /// <summary>Server passwords never reach the log.</summary>
     internal static IEnumerable<string> Redacted(IEnumerable<string> arguments)
     {
         var hide = false;

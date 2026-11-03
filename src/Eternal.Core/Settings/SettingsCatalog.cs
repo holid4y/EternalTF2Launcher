@@ -4,11 +4,6 @@ namespace Eternal.Core.Settings;
 
 public sealed record SettingCategory(string Id, string Title, string Summary, IReadOnlyList<SettingDefinition> Settings);
 
-/// <summary>
-/// Cvar names, ranges and defaults are checked against TF2's binaries and
-/// cfg/user_default.scr. Defaults match the game, so an untouched setting
-/// changes nothing.
-/// </summary>
 public static class SettingsCatalog
 {
     private const SettingTags Launch = SettingTags.LaunchOption;
@@ -546,10 +541,6 @@ public static class SettingsCatalog
     ];
 }
 
-/// <summary>
-/// Classic null-movement script. Turning it off has to restore WASD, because
-/// TF2 saves binds to config.cfg and the aliases disappear with the script.
-/// </summary>
 internal static class NullMovement
 {
     public static readonly string[] On =

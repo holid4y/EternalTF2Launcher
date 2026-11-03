@@ -2,10 +2,6 @@ using Avalonia.Media;
 
 namespace Eternal.App.Theming;
 
-/// <summary>
-/// A palette: one ground, two lifted surfaces, a text ramp and one accent.
-/// The accent goes on Play and on data, never on navigation chrome.
-/// </summary>
 public sealed record Theme(
     string Id,
     string Name,
@@ -55,7 +51,6 @@ public sealed record Theme(
 
     public static Theme Find(string? id)
     {
-        // Retired themes land on the closest one still offered.
         var mapped = id switch
         {
             "eternal-classic" => "mann-co",

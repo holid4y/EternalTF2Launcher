@@ -3,7 +3,6 @@ using System.Collections.Specialized;
 
 namespace Eternal.App.ViewModels;
 
-/// <summary>Swaps in a whole new list with one reset, so a re-sort doesn't send hundreds of change events.</summary>
 public sealed class BulkCollection<T> : ObservableCollection<T>
 {
     public void ReplaceAll(IReadOnlyList<T> items)

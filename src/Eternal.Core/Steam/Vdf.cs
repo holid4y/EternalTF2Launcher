@@ -2,7 +2,6 @@ using System.Text;
 
 namespace Eternal.Core.Steam;
 
-/// <summary>Valve KeyValues (text VDF) node: string values or nested sections.</summary>
 public sealed class VdfNode
 {
     private readonly Dictionary<string, object> _children = new(StringComparer.OrdinalIgnoreCase);
@@ -91,7 +90,6 @@ public static class Vdf
         return root;
     }
 
-    /// <summary>Writes the tree back the way Steam formats its own files: tabs, quoted keys and values.</summary>
     public static string Write(VdfNode root)
     {
         var sb = new StringBuilder();

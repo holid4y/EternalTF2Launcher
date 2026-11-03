@@ -46,7 +46,6 @@ public sealed partial class ShotItem(SteamScreenshot shot) : ObservableObject
         }
     }
 
-    /// <summary>Decoded the first time its card comes into view, three at a time.</summary>
     public async Task LoadThumbnailAsync(bool force = false)
     {
         if (_loading || (Thumbnail is not null && !force))
@@ -80,11 +79,6 @@ public sealed partial class ShotItem(SteamScreenshot shot) : ObservableObject
     }
 }
 
-/// <summary>
-/// TF2 screenshots from the Steam library of the signed-in account: view, edit,
-/// copy, upload through Steam and share the link Steam gives back. Steam's
-/// uploader does the uploading, signed in as the player; nothing goes anywhere else.
-/// </summary>
 public sealed partial class ScreenshotsViewModel : PageViewModel
 {
     private readonly AppServices _services;
@@ -197,7 +191,6 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
         }
     }
 
-    /// <summary>Steam adds screenshots while the game runs and writes the upload links later; both show up on their own.</summary>
     private void Watch(string userDir)
     {
         if (_userDir == userDir)

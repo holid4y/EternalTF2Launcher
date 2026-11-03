@@ -19,17 +19,11 @@ public sealed record SteamScreenshot(
 {
     public string FileName => Path.GetFileName(FullPath);
 
-    /// <summary>The public page Steam made when the screenshot was uploaded.</summary>
     public string? ShareUrl => PublishedFileId is { } id
         ? $"https://steamcommunity.com/sharedfiles/filedetails/?id={id.ToString(CultureInfo.InvariantCulture)}"
         : null;
 }
 
-/// <summary>
-/// The TF2 screenshots Steam keeps for an account: userdata/&lt;id&gt;/760/screenshots.vdf
-/// lists them, and the files sit in 760/remote/440/screenshots. Names in the list
-/// are only trusted when they look like Steam's own and stay inside that folder.
-/// </summary>
 public static partial class SteamScreenshots
 {
     public const string AppKey = "440";
@@ -67,7 +61,6 @@ public static partial class SteamScreenshots
                     ulong.TryParse(entry.Value("publishedfileid"), NumberStyles.None, CultureInfo.InvariantCulture, out var published) && published > 0 ? published : null);
             }
 
-            // Screenshots Steam hasn't listed yet (or a list that's missing) still show.
             if (Directory.Exists(folder))
             {
                 foreach (var file in Directory.EnumerateFiles(folder))
@@ -94,11 +87,6 @@ public static partial class SteamScreenshots
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n is > 0 and <= 32768 ? n : 0;
 }
 
-/// <summary>
-/// Saving an edit over a screenshot. The file keeps its name so Steam can still
-/// upload it, the first save keeps the untouched original in the launcher's data
-/// folder, and the thumbnail is rewritten so Steam's views match.
-/// </summary>
 public sealed class ScreenshotOriginals(string directory)
 {
     private string PathFor(SteamScreenshot shot) =>
@@ -118,7 +106,6 @@ public sealed class ScreenshotOriginals(string directory)
         AtomicFile.WriteAllBytes(shot.ThumbnailPath, thumbnail, keepBackup: false);
     }
 
-    /// <summary>Puts the original back; the caller writes a fresh thumbnail for it.</summary>
     public bool Restore(SteamScreenshot shot)
     {
         var original = PathFor(shot);

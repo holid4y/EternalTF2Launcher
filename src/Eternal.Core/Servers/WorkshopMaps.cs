@@ -6,11 +6,6 @@ using Eternal.Core.Logging;
 
 namespace Eternal.Core.Servers;
 
-/// <summary>
-/// Preview pictures for Workshop maps. A server running one reports its map as
-/// "workshop/cp_name.ugc123456", and that number is the Workshop item, which
-/// Steam describes without an API key. Other maps have no picture.
-/// </summary>
 public sealed partial class WorkshopMaps(HttpClient http)
 {
     private const string Details = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/";
@@ -28,7 +23,6 @@ public sealed partial class WorkshopMaps(HttpClient http)
         map is not null && WorkshopMap().Match(map) is { Success: true } m
         && ulong.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var id) && id > 0 ? id : null;
 
-    /// <summary>The map's name without the Workshop prefix and item number.</summary>
     public static string DisplayName(string map)
     {
         if (!map.StartsWith("workshop/", StringComparison.Ordinal))

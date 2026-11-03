@@ -5,16 +5,8 @@ namespace Eternal.App.Services;
 
 public enum MarkKind { Blur, Pixelate, Box, Arrow, Text }
 
-/// <summary>
-/// Something drawn on the picture. Positions are fractions of the turned image
-/// (0 to 1), so they survive any size. An arrow runs from (Left, Top) to (Right, Bottom).
-/// </summary>
 public sealed record Mark(MarkKind Kind, SKRect Area, SKColor Color, string? Text = null);
 
-/// <summary>
-/// Every change made in the editor, kept apart from the picture until it is
-/// saved: turn and flip first, then light, then marks, then the crop.
-/// </summary>
 public sealed record ImageEdit
 {
     public int Rotation { get; init; }
@@ -28,7 +20,6 @@ public sealed record ImageEdit
 
     public bool IsEmpty => Rotation == 0 && !FlipH && !FlipV && Crop is null && Brightness == 0 && Contrast == 0 && Saturation == 0 && Marks.IsEmpty;
 
-    /// <summary>A quarter turn clockwise (or back), carrying the crop and marks along.</summary>
     public ImageEdit Turn(bool clockwise)
     {
         SKPoint Move(SKPoint p) => clockwise ? new SKPoint(1 - p.Y, p.X) : new SKPoint(p.Y, 1 - p.X);
@@ -69,7 +60,6 @@ public static class ScreenshotRenderer
 {
     public const int MaxTextLength = 120;
 
-    /// <summary>The finished picture: the source with every edit applied.</summary>
     public static SKBitmap Render(SKBitmap source, ImageEdit edit, bool showCrop = true)
     {
         using var oriented = Orient(source, edit);
@@ -125,7 +115,6 @@ public static class ScreenshotRenderer
         return data.ToArray();
     }
 
-    /// <summary>Steam's own thumbnails are JPEGs 200 pixels wide.</summary>
     public static byte[] Thumbnail(SKBitmap bitmap, int width)
     {
         var height = Math.Max(1, (int)Math.Round((double)bitmap.Height * width / bitmap.Width));

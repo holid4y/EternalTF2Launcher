@@ -3,11 +3,6 @@ using Eternal.Core.Platform;
 
 namespace Eternal.Core.Steam;
 
-/// <summary>
-/// Detects a running TF2: native Windows, native Linux, or the Windows build
-/// under Proton. hl2 binaries are left out; since the 64-bit update TF2 no
-/// longer uses them, and every other Source game does.
-/// </summary>
 public static class GameProcess
 {
     private static readonly string[] WindowsNames = ["tf_win64", "tf"];

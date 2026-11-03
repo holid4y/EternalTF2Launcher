@@ -7,10 +7,6 @@ public static class Shell
 {
     private static readonly string[] AllowedSchemes = ["http", "https", "steam"];
 
-    /// <summary>
-    /// Only web and steam:// links: URLs from feeds or APIs must never open local files.
-    /// <paramref name="logAs"/> stands in for the URL in the log when it holds a secret.
-    /// </summary>
     public static bool OpenUrl(string? url, string? logAs = null)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !AllowedSchemes.Contains(uri.Scheme, StringComparer.OrdinalIgnoreCase))
@@ -62,7 +58,6 @@ public static class Shell
                 }
                 catch (ArgumentException)
                 {
-                    // malformed PATH entry
                 }
             }
         }

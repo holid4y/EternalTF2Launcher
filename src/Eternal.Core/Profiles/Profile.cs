@@ -10,7 +10,6 @@ public sealed partial class ProfileMods : IJsonOnDeserialized
     public List<string> Addons { get; set; } = [];
     public List<string> Particles { get; set; } = [];
 
-    /// <summary>Where a mod came from ("gamebanana:123:456"), so whoever imports the profile can download the same file.</summary>
     public Dictionary<string, string>? Sources { get; set; }
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^gamebanana(?:-sound)?:\d{1,12}:\d{1,12}$")]
@@ -27,12 +26,6 @@ public sealed partial class ProfileMods : IJsonOnDeserialized
     }
 }
 
-/// <summary>
-/// A shareable configuration. A complete profile is a snapshot: applying it
-/// resets everything it does not list. A preset only changes what it lists.
-/// Null sections (binds, launch options, autoexec text, mods) are left alone.
-/// Machine-specific data such as the TF2 folder is never part of a profile.
-/// </summary>
 public sealed class Profile : IJsonOnDeserialized
 {
     public const string FormatName = "eternal-profile";

@@ -6,11 +6,6 @@ using Eternal.Core.Steam;
 
 namespace Eternal.App.ViewModels;
 
-/// <summary>
-/// Changes to Steam's own files that wait for Steam to close. They are written
-/// as soon as Steam isn't running, checked every few seconds while any wait,
-/// or right away through Restart Steam.
-/// </summary>
 public sealed partial class SteamFilesViewModel : ObservableObject
 {
     private readonly AppServices _services;

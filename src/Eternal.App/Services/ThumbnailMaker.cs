@@ -2,7 +2,6 @@ using SkiaSharp;
 
 namespace Eternal.App.Services;
 
-/// <summary>Turns any picture into a 640×360 card image (centre crop to 16:9).</summary>
 public static class ThumbnailMaker
 {
     private const int Width = 640, Height = 360;
@@ -28,11 +27,6 @@ public static class ThumbnailMaker
         return data.ToArray();
     }
 
-    /// <summary>
-    /// Decodes no larger than needed for <paramref name="minWidth"/> (full size
-    /// when null), and refuses images whose header claims more pixels than any
-    /// real screenshot has.
-    /// </summary>
     public static SKBitmap? Decode(string path, int? minWidth = null)
     {
         using var codec = SKCodec.Create(path);

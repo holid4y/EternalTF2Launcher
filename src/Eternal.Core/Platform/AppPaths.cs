@@ -1,10 +1,5 @@
 namespace Eternal.Core.Platform;
 
-/// <summary>
-/// Where the launcher keeps its files. Config holds small user-editable JSON,
-/// data holds the mod library and logs, cache holds anything re-downloadable.
-/// A "portable.txt" file next to the executable keeps everything in ./userdata.
-/// </summary>
 public sealed class AppPaths
 {
     public const string WindowsFolder = "Eternal TF2 Launcher";
@@ -78,11 +73,6 @@ public sealed class AppPaths
             Directory.CreateDirectory(dir);
     }
 
-    /// <summary>
-    /// True when <paramref name="candidate"/> resolves to a location inside
-    /// <paramref name="root"/>. Used before every write or delete built from
-    /// data that came from outside the launcher.
-    /// </summary>
     public static bool IsInside(string root, string candidate)
     {
         var fullRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root)) + Path.DirectorySeparatorChar;

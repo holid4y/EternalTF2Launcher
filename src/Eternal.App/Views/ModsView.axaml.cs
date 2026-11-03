@@ -7,7 +7,6 @@ using Eternal.App.ViewModels;
 
 namespace Eternal.App.Views;
 
-/// <summary>Drag-to-reorder and card selection for the load order; everything else is bindings.</summary>
 public partial class ModsView : UserControl
 {
     private static readonly DataFormat<string> DragFormat = DataFormat.CreateStringApplicationFormat("eternal-mod-row");

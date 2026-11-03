@@ -179,7 +179,6 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         Updates.Start();
     }
 
-    /// <summary>Asks the app to close the way the Quit menu item does.</summary>
     public event Action? QuitRequested;
 
     public void RequestQuit() => QuitRequested?.Invoke();
@@ -249,10 +248,6 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     [RelayCommand]
     private Task PlayAsync() => LaunchAsync([]);
 
-    /// <summary>
-    /// Joins a server: through the normal Play steps when TF2 isn't running,
-    /// or by handing the address to the running game through Steam.
-    /// </summary>
     public async Task<bool> JoinServerAsync(Eternal.Core.Servers.ServerAddress address, string name, string? password)
     {
         if (password is not null && !Eternal.Core.Servers.ServerJoin.IsSafePassword(password))
@@ -370,7 +365,6 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         if (_launch is null && (running != (PlayState == PlayState.Running)))
             RefreshDock();
 
-        // A preload that crashes the game does it while loading, within seconds.
         if (!running && _launchedAt is { } started && DateTimeOffset.Now - started < TimeSpan.FromSeconds(40) && PlayState != PlayState.Starting && _launch is null)
         {
             _launchedAt = null;
@@ -384,7 +378,6 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         }
     }
 
-    // States what the game was running with; which mod is at fault can't be known from here.
     private static string EarlyExitNotice(TimeSpan after, PreloadRecord record)
     {
         var mods = record.Addons.Concat(record.Particles).ToList();
@@ -432,7 +425,6 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             Dialog = null;
     }
 
-    /// <returns>The sources of the parts to install, or null when the player cancels.</returns>
     public async Task<IReadOnlyList<string>?> ChoosePartsAsync(ImportPlan plan)
     {
         var choice = new ImportChoiceViewModel(plan);

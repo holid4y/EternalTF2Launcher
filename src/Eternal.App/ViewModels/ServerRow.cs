@@ -33,7 +33,6 @@ public sealed partial class ServerRow(ServerAddress address, int queryPort) : Ob
 
     public bool Relayed => RelayFloor > 0;
 
-    /// <summary>The ping to sort and filter by: a relayed server's real ping is at least what the distance allows.</summary>
     public int EffectivePing => Relayed ? RelayFloor : Ping;
 
     public bool Listed { get; set; }

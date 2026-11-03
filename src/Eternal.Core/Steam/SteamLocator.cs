@@ -77,7 +77,6 @@ public static class SteamLocator
         return libraries;
     }
 
-    /// <summary>The tf/ folder of the TF2 install, or null when it can't be found.</summary>
     public static string? FindTf2()
     {
         foreach (var root in FindRoots())
@@ -103,10 +102,6 @@ public static class SteamLocator
         return null;
     }
 
-    /// <summary>
-    /// TF2 screenshots taken with Steam's overlay (F12), newest first. The
-    /// signed-in account's folder comes first; other accounts on this PC follow.
-    /// </summary>
     public static IReadOnlyList<string> Screenshots(string? root = null, string? steamId64 = null)
     {
         root ??= FindRoot();
@@ -135,7 +130,6 @@ public static class SteamLocator
         }
     }
 
-    /// <summary>userdata/&lt;account id&gt; for the signed-in account, which holds its screenshots and server history.</summary>
     public static string? UserDataDir(string? root = null, string? steamId64 = null)
     {
         root ??= FindRoot();
@@ -149,11 +143,6 @@ public static class SteamLocator
         !string.IsNullOrWhiteSpace(path) && File.Exists(Path.Combine(path, "gameinfo.txt"))
         && File.Exists(Path.Combine(path, "steam.inf"));
 
-    /// <summary>
-    /// The account Steam is signed in with right now, falling back to the
-    /// most recently used one. Newer clients no longer write MostRecent, so
-    /// AutoLogin and Timestamp decide.
-    /// </summary>
     public static SteamAccount? ActiveAccount(string? root = null)
     {
         root ??= FindRoot();

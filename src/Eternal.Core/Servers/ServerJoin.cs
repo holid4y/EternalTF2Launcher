@@ -2,10 +2,6 @@ using Eternal.Core.Platform;
 
 namespace Eternal.Core.Servers;
 
-/// <summary>
-/// Joining by address. A password travels as one launch argument or one
-/// steam:// path segment, so it is limited to characters neither can misread.
-/// </summary>
 public static class ServerJoin
 {
     private const string Symbols = "-._~!$()*,=:@";
@@ -26,7 +22,6 @@ public static class ServerJoin
             : ["+password", password, "+connect", address.ToString()];
     }
 
-    /// <summary>Asks Steam to point the running game at the server.</summary>
     public static bool ConnectRunningGame(ServerAddress address, string? password)
     {
         if (password is not null && !IsSafePassword(password))
