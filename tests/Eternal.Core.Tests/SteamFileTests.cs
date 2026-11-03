@@ -144,6 +144,7 @@ public sealed class SteamFileTests : IDisposable
     [Fact]
     public void Trash_keeps_the_file_and_records_where_it_came_from()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows uses the Recycle Bin, not the freedesktop trash.");
         var file = Path.Combine(_root, "shot one.jpg");
         File.WriteAllBytes(file, [1, 2, 3]);
         var trash = Path.Combine(_root, "Trash");
