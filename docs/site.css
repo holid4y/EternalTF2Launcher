@@ -30,6 +30,9 @@
   --section: clamp(72px, 8vw, 128px);
   --radius: 3px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
   --t-press: 140ms;
   --t-hover: 180ms;
   --t-theme: 450ms;
@@ -76,7 +79,7 @@ strong, dt { font-weight: 600; }
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gap); }
 
 /* Screenshots are always shown whole: their own width and height, never cropped or zoomed. */
-.shot { display: block; border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.shot { display: block; border-radius: var(--radius); overflow: hidden; background: var(--surface); cursor: zoom-in; }
 .shot img { width: 100%; height: auto; }
 
 /* Bar: sits on the hero field like the launcher's own header. */
@@ -88,8 +91,15 @@ strong, dt { font-weight: 600; }
 .wordmark img { width: 44px; height: 44px; padding: 4px; background: var(--bg); border-radius: var(--radius); transition: background-color var(--t-theme) ease; }
 .bar nav { display: flex; gap: clamp(16px, 2.2vw, 32px); margin-left: auto; margin-right: clamp(20px, 3vw, 44px); }
 .bar-download { min-height: 44px; padding: 0 20px; }
-.bar nav a { font: 800 var(--s-3)/1 var(--display); text-transform: uppercase; text-decoration: none; padding: 8px 0; }
-@media (hover: hover) and (pointer: fine) { .bar nav a:hover { color: var(--ink); } }
+.bar nav a { position: relative; font: 800 var(--s-3)/1 var(--display); text-transform: uppercase; text-decoration: none; padding: 8px 0; }
+.bar nav a::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 3px; background: currentColor;
+  transform: scaleX(0); transform-origin: right; transition: transform 260ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .bar nav a:hover { color: var(--ink); }
+  .bar nav a:hover::after { transform: scaleX(1); transform-origin: left; }
+}
 
 /* Hero: the launcher on its accent field, with what it is and the download. */
 .hero {
@@ -106,7 +116,7 @@ strong, dt { font-weight: 600; }
 .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
 .facts { font-size: var(--s-5); }
 .hero-shot { grid-column: 5 / span 8; }
-.hero-shot a { display: block; }
+.hero-shot a { display: block; overflow: clip; border-radius: var(--radius); }
 .hero-shot img { border-radius: var(--radius); }
 
 /* Mods: the story holds a screenshot while the steps scroll past. */
@@ -120,8 +130,8 @@ strong, dt { font-weight: 600; }
   grid-column: 1 / span 7; position: sticky; top: calc(50svh - 21vw); display: grid;
   border-radius: var(--radius); overflow: hidden; background: var(--surface);
 }
-.story-stage img { grid-area: 1 / 1; width: 100%; opacity: 0; transition: opacity 420ms ease; }
-.story-stage img.is-on { opacity: 1; }
+.story-stage img { grid-area: 1 / 1; width: 100%; opacity: 0; transform: scale(1.04); transition: opacity 500ms ease, transform 1000ms var(--ease-expo); }
+.story-stage img.is-on { opacity: 1; transform: none; }
 .steps { grid-column: 9 / span 4; }
 .step { min-height: 72svh; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
 .step img { display: none; }
@@ -244,7 +254,7 @@ strong, dt { font-weight: 600; }
 
 /* Footer: the name first, then where to go. */
 .foot {
-  display: grid; gap: 48px; padding: 32px var(--margin);
+  overflow: clip; display: grid; gap: 48px; padding: 32px var(--margin);
   background: var(--ink); color: var(--bg); transition: background-color var(--t-theme) ease, color var(--t-theme) ease;
 }
 /* The wordmark is the one size outside the scale: it is drawn to the width of the page. */
@@ -256,32 +266,93 @@ strong, dt { font-weight: 600; }
 .foot-legal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; font-size: var(--s-5); }
 @media (hover: hover) and (pointer: fine) { .foot-links ul a:hover { text-decoration: underline; } }
 
-/* On a phone one paragraph fills the screen, so text is there to read at once; only wider screens reveal it. */
+/* What loads in Casual, running past under the hero. */
+.marquee { overflow: clip; padding: 18px 0; background: var(--ink); color: var(--bg); transition: background-color var(--t-theme) ease, color var(--t-theme) ease; }
+.marquee-track { display: flex; width: max-content; }
+.marquee-list { display: flex; align-items: center; list-style: none; }
+.marquee-list li {
+  display: flex; align-items: center; gap: clamp(20px, 2.4vw, 36px); padding-right: clamp(20px, 2.4vw, 36px);
+  font: 800 clamp(36px, 5vw, 80px)/1 var(--display); text-transform: uppercase; white-space: nowrap;
+}
+.marquee-list img { width: 0.8em; height: 0.8em; padding: 0.08em; background: var(--bg); border-radius: var(--radius); transition: background-color var(--t-theme) ease; }
+
+/* Headings are split into words by the script, each rising from behind its own baseline. */
+.word { display: inline-block; overflow: clip; padding: 0.1em 0 0.06em; margin: -0.1em 0 -0.06em; vertical-align: top; }
+.word > span { display: inline-block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee-track { animation: marquee 48s linear infinite; }
+  .marquee.is-paused .marquee-track { animation-play-state: paused; }
+  @media (hover: hover) and (pointer: fine) { .marquee:hover .marquee-track { animation-play-state: paused; } }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+
+  .js .hero h1:not(.split) { opacity: 0; }
+  .js .split .word > span { transform: translateY(110%); transition: transform 900ms var(--ease-expo); transition-delay: calc(var(--w, 0) * 60ms); }
+  .js .hero h1 .word > span { transition-delay: calc(var(--w, 0) * 70ms + 80ms); }
+  .js .split.is-in .word > span, .js .hero.is-in h1 .word > span { transform: none; }
+
+  .js .hero-text > * { opacity: 0; transform: translateY(24px); transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out); }
+  .js .hero-text > :nth-child(1) { transition-delay: 320ms; }
+  .js .hero-text > :nth-child(2) { transition-delay: 400ms; }
+  .js .hero-text > :nth-child(3) { transition-delay: 480ms; }
+  .js .hero.is-in .hero-text > * { opacity: 1; transform: none; }
+
+  /* The hero picture opens like a shutter and settles into its frame. */
+  .js .hero-shot { clip-path: inset(0 0 100% 0); transition: clip-path 1100ms var(--ease-expo) 200ms; }
+  .js .hero-shot img { transform: scale(1.08); transition: transform 1600ms var(--ease-soft) 200ms; }
+  .js .hero.is-in .hero-shot { clip-path: inset(0); }
+  .js .hero.is-in .hero-shot img { transform: none; }
+  /* If the script never runs, the first screen still shows after a moment. */
+  .js .hero h1, .js .hero-text > *, .js .hero-shot { animation: shown 1ms 2.5s forwards; }
+  @keyframes shown { to { opacity: 1; transform: none; clip-path: none; } }
+
+  /* Every other screenshot opens the same way when it is reached; one that sits beside its text opens away from it. */
+  .js [data-reveal].shutter { opacity: 1; transform: none; clip-path: inset(0 0 100% 0); transition: clip-path 1000ms var(--ease-expo) calc(var(--i, 0) * 80ms); }
+  .js [data-reveal].shutter[data-from="left"] { clip-path: inset(0 100% 0 0); }
+  .js [data-reveal].shutter[data-from="right"] { clip-path: inset(0 0 0 100%); }
+  .js [data-reveal].shutter .shot img { transform: scale(1.06); transition: transform 1500ms var(--ease-soft) calc(var(--i, 0) * 80ms); }
+  .js [data-reveal].shutter.is-in { clip-path: inset(0); }
+  .js [data-reveal].shutter.is-in .shot img { transform: none; }
+
+  @supports (animation-timeline: scroll()) {
+    @media (min-width: 901px) {
+      .hero-shot a { animation: recede linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
+      @keyframes recede { to { translate: 0 12%; scale: 0.92; } }
+    }
+    .marquee-list { animation: marquee-push linear both; animation-timeline: scroll(root); animation-range: 0 150vh; }
+    @keyframes marquee-push { to { translate: -14vw 0; } }
+    .credits-hat { animation: hat-tip linear both; animation-timeline: view(); }
+    @keyframes hat-tip { from { rotate: -10deg; translate: 0 32px; } to { rotate: 8deg; translate: 0 -32px; } }
+    .foot-name { animation: name-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 100%; }
+    @keyframes name-rise { from { translate: 0 45%; } }
+  }
+}
+
+/* On a phone one paragraph fills the screen, so text is there to read at once; only wider screens bring it in. */
 @media (prefers-reduced-motion: no-preference) and (min-width: 641px) {
   .js [data-reveal] {
     opacity: 0; transform: translateY(24px);
     transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out), background-color var(--t-theme) ease, color var(--t-theme) ease;
     transition-delay: calc(var(--i, 0) * 80ms);
   }
+  .js [data-reveal].split { opacity: 1; transform: none; }
+  .js .points > [data-reveal] { transform: translateX(-28px); }
+  .js .tile[data-reveal] { transform: translateY(40px) scale(0.96); transition-delay: calc(var(--i, 0) * 60ms); }
+  .js .slip[data-reveal] { transform: translateY(48px) rotate(-1.5deg); transform-origin: 0 100%; transition-duration: 700ms, 1000ms; }
+  .js .slip :is(h3, li, .ln, .slip-end) { transition: opacity 500ms ease, transform 700ms var(--ease-out); transition-delay: calc(var(--k, 0) * 45ms + 300ms); }
+  .js .slip:not(.is-in) :is(h3, li, .ln, .slip-end) { opacity: 0; transform: translateY(10px); }
   .js [data-reveal].is-in { opacity: 1; transform: none; }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .js .hero h1, .js .hero-text > * { opacity: 0; transform: translateY(28px); transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out); }
-  .js .hero-text > :nth-child(1) { transition-delay: 80ms; }
-  .js .hero-text > :nth-child(2) { transition-delay: 160ms; }
-  .js .hero-text > :nth-child(3) { transition-delay: 240ms; }
-  .js .hero-shot { opacity: 0; transform: translateY(40px); transition: opacity 900ms var(--ease-out) 200ms, transform 1100ms var(--ease-out) 200ms; }
-  .js .hero.is-in h1, .js .hero.is-in .hero-text > *, .js .hero.is-in .hero-shot { opacity: 1; transform: none; }
-
-  @supports (animation-timeline: view()) {
-    .drift { animation: drift linear both; animation-timeline: view(); animation-range: entry 0% exit 100%; }
-    @keyframes drift { from { translate: 0 24px; } to { translate: 0 -24px; } }
-  }
-}
+/* Picking a theme washes the page over from the tile that was clicked. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+.is-switching, .is-switching * { transition: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .marquee-track { animation: none; width: auto; padding: 0 var(--margin); }
+  .marquee-list { flex-wrap: wrap; row-gap: 8px; }
+  .marquee-list[aria-hidden] { display: none; }
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
