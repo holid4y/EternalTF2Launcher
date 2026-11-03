@@ -6,6 +6,7 @@ using Eternal.Core.Mods;
 using Eternal.Core.Persistence;
 using Eternal.Core.Platform;
 using Eternal.Core.Profiles;
+using Eternal.Core.Servers;
 using Eternal.Core.Settings;
 using Eternal.Core.Steam;
 
@@ -19,10 +20,14 @@ namespace Eternal.App.Services;
 public sealed class AppServices : IAsyncDisposable
 {
     private readonly List<string> _notices = [];
+    private readonly Func<string?> _findSteamUser;
+    private string? _userDir;
+    private DateTime _userDirAt = DateTime.MinValue;
 
-    public AppServices(AppPaths paths)
+    public AppServices(AppPaths paths, Func<string?>? steamUser = null)
     {
         Paths = paths;
+        _findSteamUser = steamUser ?? (() => SteamLocator.UserDataDir());
         // Only one launcher runs at a time, so anything left in staging is from an import that never finished.
         ArchiveIngest.TryDelete(paths.ImportStagingDir);
         Launcher = new LauncherSettingsStore(paths);
@@ -48,6 +53,11 @@ public sealed class AppServices : IAsyncDisposable
         Inventory = new InventoryService(Path.Combine(paths.CacheDir, "inventory"));
         Prices = new PriceService(Path.Combine(paths.CacheDir, "pricing"));
         Images = new ImageCache(paths.ImageCacheDir);
+        Pictures = new SourcePictures(Mods, Images, Eternal.Core.GameBanana.GameBananaClient.Shared);
+        Mods.Changed += Pictures.Refresh;
+
+        SteamWrites = new SteamWriteQueue(paths.SteamWritesFile, paths.SteamBackupsDir);
+        Servers = new ServerBook(paths.ServersFile, SteamWrites, () => SteamUserDir);
 
         foreach (var (store, name) in new (LoadOutcome Outcome, string Name)[] { (Game.LoadOutcome, "TF2 settings"), (Launcher.LoadOutcome, "Launcher settings") })
         {
@@ -72,6 +82,23 @@ public sealed class AppServices : IAsyncDisposable
     public InventoryService Inventory { get; }
     public PriceService Prices { get; }
     public ImageCache Images { get; }
+    public SourcePictures Pictures { get; }
+    public SteamWriteQueue SteamWrites { get; }
+    public ServerBook Servers { get; }
+
+    /// <summary>userdata/&lt;id&gt; of the account signed in to Steam, looked up at most every half minute.</summary>
+    public string? SteamUserDir
+    {
+        get
+        {
+            if (DateTime.UtcNow - _userDirAt > TimeSpan.FromSeconds(30))
+            {
+                _userDir = _findSteamUser();
+                _userDirAt = DateTime.UtcNow;
+            }
+            return _userDir;
+        }
+    }
 
     public IReadOnlyList<string> Notices => _notices;
     public string? TfPath => Launcher.Settings.TfPath;

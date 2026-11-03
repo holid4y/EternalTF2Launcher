@@ -12,7 +12,7 @@ public interface IDialogs
     Task<bool> ConfirmAsync(string title, string message, string confirm = "OK", string cancel = "Cancel", bool danger = false);
     Task AlertAsync(string title, string message);
     /// <summary>The trimmed answer, possibly empty, or null when cancelled.</summary>
-    Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save");
+    Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save", bool secret = false);
 }
 
 public sealed partial class DialogViewModel : ObservableObject
@@ -25,6 +25,8 @@ public sealed partial class DialogViewModel : ObservableObject
     public string? CancelText { get; init; }
     public bool Danger { get; init; }
     public bool HasInput { get; init; }
+    public bool Secret { get; init; }
+    public char InputMask => Secret ? '\u2022' : '\0';
 
     [ObservableProperty] private string _input = "";
 
@@ -82,5 +84,33 @@ public static class Pickers
     {
         if (Top?.Clipboard is { } clipboard)
             await clipboard.SetTextAsync(text);
+    }
+
+    /// <summary>Puts the picture on the clipboard, and the file too for apps that paste files.</summary>
+    public static async Task<bool> CopyImageAsync(string path)
+    {
+        if (Top is not { Clipboard: { } clipboard } top)
+            return false;
+        try
+        {
+            var bitmap = await Task.Run(() =>
+            {
+                using var stream = File.OpenRead(path);
+                return new Avalonia.Media.Imaging.Bitmap(stream);
+            });
+            var item = new Avalonia.Input.DataTransferItem();
+            item.SetBitmap(bitmap);
+            if (await top.StorageProvider.TryGetFileFromPathAsync(path) is { } file)
+                item.SetFile(file);
+            var transfer = new Avalonia.Input.DataTransfer();
+            transfer.Add(item);
+            await clipboard.SetDataAsync(transfer);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            Eternal.Core.Logging.Log.Warn($"Couldn't copy {Path.GetFileName(path)}: {ex.Message}");
+            return false;
+        }
     }
 }

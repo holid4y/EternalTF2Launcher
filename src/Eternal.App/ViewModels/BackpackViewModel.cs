@@ -26,6 +26,17 @@ public sealed partial class ItemViewModel(InventoryItem item) : ObservableObject
     public string Quality => Item.Quality;
     public bool Tradable => Item.Tradable;
     public string? Amount => Item.Amount > 1 ? $"×{Item.Amount}" : null;
+    public bool Renamed => Item.CustomName is not null;
+    public string? OriginalName => Item.OriginalName is { } original ? $"({original})" : null;
+    public string? CustomDescription => Item.CustomDescription is { } text ? $"\u201C{text}\u201D" : null;
+    public bool TakesDecal => Item.TakesDecal;
+
+    [ObservableProperty] private string? _decalUrl;
+    [ObservableProperty] private string? _decalNote;
+
+    public bool HasDecal => DecalUrl is not null;
+
+    partial void OnDecalUrlChanged(string? value) => OnPropertyChanged(nameof(HasDecal));
 
     public IReadOnlyList<DetailLine> Lines => Item.Lines
         .Select(l => new DetailLine(l.Text, l.Color))
@@ -149,6 +160,7 @@ public sealed partial class BackpackViewModel : PageViewModel
             ApplyFilter();
             OnPropertyChanged(nameof(HasItems));
             _ = PriceAsync();
+            _ = LoadDecalsAsync(snapshot.SteamId, _all.Where(i => i.TakesDecal).ToList());
         }
         catch (InventoryRateLimitedException)
         {
@@ -171,6 +183,40 @@ public sealed partial class BackpackViewModel : PageViewModel
         finally
         {
             Loading = false;
+        }
+    }
+
+    /// <summary>Decal pictures need the player's Steam Web API key; without it the panel says where to add one.</summary>
+    private async Task LoadDecalsAsync(string steamId, IReadOnlyList<ItemViewModel> items)
+    {
+        if (items.Count == 0)
+            return;
+        if (_services.Launcher.Settings.SteamApiKey is not { } key)
+        {
+            foreach (var item in items)
+                item.DecalNote = "To see the decal on it, add a Steam Web API key in Launcher settings.";
+            return;
+        }
+        try
+        {
+            var lookup = new DecalLookup(Http.NoRedirects, key);
+            var decals = await lookup.DecalsAsync(steamId);
+            foreach (var item in items)
+            {
+                if (!decals.TryGetValue(item.Item.AssetId, out var ugc))
+                {
+                    item.DecalNote = "No decal on this one yet.";
+                    continue;
+                }
+                item.DecalUrl = await lookup.UrlAsync(ugc);
+                item.DecalNote = item.DecalUrl is null ? "It has a decal, but Steam didn't share the picture." : null;
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidDataException)
+        {
+            Log.Info($"Decals unavailable: {ex.Message}");
+            foreach (var item in items)
+                item.DecalNote = "Steam's item API didn't answer, so decals can't be shown right now.";
         }
     }
 
@@ -293,6 +339,7 @@ public sealed partial class BackpackViewModel : PageViewModel
         var query = Search.Trim();
         IEnumerable<ItemViewModel> items = _all.Where(i =>
             (query.Length == 0 || i.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || i.Type.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || (i.Item.OriginalName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false)
                 || (i.Item.Effect?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
             && (Quality == "All qualities" || i.Quality == Quality)
             && (Class == "All classes" || i.Item.Classes.Contains(Class))

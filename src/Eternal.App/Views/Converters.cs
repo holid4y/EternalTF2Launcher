@@ -47,16 +47,12 @@ public static class Converters
 
     private static Color Scale(Color c, double f) => Color.FromRgb((byte)(c.R * f), (byte)(c.G * f), (byte)(c.B * f));
 
+    public static readonly IValueConverter Bold =
+        new FuncValueConverter<bool, FontWeight>(bold => bold ? FontWeight.Bold : FontWeight.Normal);
+
     public static readonly IValueConverter Dimmed =
         new FuncValueConverter<bool, double>(dim => dim ? 0.55 : 1);
 
     public static readonly IValueConverter TabTitle =
-        new FuncValueConverter<string, string>(id => id switch
-        {
-            "home" => "Home",
-            "mods" => "Mods",
-            "backpack" => "Backpack",
-            "config" => "Config",
-            _ => id ?? "",
-        });
+        new FuncValueConverter<string, string>(id => id is null ? "" : MainViewModel.TitleOf(id));
 }

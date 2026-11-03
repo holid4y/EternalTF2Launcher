@@ -20,6 +20,7 @@ public sealed record ModItem(
     IReadOnlyList<ModOverlap> Loses,
     IReadOnlyList<CompatIssue> Issues,
     string? Thumbnail,
+    bool CustomThumbnail,
     string? Source);
 
 public sealed record ImportProgress(string Message, double Fraction);
@@ -233,22 +234,55 @@ public sealed class ModLibrary
     /// Applies a profile's mod set: listed mods on in the listed order, everything
     /// else off. Returns the listed mods that are not in the library.
     /// </summary>
-    public IReadOnlyList<string> ApplySelection(IReadOnlyList<string> addons, IReadOnlyList<string> particles)
+    /// <summary>
+    /// Switches on exactly the profile's mods, in its order, and the rest off.
+    /// A GameBanana mod is matched by the file it came from first, since the
+    /// same download can sit under another name here. Returns what's missing.
+    /// </summary>
+    public IReadOnlyList<string> ApplySelection(Profiles.ProfileMods mods)
     {
         List<string> missing;
         lock (_gate)
         {
-            var wanted = addons.Select(a => (Name: a, Kind: ModKind.Addon)).Concat(particles.Select(p => (Name: p, Kind: ModKind.Particle))).ToList();
-            foreach (var entry in State.Order)
-                entry.Enabled = wanted.Contains((entry.Name, entry.Kind));
-            var found = wanted.Select(w => (w.Name, Entry: State.Order.FirstOrDefault(e => e.Name == w.Name && e.Kind == w.Kind))).ToList();
+            var wanted = mods.Addons.Select(a => (Name: a, Kind: ModKind.Addon)).Concat(mods.Particles.Select(p => (Name: p, Kind: ModKind.Particle))).ToList();
+            var found = wanted.Select(w => (w.Name, Entry: Resolve(w.Name, w.Kind, mods.Sources?.GetValueOrDefault(w.Name)))).ToList();
             missing = found.Where(f => f.Entry is null).Select(f => f.Name).ToList();
-            var ordered = found.Select(f => f.Entry).OfType<ModEntry>().ToList();
+            var ordered = found.Select(f => f.Entry).OfType<ModEntry>().Distinct().ToList();
+            foreach (var entry in State.Order)
+                entry.Enabled = ordered.Contains(entry);
             State.Order.RemoveAll(ordered.Contains);
             State.Order.InsertRange(0, ordered);
         }
         Commit();
         return missing;
+    }
+
+    private ModEntry? Resolve(string name, ModKind kind, string? source)
+    {
+        var ofKind = State.Order.Where(e => e.Kind == kind).ToList();
+        if (source is not null)
+        {
+            var submission = source[..(source.LastIndexOf(':') + 1)];
+            var bySource = ofKind.FirstOrDefault(e => e.Source == source)
+                ?? ofKind.FirstOrDefault(e => e.Source?.StartsWith(submission, StringComparison.Ordinal) == true);
+            if (bySource is not null)
+                return bySource;
+        }
+        return ofKind.FirstOrDefault(e => e.Name == name);
+    }
+
+    public bool Has(string name, ModKind kind, string? source)
+    {
+        lock (_gate)
+            return Resolve(name, kind, source) is not null;
+    }
+
+    /// <summary>The GameBanana file each enabled mod came from, for sharing.</summary>
+    public Dictionary<string, string> EnabledSources()
+    {
+        lock (_gate)
+            return State.Order.Where(e => e.Enabled && Profiles.ProfileMods.IsShareableSource(e.Source))
+                .GroupBy(e => e.Name).ToDictionary(g => g.Key, g => g.First().Source!, StringComparer.Ordinal);
     }
 
     public void SetOptions(ModBuildOptions options)
@@ -288,7 +322,6 @@ public sealed class ModLibrary
 
     public void ThumbnailChanged() => Rebuild();
 
-    /// <summary>Remembers where mods came from (e.g. a GameBanana file) for update checks.</summary>
     /// <summary>
     /// The library name for an install from <paramref name="submission"/> (a source
     /// prefix such as "gamebanana:123:"): that submission's earlier install keeps its
@@ -310,6 +343,7 @@ public sealed class ModLibrary
         return free;
     }
 
+    /// <summary>Remembers where mods came from, such as a GameBanana file.</summary>
     public void SetSource(IEnumerable<string> names, string source)
     {
         var set = names.ToHashSet(StringComparer.Ordinal);
@@ -354,6 +388,7 @@ public sealed class ModLibrary
                 var mod = _library.FirstOrDefault(l => l.Name == entry.Name && l.Kind == entry.Kind);
                 if (mod is null)
                     continue;
+                var custom = _thumbnails.Find(mod.Name);
                 items.Add(new ModItem(
                     mod.Name, mod.DisplayName, mod.Kind, mod.Type, mod.Description, mod.FileCount, entry.Enabled,
                     entry.Enabled ? priority++ : -1,
@@ -361,7 +396,8 @@ public sealed class ModLibrary
                     entry.Enabled ? _overlaps.Where(o => o.Winner == mod.Name).ToArray() : [],
                     entry.Enabled ? _overlaps.Where(o => o.Loser == mod.Name).ToArray() : [],
                     _issues.Where(i => i.Addon == mod.Name).ToArray(),
-                    _thumbnails.Find(mod.Name),
+                    custom ?? _thumbnails.FindForSource(entry.Source),
+                    custom is not null,
                     entry.Source));
             }
             Items = items;

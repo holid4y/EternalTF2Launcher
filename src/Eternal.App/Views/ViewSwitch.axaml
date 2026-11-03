@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             x:Class="Eternal.App.Views.ViewSwitch"
+             x:DataType="vm:ViewOptions">
+
+  <UserControl.Styles>
+    <Style Selector="Button.view">
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
+    </Style>
+    <Style Selector="Button.view.on">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    </Style>
+    <Style Selector="Slider.size">
+      <Setter Property="MinWidth" Value="0" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Orientation="Horizontal" Spacing="10" Height="32">
+    <Slider Classes="size" Width="110" Height="32" Margin="0,-4" VerticalAlignment="Center" IsVisible="{Binding IsGrid}"
+            Minimum="{Binding MinWidth}" Maximum="{Binding MaxWidth}" Value="{Binding CardWidth}"
+            SmallChange="10" LargeChange="40" ToolTip.Tip="Card size" AutomationProperties.Name="Card size" />
+    <StackPanel Orientation="Horizontal" Spacing="2">
+      <Button Classes="view" Classes.on="{Binding IsList}" Command="{Binding ShowListCommand}"
+              ToolTip.Tip="List" AutomationProperties.Name="Show as a list">
+        <PathIcon Data="{StaticResource IconList}" Width="15" Height="15" />
+      </Button>
+      <Button Classes="view" Classes.on="{Binding IsGrid}" Command="{Binding ShowGridCommand}"
+              ToolTip.Tip="Grid" AutomationProperties.Name="Show as a grid">
+        <PathIcon Data="{StaticResource IconGrid}" Width="15" Height="15" />
+      </Button>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

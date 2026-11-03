@@ -16,6 +16,24 @@ public static class Http
     /// <summary>Hands redirects back to the caller, to check where each one leads before following it.</summary>
     public static HttpClient NoRedirects { get; } = Create(DecompressionMethods.All, redirects: false);
 
+    /// <summary>Reads a response body, refusing anything larger than <paramref name="maxBytes"/>.</summary>
+    public static async Task<byte[]> ReadCappedAsync(HttpContent content, int maxBytes, CancellationToken cancellation)
+    {
+        if (content.Headers.ContentLength > maxBytes)
+            throw new InvalidDataException("The response is larger than expected.");
+        await using var input = await content.ReadAsStreamAsync(cancellation).ConfigureAwait(false);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[16384];
+        int n;
+        while ((n = await input.ReadAsync(chunk, cancellation).ConfigureAwait(false)) > 0)
+        {
+            if (buffer.Length + n > maxBytes)
+                throw new InvalidDataException("The response is larger than expected.");
+            buffer.Write(chunk, 0, n);
+        }
+        return buffer.ToArray();
+    }
+
     private static HttpClient Create(DecompressionMethods decompression, bool redirects = true)
     {
         var handler = new SocketsHttpHandler

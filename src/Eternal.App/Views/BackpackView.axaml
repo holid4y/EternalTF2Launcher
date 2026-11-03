@@ -92,10 +92,13 @@
                       Command="{Binding $parent[UserControl].((vm:BackpackViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}"
                       ToolTip.Tip="{Binding Name}">
                 <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="3" ClipToBounds="True">
-                  <Grid RowDefinitions="*,Auto,Auto,3">
+                  <Grid RowDefinitions="*,Auto,Auto,Auto,3">
                     <Image Margin="10,10,10,4" Stretch="Uniform" views:RemoteImage.DecodeWidth="160" views:RemoteImage.Url="{Binding ImageUrl}" />
                     <TextBlock Grid.Row="0" Classes="meta" Text="{Binding Amount}" Margin="8,6" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                    <TextBlock Grid.Row="1" FontSize="12" Margin="8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}">
+                    <TextBlock Grid.Row="1" Classes="meta" FontSize="10" Margin="8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{Binding OriginalName}" IsVisible="{Binding Renamed}" Opacity="0.8" />
+                    <TextBlock Grid.Row="2" FontSize="12" Margin="8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}"
+                               FontWeight="{Binding Renamed, Converter={x:Static views:Converters.Bold}}">
                       <TextBlock.Foreground>
                         <MultiBinding Converter="{x:Static views:Converters.ItemColor}">
                           <Binding Path="NameColor" />
@@ -103,9 +106,9 @@
                         </MultiBinding>
                       </TextBlock.Foreground>
                     </TextBlock>
-                    <TextBlock Grid.Row="2" Classes="figure" FontSize="12" Margin="8,1,8,6" HorizontalAlignment="Center"
+                    <TextBlock Grid.Row="3" Classes="figure" FontSize="12" Margin="8,1,8,6" HorizontalAlignment="Center"
                                Text="{Binding Price}" Foreground="{DynamicResource MutedBrush}" />
-                    <Border Grid.Row="3" Background="{Binding QualityBrush}" />
+                    <Border Grid.Row="4" Background="{Binding QualityBrush}" />
                   </Grid>
                 </Border>
               </Button>
@@ -131,9 +134,23 @@
           <Border Classes="card" IsVisible="{Binding HasSelection}">
             <StackPanel Spacing="12" DataContext="{Binding Selected}" x:DataType="vm:ItemViewModel">
               <Border Height="180" Background="{DynamicResource RaisedBrush}" CornerRadius="2">
-                <Image Margin="16" Stretch="Uniform" views:RemoteImage.DecodeWidth="360" views:RemoteImage.Url="{Binding ImageUrl}" />
+                <Panel>
+                  <Image Margin="16" Stretch="Uniform" views:RemoteImage.DecodeWidth="360" views:RemoteImage.Url="{Binding ImageUrl}" />
+                  <Border Width="64" Height="64" Margin="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="3" ClipToBounds="True"
+                          Background="{DynamicResource GroundBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                          IsVisible="{Binding HasDecal}" AutomationProperties.Name="Decal">
+                    <ToolTip.Tip>
+                      <StackPanel Spacing="6">
+                        <Image Width="256" Height="256" Stretch="Uniform" views:RemoteImage.DecodeWidth="512" views:RemoteImage.Url="{Binding DecalUrl}" />
+                        <TextBlock Classes="meta" Text="The decal on this item" HorizontalAlignment="Center" />
+                      </StackPanel>
+                    </ToolTip.Tip>
+                    <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="128" views:RemoteImage.Url="{Binding DecalUrl}" />
+                  </Border>
+                </Panel>
               </Border>
               <StackPanel Spacing="2">
+                <TextBlock Classes="meta" Text="{Binding OriginalName}" IsVisible="{Binding Renamed}" />
                 <TextBlock Classes="heading" FontSize="22" Text="{Binding Name}" TextWrapping="Wrap">
                   <TextBlock.Foreground>
                     <MultiBinding Converter="{x:Static views:Converters.ItemColor}">
@@ -145,6 +162,16 @@
                 <TextBlock Classes="muted" Text="{Binding Type}" IsVisible="{Binding Type, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <TextBlock Classes="meta" Text="{Binding Flags}" TextWrapping="Wrap" IsVisible="{Binding Flags, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
+
+              <Border Classes="raised" Padding="12,10" IsVisible="{Binding CustomDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <StackPanel Spacing="3">
+                  <TextBlock Classes="meta" Text="Its own description" />
+                  <TextBlock Text="{Binding CustomDescription}" TextWrapping="Wrap" FontStyle="Italic" />
+                </StackPanel>
+              </Border>
+
+              <TextBlock Classes="meta" Text="{Binding DecalNote}" TextWrapping="Wrap"
+                         IsVisible="{Binding DecalNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
               <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
                 <TextBlock Classes="meta" Text="Sellers ask" VerticalAlignment="Center" />

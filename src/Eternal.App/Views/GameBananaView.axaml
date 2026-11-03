@@ -63,7 +63,7 @@
       </DockPanel>
 
       <DockPanel Grid.Column="1">
-        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,10">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,10">
           <TextBox Watermark="Search GameBanana by name" Text="{Binding Search}" MaxLength="80"
                    AutomationProperties.Name="Search GameBanana">
             <TextBox.InnerLeftContent>
@@ -72,6 +72,7 @@
           </TextBox>
           <ComboBox Grid.Column="1" ItemsSource="{Binding Sorts}" SelectedItem="{Binding Sort}" MinWidth="170"
                     AutomationProperties.Name="Sort by" />
+          <views:ViewSwitch Grid.Column="2" DataContext="{Binding View}" VerticalAlignment="Center" Margin="6,0,0,0" />
         </Grid>
 
         <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,10" MinHeight="32">
@@ -104,7 +105,50 @@
 
         <Panel>
           <ScrollViewer IsVisible="{Binding HasResults}" Opacity="{Binding Loading, Converter={x:Static views:Converters.Dimmed}}">
-            <ItemsRepeater ItemsSource="{Binding Items}" Margin="0,0,12,12">
+            <Panel>
+            <ItemsRepeater ItemsSource="{Binding Items}" Margin="0,0,12,12" IsVisible="{Binding View.IsList}">
+              <ItemsRepeater.Layout>
+                <StackLayout Spacing="4" />
+              </ItemsRepeater.Layout>
+              <ItemsRepeater.ItemTemplate>
+                <DataTemplate DataType="vm:SubmissionCard">
+                  <Button Classes="card" Height="72" AutomationProperties.Name="{Binding Name}"
+                          Command="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).OpenCardCommand}" CommandParameter="{Binding}">
+                    <Grid ColumnDefinitions="112,*,Auto,Auto,Auto" ColumnSpacing="16">
+                      <Panel Background="{DynamicResource RaisedBrush}" ClipToBounds="True">
+                        <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="240" views:RemoteImage.Url="{Binding Thumbnail}"
+                               IsVisible="{Binding HasThumbnail}" />
+                        <PathIcon Data="{StaticResource IconSound}" Width="22" Height="22" Foreground="{DynamicResource FaintBrush}"
+                                  IsVisible="{Binding !HasThumbnail}" />
+                      </Panel>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <Border Classes="badge installed" IsVisible="{Binding Installed}"><TextBlock Text="Installed" /></Border>
+                          <Border Classes="badge" IsVisible="{Binding CasualReady}" ToolTip.Tip="Its author says it works in Casual">
+                            <TextBlock Text="Casual" />
+                          </Border>
+                          <Border Classes="badge" IsVisible="{Binding Obsolete}"><TextBlock Text="Obsolete" /></Border>
+                          <TextBlock Classes="title" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                        </StackPanel>
+                        <TextBlock Classes="meta" Text="{Binding Author}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" ToolTip.Tip="Likes" MinWidth="52">
+                        <PathIcon Data="{StaticResource IconHeart}" Width="11" Height="11" Foreground="{DynamicResource FaintBrush}" />
+                        <TextBlock Classes="meta figure" Text="{Binding Likes}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" ToolTip.Tip="Views" MinWidth="60">
+                        <PathIcon Data="{StaticResource IconEye}" Width="12" Height="12" Foreground="{DynamicResource FaintBrush}" />
+                        <TextBlock Classes="meta figure" Text="{Binding Views}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="4" Classes="meta" Text="{Binding Updated}" VerticalAlignment="Center" MinWidth="76"
+                                 TextAlignment="Right" Margin="0,0,16,0" ToolTip.Tip="Last updated" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+            <ItemsRepeater ItemsSource="{Binding Items}" Margin="0,0,12,12" IsVisible="{Binding View.IsGrid}"
+                           views:CardSizing.Options="{Binding View}">
               <ItemsRepeater.Layout>
                 <UniformGridLayout MinItemWidth="216" MinItemHeight="254" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
               </ItemsRepeater.Layout>
@@ -112,7 +156,7 @@
                 <DataTemplate DataType="vm:SubmissionCard">
                   <Button Classes="card" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
                           Command="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).OpenCardCommand}" CommandParameter="{Binding}">
-                    <Grid RowDefinitions="140,*">
+                    <Grid RowDefinitions="*,114">
                       <Panel Background="{DynamicResource RaisedBrush}" ClipToBounds="True">
                         <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="440" views:RemoteImage.Url="{Binding Thumbnail}"
                                IsVisible="{Binding HasThumbnail}" />
@@ -126,7 +170,7 @@
                           <Border Classes="badge" IsVisible="{Binding Obsolete}"><TextBlock Text="Obsolete" /></Border>
                         </StackPanel>
                       </Panel>
-                      <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="12,10,12,10">
+                      <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="12,10,12,10" VerticalAlignment="Top">
                         <StackPanel Spacing="2">
                           <TextBlock Classes="title" Text="{Binding Name}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
                                      LineHeight="19" Height="38" />
@@ -149,6 +193,7 @@
                 </DataTemplate>
               </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
+            </Panel>
           </ScrollViewer>
 
           <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">

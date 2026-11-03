@@ -7,15 +7,18 @@ public static class Shell
 {
     private static readonly string[] AllowedSchemes = ["http", "https", "steam"];
 
-    /// <summary>Only web and steam:// links: URLs from feeds or APIs must never open local files.</summary>
-    public static bool OpenUrl(string? url)
+    /// <summary>
+    /// Only web and steam:// links: URLs from feeds or APIs must never open local files.
+    /// <paramref name="logAs"/> stands in for the URL in the log when it holds a secret.
+    /// </summary>
+    public static bool OpenUrl(string? url, string? logAs = null)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !AllowedSchemes.Contains(uri.Scheme, StringComparer.OrdinalIgnoreCase))
         {
-            Log.Warn($"Refused to open link: {url}");
+            Log.Warn($"Refused to open link: {logAs ?? url}");
             return false;
         }
-        return Start(uri.AbsoluteUri);
+        return Start(uri.AbsoluteUri, logAs);
     }
 
     public static bool OpenFolder(string? path)
@@ -25,7 +28,7 @@ public static class Shell
         return Start(Path.GetFullPath(path));
     }
 
-    private static bool Start(string target)
+    private static bool Start(string target, string? logAs = null)
     {
         try
         {
@@ -37,7 +40,7 @@ public static class Shell
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         {
-            Log.Warn($"Couldn't open {target}", ex);
+            Log.Warn($"Couldn't open {logAs ?? target}", ex);
             return false;
         }
     }

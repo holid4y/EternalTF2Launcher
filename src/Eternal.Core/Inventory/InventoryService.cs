@@ -121,7 +121,7 @@ public sealed class InventoryService(string cacheDir)
         var file = JsonFile.Load(CachePath(steamId), InventoryJson.Default.InventoryCacheFile, () => new InventoryCacheFile(), out var outcome);
         if (outcome.State is not (Persistence.LoadState.Loaded or Persistence.LoadState.RestoredFromBackup))
             return null;
-        return file.SteamId == steamId && file.AppId == AppId && file.ContextId == ContextId ? file : null;
+        return file.Format == InventoryCacheFile.CurrentFormat && file.SteamId == steamId && file.AppId == AppId && file.ContextId == ContextId ? file : null;
     }
 
     private void WriteCache(InventoryCacheFile file)
@@ -140,6 +140,10 @@ public sealed class InventoryService(string cacheDir)
 
 public sealed class InventoryCacheFile : IJsonOnDeserialized
 {
+    /// <summary>Raised whenever what an item records changes, so an older cache is fetched again.</summary>
+    public const int CurrentFormat = 2;
+
+    public int Format { get; set; } = CurrentFormat;
     public string SteamId { get; set; } = "";
     public int AppId { get; set; }
     public int ContextId { get; set; }

@@ -18,13 +18,13 @@ public static class GameLauncher
         var applaunch = new List<string> { "-applaunch", SteamLocator.Tf2AppId.ToString(CultureInfo.InvariantCulture) };
         applaunch.AddRange(arguments);
 
-        var command = SteamCommand(steamRoot);
+        var command = SteamProcess.Command(steamRoot);
         if (command is not null)
         {
             var psi = new ProcessStartInfo(command.Value.FileName) { UseShellExecute = false };
             foreach (var arg in command.Value.Prefix.Concat(applaunch))
                 psi.ArgumentList.Add(arg);
-            Log.Info($"Launching TF2: {psi.FileName} {string.Join(' ', psi.ArgumentList)}");
+            Log.Info($"Launching TF2: {psi.FileName} {string.Join(' ', Redacted(psi.ArgumentList))}");
             Process.Start(psi)?.Dispose();
             return;
         }
@@ -32,23 +32,19 @@ public static class GameLauncher
         var url = $"steam://rungameid/{SteamLocator.Tf2AppId}";
         if (arguments.Count > 0)
             url += "//" + Uri.EscapeDataString(LaunchOptions.Join(arguments));
-        Log.Info($"Launching TF2 via {url}");
+        Log.Info($"Launching TF2 via steam://rungameid/{SteamLocator.Tf2AppId} {string.Join(' ', Redacted(arguments))}");
         if (!Shell.OpenUrl(url))
             throw new InvalidOperationException("Steam could not be started. Make sure Steam is installed.");
     }
 
-    private static (string FileName, string[] Prefix)? SteamCommand(string? steamRoot)
+    /// <summary>Server passwords never reach the log.</summary>
+    internal static IEnumerable<string> Redacted(IEnumerable<string> arguments)
     {
-        if (OperatingSystem.IsWindows())
+        var hide = false;
+        foreach (var arg in arguments)
         {
-            var exe = steamRoot is null ? null : Path.Combine(steamRoot, "steam.exe");
-            return exe is not null && File.Exists(exe) ? (exe, []) : null;
+            yield return hide ? "***" : arg;
+            hide = arg.Equals("+password", StringComparison.OrdinalIgnoreCase);
         }
-
-        var flatpakRoot = Path.Combine(".var", "app", "com.valvesoftware.Steam");
-        if (steamRoot is not null && steamRoot.Contains(flatpakRoot, StringComparison.Ordinal) && Shell.FindOnPath("flatpak") is { } flatpak)
-            return (flatpak, ["run", "com.valvesoftware.Steam"]);
-
-        return Shell.FindOnPath("steam") is { } steam ? (steam, []) : null;
     }
 }

@@ -98,29 +98,44 @@ public sealed partial class ProfileStore
             File.Delete(path);
     }
 
-    public void Export(Profile profile, string destination)
+    /// <summary>Reads a shared profile file and keeps it as a new profile.</summary>
+    public ProfileImport Import(string path)
     {
-        var copy = Parse(JsonSerializer.Serialize(profile, ProfileJson.Default.Profile));
-        AtomicFile.WriteAllBytes(destination, JsonSerializer.SerializeToUtf8Bytes(copy, ProfileJson.Default.Profile), keepBackup: false);
+        var import = Read(path);
+        Save(import.Profile);
+        return import;
     }
 
-    /// <summary>Imports a shared profile under a fresh id. The source file's id is never trusted.</summary>
-    public ProfileImport Import(string path)
+    /// <summary>Reads a shared profile file (2.x, 1.x) without saving it.</summary>
+    public static ProfileImport Read(string path)
     {
         var info = new FileInfo(path);
         if (info.Length > MaxImportBytes)
             throw new InvalidDataException("That file is too large to be a profile.");
+        return FromText(File.ReadAllText(path), Path.GetFileNameWithoutExtension(path));
+    }
 
-        var profile = Parse(File.ReadAllText(path));
+    /// <summary>
+    /// A profile someone shared, checked and cleaned: unknown settings dropped,
+    /// values coerced, binds filtered, a fresh id. The sender's id is never trusted.
+    /// </summary>
+    public static ProfileImport FromText(string json, string fallbackName)
+    {
+        if (json.Length > MaxImportBytes)
+            throw new InvalidDataException("That's too large to be a profile.");
+        var profile = Parse(json);
         var unknown = profile.Values.Keys.Count(k => SettingsCatalog.Find(k) is null);
         profile.Values = Sanitize(profile.Values);
         profile.Id = Profile.NewId();
         profile.BuiltIn = false;
-        if (string.IsNullOrWhiteSpace(profile.Name))
-            profile.Name = Path.GetFileNameWithoutExtension(path);
-        Save(profile);
+        profile.Name = CleanName(string.IsNullOrWhiteSpace(profile.Name) ? fallbackName : profile.Name);
+        profile.Description = profile.Description is { Length: > 500 } d ? d[..500] : profile.Description;
+        if (profile.ExtraLaunchArgs is { Length: > 1024 })
+            profile.ExtraLaunchArgs = null;
         return new ProfileImport(profile, unknown, !string.IsNullOrWhiteSpace(profile.UserAutoexec));
     }
+
+    public static string ToJson(Profile profile) => JsonSerializer.Serialize(profile, ProfileJson.Default.Profile);
 
     public static Profile Capture(GameSettings settings, string name, string? description, string? userAutoexec, ProfileMods? mods) => new()
     {

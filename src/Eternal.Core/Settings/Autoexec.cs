@@ -100,6 +100,13 @@ public static partial class ManagedBlock
             lines.Add("// Binds");
             lines.AddRange(binds.Select(b => $"bind \"{b.Key.ToLowerInvariant()}\" \"{b.Command}\""));
         }
+
+        if (settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId)))
+        {
+            lines.Add("");
+            lines.Add("// See-through weapons");
+            lines.AddRange(TransparentViewmodels.Cvars);
+        }
         return lines;
     }
 }

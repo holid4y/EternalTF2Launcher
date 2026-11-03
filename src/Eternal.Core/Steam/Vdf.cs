@@ -25,11 +25,32 @@ public sealed class VdfNode
         return node;
     }
 
-    internal void Set(string key, object value)
+    public void Set(string key, object value)
     {
-        if (!_children.ContainsKey(key))
+        if (value is not (string or VdfNode))
+            throw new ArgumentException("A VDF value is a string or a section.", nameof(value));
+        if (!_children.TryGetValue(key, out _))
             _order.Add(key);
+        else
+            key = _order.First(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
         _children[key] = value;
+    }
+
+    public VdfNode Ensure(string key)
+    {
+        if (Section(key) is { } existing)
+            return existing;
+        var created = new VdfNode();
+        Set(key, created);
+        return created;
+    }
+
+    public bool Remove(string key)
+    {
+        if (!_children.Remove(key))
+            return false;
+        _order.RemoveAll(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+        return true;
     }
 }
 
@@ -69,6 +90,36 @@ public static class Vdf
         }
         return root;
     }
+
+    /// <summary>Writes the tree back the way Steam formats its own files: tabs, quoted keys and values.</summary>
+    public static string Write(VdfNode root)
+    {
+        var sb = new StringBuilder();
+        Write(sb, root, 0);
+        return sb.ToString();
+    }
+
+    private static void Write(StringBuilder sb, VdfNode node, int depth)
+    {
+        foreach (var (key, value) in node.Children)
+        {
+            sb.Append('\t', depth).Append('"').Append(Escape(key)).Append('"');
+            if (value is VdfNode child)
+            {
+                sb.Append('\n').Append('\t', depth).Append("{\n");
+                Write(sb, child, depth + 1);
+                sb.Append('\t', depth).Append("}\n");
+            }
+            else
+            {
+                sb.Append("\t\t\"").Append(Escape((string)value)).Append("\"\n");
+            }
+        }
+    }
+
+    private static string Escape(string text) =>
+        text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal).Replace("\t", "\\t", StringComparison.Ordinal);
 
     private static IEnumerable<(string Token, bool Quoted)> Tokens(string text)
     {

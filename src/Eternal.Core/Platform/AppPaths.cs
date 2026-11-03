@@ -36,6 +36,10 @@ public sealed class AppPaths
     public string LauncherSettingsFile => Path.Combine(ConfigDir, "launcher.json");
     public string ModStateFile => Path.Combine(DataDir, "mods.json");
     public string PreloadStateFile => Path.Combine(DataDir, "preload-state.json");
+    public string SteamWritesFile => Path.Combine(DataDir, "steam-writes.json");
+    public string SteamBackupsDir => Path.Combine(DataDir, "steam-backups");
+    public string ServersFile => Path.Combine(ConfigDir, "servers.json");
+    public string ScreenshotOriginalsDir => Path.Combine(DataDir, "screenshot-originals");
 
     public static AppPaths Detect(string? baseDirectory = null)
     {

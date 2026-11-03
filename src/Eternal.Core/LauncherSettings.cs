@@ -7,10 +7,42 @@ public enum UiDensity { Comfortable, Compact }
 
 public enum BackgroundMode { Screenshots, Picture, None }
 
+public enum ViewLayout { Grid, List }
+
+public sealed class BrowseView
+{
+    public const double MinCardWidth = 160, MaxCardWidth = 360;
+
+    public ViewLayout Layout { get; set; }
+    public double CardWidth { get; set; } = 220;
+
+    internal void Clamp() => CardWidth = double.IsFinite(CardWidth) ? Math.Clamp(CardWidth, MinCardWidth, MaxCardWidth) : 220;
+}
+
 public sealed class TabPreference
 {
     public string Id { get; set; } = "";
     public bool Visible { get; set; } = true;
+}
+
+public sealed class ServerFilters
+{
+    public string Region { get; set; } = "auto";
+    public bool HasPlayers { get; set; } = true;
+    public bool NotFull { get; set; }
+    public bool NoPassword { get; set; }
+    public bool HideFake { get; set; } = true;
+    public int MaxPing { get; set; }
+    public string Mode { get; set; } = "";
+
+    internal void Clamp()
+    {
+        if (Region is not ("auto" or "all") && !Enum.TryParse<global::Eternal.Core.Servers.ServerRegion>(Region, out _))
+            Region = "auto";
+        MaxPing = Math.Clamp(MaxPing, 0, 999);
+        if (Mode.Length > 40)
+            Mode = "";
+    }
 }
 
 public sealed class LauncherSettings : IJsonOnDeserialized
@@ -40,24 +72,50 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public List<TabPreference> Tabs { get; set; } = [];
     public string StartTab { get; set; } = "home";
     public bool ShowAdvancedSettings { get; set; }
+    public BrowseView Library { get; set; } = new() { Layout = ViewLayout.List };
+    public BrowseView GameBanana { get; set; } = new() { Layout = ViewLayout.Grid, CardWidth = 216 };
+    public BrowseView ScreenshotView { get; set; } = new() { Layout = ViewLayout.Grid, CardWidth = 260 };
+    public ServerFilters Servers { get; set; } = new();
+
+    /// <summary>The player's own teamwork.tf key, which adds teamwork's server lists.</summary>
+    public string? TeamworkKey { get; set; }
+
+    /// <summary>The player's own Steam Web API key, which lets the Backpack show decal pictures.</summary>
+    public string? SteamApiKey { get; set; }
 
     public string Currency { get; set; } = "USD";
 
     public string? PythonOverride { get; set; }
     public bool LegacyLibraryChecked { get; set; }
 
-    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Tabs, "tabs");
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        JsonChecks.NoEmptyEntries(Tabs, "tabs");
+        foreach (var view in new[] { Library, GameBanana, ScreenshotView })
+            view.Clamp();
+        Servers.Clamp();
+        if (TeamworkKey is not null && !global::Eternal.Core.Servers.TeamworkSource.IsValidKey(TeamworkKey))
+            TeamworkKey = null;
+        if (SteamApiKey is not null && !Inventory.DecalLookup.IsValidKey(SteamApiKey))
+            SteamApiKey = null;
+    }
 
-    public static readonly string[] DefaultTabOrder = ["home", "mods", "backpack", "config", "launcher"];
+    public static readonly string[] DefaultTabOrder = ["home", "servers", "mods", "backpack", "screenshots", "config", "launcher"];
 
-    /// <summary>Tab list in the saved order, with unknown ids dropped and new tabs appended.</summary>
+    /// <summary>
+    /// Tab list in the saved order, with unknown ids dropped. A tab the saved list
+    /// doesn't have yet goes right after the tab it follows by default.
+    /// </summary>
     public List<TabPreference> NormalizedTabs()
     {
         var result = Tabs.Where(t => DefaultTabOrder.Contains(t.Id)).GroupBy(t => t.Id).Select(g => g.First()).ToList();
-        foreach (var id in DefaultTabOrder)
+        for (var i = 0; i < DefaultTabOrder.Length; i++)
         {
-            if (result.All(t => t.Id != id))
-                result.Add(new TabPreference { Id = id });
+            var id = DefaultTabOrder[i];
+            if (result.Any(t => t.Id == id))
+                continue;
+            var after = i == 0 ? -1 : result.FindIndex(t => t.Id == DefaultTabOrder[i - 1]);
+            result.Insert(after + 1, new TabPreference { Id = id });
         }
         // The launcher tab holds these settings; hiding it would lock the player out.
         result.First(t => t.Id == "launcher").Visible = true;

@@ -43,9 +43,9 @@ public sealed record Theme(
         new("toxic", "Toxic",
             C("#0F120E"), C("#171B15"), C("#20251D"), C("#2E3529"),
             C("#E6EDDC"), C("#A9B39B"), C("#838D76"), C("#8FC044"), C("#0E1407")),
-        new("midnight", "Midnight",
-            C("#0E1113"), C("#161A1D"), C("#1F2428"), C("#2C3237"),
-            C("#E2E8EC"), C("#A3ADB4"), C("#7D878E"), C("#4FC3DB"), C("#061317")),
+        new("unusual", "Unusual",
+            C("#120F16"), C("#1B1621"), C("#251E2D"), C("#352B40"),
+            C("#ECE4F2"), C("#B3A8BF"), C("#8B8098"), C("#9A62C6"), C("#FBF4FF")),
         new("minimal", "Minimal",
             C("#F2EFEA"), C("#E8E4DD"), C("#DDD8CF"), C("#CCC6BB"),
             C("#1D1A16"), C("#5B544B"), C("#7A7268"), C("#1D1A16"), C("#F2EFEA")),
@@ -55,11 +55,11 @@ public sealed record Theme(
 
     public static Theme Find(string? id)
     {
-        // 1.x themes without a direct successor land on the closest one.
+        // Retired themes land on the closest one still offered.
         var mapped = id switch
         {
             "eternal-classic" => "mann-co",
-            "plasma" or "synthwave" => "midnight",
+            "midnight" or "plasma" or "synthwave" => "unusual",
             _ => id,
         };
         return All.FirstOrDefault(t => t.Id == mapped) ?? All[0];

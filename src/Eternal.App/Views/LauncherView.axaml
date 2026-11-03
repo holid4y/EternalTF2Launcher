@@ -194,6 +194,38 @@
       </Border>
 
       <Border Classes="card">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="heading" Text="ONLINE SERVICES" />
+          <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap"
+                     Text="Both keys are optional and only ever go to the service they belong to. They stay in this computer's launcher settings." />
+          <StackPanel Spacing="6">
+            <TextBlock Classes="title" Text="teamwork.tf key" />
+            <TextBlock Classes="meta" TextWrapping="Wrap"
+                       Text="Adds teamwork.tf's community lists to Servers. Sign in through Steam at teamwork.tf, then Settings, Optional settings." />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBox Text="{Binding TeamworkKeyInput}" PasswordChar="•" Watermark="{Binding TeamworkKeyHint}" MaxLength="64"
+                       AutomationProperties.Name="teamwork.tf key" />
+              <Button Grid.Column="1" Content="Save" Command="{Binding SaveTeamworkKeyCommand}" />
+              <Button Grid.Column="2" Classes="ghost" Content="Remove" Command="{Binding RemoveTeamworkKeyCommand}" IsVisible="{Binding HasTeamworkKey}" />
+            </Grid>
+            <Button Classes="link" Content="Open teamwork.tf" Command="{Binding OpenTeamworkCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="title" Text="Steam Web API key" />
+            <TextBlock Classes="meta" TextWrapping="Wrap"
+                       Text="Shows the decals on your Backpack items. Steam only gives keys to accounts that have spent at least $5." />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBox Text="{Binding SteamKeyInput}" PasswordChar="•" Watermark="{Binding SteamKeyHint}" MaxLength="32"
+                       AutomationProperties.Name="Steam Web API key" />
+              <Button Grid.Column="1" Content="Save" Command="{Binding SaveSteamKeyCommand}" />
+              <Button Grid.Column="2" Classes="ghost" Content="Remove" Command="{Binding RemoveSteamKeyCommand}" IsVisible="{Binding HasSteamKey}" />
+            </Grid>
+            <Button Classes="link" Content="Get a Steam Web API key" Command="{Binding OpenSteamKeyPageCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card">
         <StackPanel Spacing="12">
           <TextBlock Classes="heading" Text="UPDATES" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">

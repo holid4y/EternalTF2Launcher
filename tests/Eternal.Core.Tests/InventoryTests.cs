@@ -108,3 +108,71 @@ public sealed class InventoryTests : IDisposable
         Assert.Equal(next, InventoryService.ParsePage(page, [], ref position));
     }
 }
+
+public class ItemNameTests
+{
+    private static InventoryItem Parse(string description)
+    {
+        using var asset = System.Text.Json.JsonDocument.Parse("""{"assetid":"9001","classid":"1","instanceid":"2","amount":"1"}""");
+        using var desc = System.Text.Json.JsonDocument.Parse(description);
+        return InventoryItem.From(asset.RootElement, desc.RootElement, 0);
+    }
+
+    [Fact]
+    public void Name_tags_keep_the_custom_name_and_the_original()
+    {
+        var item = Parse("""
+            {"name":"''U MAD YET''","market_hash_name":"Strange Professional Killstreak Scorch Shot",
+             "fraudwarnings":["This item has been renamed.\nOriginal name: \"Scorch Shot\""],
+             "descriptions":[{"value":"100% mini-crits vs burning players"}]}
+            """);
+        Assert.Equal("U MAD YET", item.Name);
+        Assert.Equal("U MAD YET", item.CustomName);
+        Assert.Equal("Scorch Shot", item.OriginalName);
+        Assert.Equal("Strange Professional Killstreak Scorch Shot", item.MarketHashName);
+    }
+
+    [Fact]
+    public void Description_tags_come_out_of_the_description_lines()
+    {
+        var item = Parse("""
+            {"name":"Bat","market_hash_name":"Bat","descriptions":[{"value":"''pyrocynical''"},{"value":"Sheen: Deadly Daffodil"}]}
+            """);
+        Assert.Null(item.CustomName);
+        Assert.Equal("pyrocynical", item.CustomDescription);
+        Assert.DoesNotContain(item.Lines, l => l.Text.Contains("pyrocynical"));
+        Assert.Equal("Deadly Daffodil", item.Sheen);
+    }
+
+    [Fact]
+    public void Decal_items_are_recognised_from_their_description()
+    {
+        var item = Parse("""
+            {"name":"The Conscientious Objector","market_hash_name":"The Conscientious Objector",
+             "descriptions":[{"value":"We gave peace a chance. It didn't work.\n\nCustom decals can be applied to this item."}]}
+            """);
+        Assert.True(item.TakesDecal);
+    }
+
+    [Fact]
+    public void Decal_ids_join_the_two_halves_of_the_upload_id()
+    {
+        var json = """
+            {"result":{"status":1,"items":[
+              {"id":9001,"defindex":474,"attributes":[{"defindex":152,"value":1234},{"defindex":227,"value":5}]},
+              {"id":9002,"defindex":474,"attributes":[{"defindex":152,"value":1}]},
+              {"id":9003,"defindex":5020}
+            ]}}
+            """u8.ToArray();
+        var decals = DecalLookup.ParseDecals(json);
+        Assert.Equal((5UL << 32) | 1234, Assert.Single(decals).Value);
+        Assert.Equal("9001", decals.Keys.Single());
+    }
+
+    [Theory]
+    [InlineData("https://cloud-3.steamusercontent.com/ugc/123/ABC/", true)]
+    [InlineData("http://cloud-3.steamusercontent.com/ugc/123/ABC/", false)]
+    [InlineData("https://steamusercontent.com.evil.example/ugc/", false)]
+    public void Decal_pictures_only_come_from_steam(string url, bool kept) =>
+        Assert.Equal(kept ? url : null, DecalLookup.ParseUrl(System.Text.Encoding.UTF8.GetBytes($$$"""{"data":{"url":"{{{url}}}"}}""")));
+}

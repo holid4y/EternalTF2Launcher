@@ -12,6 +12,8 @@
 
   <Window.DataTemplates>
     <DataTemplate DataType="vm:HomeViewModel"><views:HomeView /></DataTemplate>
+    <DataTemplate DataType="vm:ServersViewModel"><views:ServersView /></DataTemplate>
+    <DataTemplate DataType="vm:ScreenshotsViewModel"><views:ScreenshotsView /></DataTemplate>
     <DataTemplate DataType="vm:ModsViewModel"><views:ModsView /></DataTemplate>
     <DataTemplate DataType="vm:BackpackViewModel"><views:BackpackView /></DataTemplate>
     <DataTemplate DataType="vm:ConfigViewModel"><views:ConfigView /></DataTemplate>
@@ -205,7 +207,7 @@
             <StackPanel Spacing="16" DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel">
               <TextBlock Classes="heading" FontSize="24" Text="{Binding Title}" />
               <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" />
-              <TextBox Text="{Binding Input}" IsVisible="{Binding HasInput}" Name="DialogInput" />
+              <TextBox Text="{Binding Input}" IsVisible="{Binding HasInput}" Name="DialogInput" PasswordChar="{Binding InputMask}" />
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10"
                           IsVisible="{Binding ConfirmText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                 <Button Content="{Binding CancelText}" Command="{Binding CancelCommand}" Classes="ghost"

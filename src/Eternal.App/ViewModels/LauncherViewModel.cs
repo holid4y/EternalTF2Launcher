@@ -35,11 +35,6 @@ public sealed record ThemeChoice(Theme Theme)
 
 public sealed partial class LauncherViewModel : PageViewModel
 {
-    private static readonly Dictionary<string, string> TabTitles = new()
-    {
-        ["home"] = "Home", ["mods"] = "Mods", ["backpack"] = "Backpack", ["config"] = "Config", ["launcher"] = "Launcher",
-    };
-
     private readonly AppServices _services;
     private readonly MainViewModel _main;
     private readonly ThemeService _theme;
@@ -71,7 +66,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         _clearLogsOnStart = s.ClearLogsOnStart;
         _startTab = s.StartTab;
         foreach (var tab in s.NormalizedTabs())
-            Tabs.Add(new TabPreferenceViewModel(tab.Id, TabTitles[tab.Id], tab.Visible, tab.Id == "launcher", SaveTabs));
+            Tabs.Add(new TabPreferenceViewModel(tab.Id, MainViewModel.TitleOf(tab.Id), tab.Visible, tab.Id == "launcher", SaveTabs));
         services.Runtime.StatusChanged += _ => Avalonia.Threading.Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(EngineSummary)));
         _loading = false;
     }
@@ -80,7 +75,7 @@ public sealed partial class LauncherViewModel : PageViewModel
     public ObservableCollection<TabPreferenceViewModel> Tabs { get; } = [];
     public string[] Currencies { get; } = [.. PriceService.SteamCurrencies.Keys];
     public string[] LogLevels { get; } = ["Debug", "Info", "Warning", "Error"];
-    public string[] StartTabs { get; } = ["home", "mods", "backpack", "config"];
+    public string[] StartTabs { get; } = ["home", "servers", "mods", "backpack", "screenshots", "config"];
     public BackgroundMode[] BackgroundModes { get; } = [BackgroundMode.Screenshots, BackgroundMode.Picture, BackgroundMode.None];
 
     public bool UsesScreenshots => BackgroundMode == BackgroundMode.Screenshots;
@@ -113,6 +108,72 @@ public sealed partial class LauncherViewModel : PageViewModel
     [ObservableProperty] private string _logLevel;
     [ObservableProperty] private bool _clearLogsOnStart;
     [ObservableProperty] private string _startTab;
+
+    [ObservableProperty] private string _teamworkKeyInput = "";
+    [ObservableProperty] private string _steamKeyInput = "";
+
+    public bool HasTeamworkKey => _services.Launcher.Settings.TeamworkKey is not null;
+    public bool HasSteamKey => _services.Launcher.Settings.SteamApiKey is not null;
+    public string TeamworkKeyHint => Hint(_services.Launcher.Settings.TeamworkKey);
+    public string SteamKeyHint => Hint(_services.Launcher.Settings.SteamApiKey);
+
+    private static string Hint(string? key) => key is { Length: > 4 } ? $"Saved, ends in {key[^4..]}" : "Paste the key here";
+
+    [RelayCommand]
+    private async Task SaveTeamworkKeyAsync()
+    {
+        var key = TeamworkKeyInput.Trim();
+        if (!Eternal.Core.Servers.TeamworkSource.IsValidKey(key))
+        {
+            await _main.AlertAsync("That isn't a teamwork.tf key", "teamwork.tf keys are letters and numbers only, usually 32 of them. Copy it again from your teamwork.tf settings.");
+            return;
+        }
+        _services.Launcher.Update(s => s.TeamworkKey = key);
+        TeamworkKeyInput = "";
+        KeysChanged();
+        _main.Notify("teamwork.tf key saved. Refresh Servers to see its lists.");
+    }
+
+    [RelayCommand]
+    private void RemoveTeamworkKey()
+    {
+        _services.Launcher.Update(s => s.TeamworkKey = null);
+        KeysChanged();
+    }
+
+    [RelayCommand]
+    private async Task SaveSteamKeyAsync()
+    {
+        var key = SteamKeyInput.Trim();
+        if (!Eternal.Core.Inventory.DecalLookup.IsValidKey(key))
+        {
+            await _main.AlertAsync("That isn't a Steam Web API key", "Steam's keys are 32 characters of 0-9 and A-F. Copy it again from steamcommunity.com/dev/apikey.");
+            return;
+        }
+        _services.Launcher.Update(s => s.SteamApiKey = key.ToUpperInvariant());
+        SteamKeyInput = "";
+        KeysChanged();
+        _main.Notify("Steam Web API key saved. Refresh the Backpack to see decals.");
+    }
+
+    [RelayCommand]
+    private void RemoveSteamKey()
+    {
+        _services.Launcher.Update(s => s.SteamApiKey = null);
+        KeysChanged();
+    }
+
+    private void KeysChanged()
+    {
+        foreach (var name in new[] { nameof(HasTeamworkKey), nameof(HasSteamKey), nameof(TeamworkKeyHint), nameof(SteamKeyHint) })
+            OnPropertyChanged(name);
+    }
+
+    [RelayCommand]
+    private static void OpenTeamwork() => Shell.OpenUrl("https://teamwork.tf/settings");
+
+    [RelayCommand]
+    private static void OpenSteamKeyPage() => Shell.OpenUrl("https://steamcommunity.com/dev/apikey");
 
     public string TfPath => _services.TfPath ?? "Not set";
     public bool TfValid => SteamLocator.IsTf2Folder(_services.TfPath);

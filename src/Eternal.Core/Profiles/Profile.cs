@@ -5,15 +5,25 @@ using Eternal.Core.Settings;
 
 namespace Eternal.Core.Profiles;
 
-public sealed class ProfileMods : IJsonOnDeserialized
+public sealed partial class ProfileMods : IJsonOnDeserialized
 {
     public List<string> Addons { get; set; } = [];
     public List<string> Particles { get; set; } = [];
+
+    /// <summary>Where a mod came from ("gamebanana:123:456"), so whoever imports the profile can download the same file.</summary>
+    public Dictionary<string, string>? Sources { get; set; }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^gamebanana(?:-sound)?:\d{1,12}:\d{1,12}$")]
+    private static partial System.Text.RegularExpressions.Regex SourcePattern();
+
+    public static bool IsShareableSource(string? source) => source is not null && SourcePattern().IsMatch(source);
 
     void IJsonOnDeserialized.OnDeserialized()
     {
         JsonChecks.NoEmptyEntries(Addons, "addons");
         JsonChecks.NoEmptyEntries(Particles, "particles");
+        Sources = Sources?.Where(s => s.Key.Length is > 0 and <= 128 && IsShareableSource(s.Value))
+            .ToDictionary(s => s.Key, s => s.Value, StringComparer.Ordinal);
     }
 }
 

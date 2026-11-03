@@ -33,7 +33,6 @@ external/userdata/
 
 # Local debugging
 console.log
-.taste-skill/
 
 # OS files
 Thumbs.db

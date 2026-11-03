@@ -63,9 +63,12 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     {
         _services = services;
         Theme = theme;
+        SteamFiles = new SteamFilesViewModel(services, this);
         Home = new HomeViewModel(services, this);
+        Servers = new ServersViewModel(services, this);
         Mods = new ModsViewModel(services, this);
         Backpack = new BackpackViewModel(services, this);
+        Screenshots = new ScreenshotsViewModel(services, this);
         Config = new ConfigViewModel(services, this);
         Updates = new UpdateViewModel(services, this, UpdateClient.Shared,
             typeof(MainViewModel).Assembly.GetName().Version ?? new Version(2, 0, 0));
@@ -86,9 +89,12 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     }
 
     public ThemeService Theme { get; }
+    public SteamFilesViewModel SteamFiles { get; }
     public HomeViewModel Home { get; }
+    public ServersViewModel Servers { get; }
     public ModsViewModel Mods { get; }
     public BackpackViewModel Backpack { get; }
+    public ScreenshotsViewModel Screenshots { get; }
     public ConfigViewModel Config { get; }
     public LauncherViewModel Launcher { get; }
     public string Version { get; } = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
@@ -118,13 +124,15 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     private void BuildTabs()
     {
-        var pages = new Dictionary<string, (string Title, PageViewModel Page)>
+        var pages = new Dictionary<string, PageViewModel>
         {
-            ["home"] = ("Home", Home),
-            ["mods"] = ("Mods", Mods),
-            ["backpack"] = ("Backpack", Backpack),
-            ["config"] = ("Config", Config),
-            ["launcher"] = ("Launcher", Launcher),
+            ["home"] = Home,
+            ["servers"] = Servers,
+            ["mods"] = Mods,
+            ["backpack"] = Backpack,
+            ["screenshots"] = Screenshots,
+            ["config"] = Config,
+            ["launcher"] = Launcher,
         };
         var wanted = _services.Launcher.Settings.NormalizedTabs().Where(t => t.Visible).Select(t => t.Id).ToList();
         if (Tabs.Select(t => t.Id).SequenceEqual(wanted))
@@ -133,9 +141,21 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         var selected = SelectedTab?.Id ?? _services.Launcher.Settings.StartTab;
         Tabs.Clear();
         foreach (var id in wanted)
-            Tabs.Add(new TabViewModel(id, pages[id].Title.ToUpperInvariant(), pages[id].Page));
+            Tabs.Add(new TabViewModel(id, TitleOf(id).ToUpperInvariant(), pages[id]));
         SelectedTab = Tabs.FirstOrDefault(t => t.Id == selected) ?? Tabs.First();
     }
+
+    public static string TitleOf(string id) => id switch
+    {
+        "home" => "Home",
+        "servers" => "Servers",
+        "mods" => "Mods",
+        "backpack" => "Backpack",
+        "screenshots" => "Screenshots",
+        "config" => "Config",
+        "launcher" => "Launcher",
+        _ => id,
+    };
 
     public void Navigate(string id)
     {
@@ -227,15 +247,50 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     }
 
     [RelayCommand]
-    private async Task PlayAsync()
+    private Task PlayAsync() => LaunchAsync([]);
+
+    /// <summary>
+    /// Joins a server: through the normal Play steps when TF2 isn't running,
+    /// or by handing the address to the running game through Steam.
+    /// </summary>
+    public async Task<bool> JoinServerAsync(Eternal.Core.Servers.ServerAddress address, string name, string? password)
+    {
+        if (password is not null && !Eternal.Core.Servers.ServerJoin.IsSafePassword(password))
+        {
+            await AlertAsync("Can't use that password", Eternal.Core.Servers.ServerJoin.PasswordRules);
+            return false;
+        }
+        if (GameProcess.IsRunning())
+        {
+            if (!Eternal.Core.Servers.ServerJoin.ConnectRunningGame(address, password))
+            {
+                Notify("Steam didn't take the connect request. Is Steam running?", isError: true);
+                return false;
+            }
+        }
+        else
+        {
+            if (PlayState == PlayState.Unavailable)
+            {
+                Navigate("launcher");
+                return false;
+            }
+            if (!await LaunchAsync(Eternal.Core.Servers.ServerJoin.LaunchArguments(address, password)))
+                return false;
+        }
+        _services.Servers.Played(address, name);
+        return true;
+    }
+
+    private async Task<bool> LaunchAsync(IReadOnlyList<string> extra)
     {
         if (PlayState == PlayState.Unavailable)
         {
             Navigate("launcher");
-            return;
+            return false;
         }
         if (_launch is not null || PlayState == PlayState.Running)
-            return;
+            return false;
 
         _launch = new CancellationTokenSource();
         OnPropertyChanged(nameof(CanPlay));
@@ -252,22 +307,22 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             if (!admission.Allowed)
             {
                 if (admission.Problem == "TF2 is already starting.")
-                    return;
+                    return false;
                 var anyway = await ConfirmAsync("Mods aren't ready",
                     $"{admission.Problem}\n\nLaunch anyway? TF2 will start without your latest mod changes.",
                     "Launch anyway", "Cancel");
                 if (!anyway)
-                    return;
+                    return false;
                 admission = await _services.Preload.AdmitLaunchAsync(allowStale: true, _launch.Token);
                 if (!admission.Allowed)
-                    return;
+                    return false;
             }
 
             try
             {
                 PlayState = PlayState.Starting;
                 PlayLabel = "STARTING";
-                var arguments = LaunchOptions.Build(_services.Game.Settings, admission.PreloadInstalled);
+                var arguments = LaunchOptions.Build(_services.Game.Settings, admission.PreloadInstalled).Concat(extra).ToList();
                 GameLauncher.Launch(SteamLocator.FindRoot(), arguments);
                 if (_services.Launcher.Settings.MinimizeOnLaunch)
                     MinimizeRequested?.Invoke();
@@ -279,6 +334,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
                     _launchedAt = DateTimeOffset.Now;
                 else
                     Notify("Steam hasn't started TF2 after two minutes. Check the Steam window for a prompt or an update.", isError: true);
+                return true;
             }
             finally
             {
@@ -287,11 +343,13 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         }
         catch (OperationCanceledException)
         {
+            return false;
         }
         catch (Exception ex)
         {
             Log.Error("Launch failed", ex);
             await AlertAsync("Couldn't start TF2", ex.Message);
+            return false;
         }
         finally
         {
@@ -390,13 +448,13 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         }
     }
 
-    public async Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save")
+    public async Task<string?> PromptAsync(string title, string message, string initial = "", string confirm = "Save", bool secret = false)
     {
-        var dialog = new DialogViewModel { Title = title, Message = message, ConfirmText = confirm, CancelText = "Cancel", HasInput = true, Input = initial };
+        var dialog = new DialogViewModel { Title = title, Message = message, ConfirmText = confirm, CancelText = "Cancel", HasInput = true, Input = initial, Secret = secret };
         Dialog = dialog;
         try
         {
-            return await dialog.Result ? dialog.Input.Trim() : null;
+            return await dialog.Result ? (secret ? dialog.Input : dialog.Input.Trim()) : null;
         }
         finally
         {

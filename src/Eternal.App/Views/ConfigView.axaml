@@ -136,9 +136,23 @@
               <MenuFlyout>
                 <MenuItem Header="Rename" Command="{Binding RenameProfileCommand}" IsEnabled="{Binding CanEditProfile}" />
                 <MenuItem Header="Delete" Command="{Binding DeleteProfileCommand}" IsEnabled="{Binding CanEditProfile}" />
-                <Separator />
-                <MenuItem Header="Import a profile file" Command="{Binding ImportProfileCommand}" />
-                <MenuItem Header="Export the selected profile" Command="{Binding ExportProfileCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Border Width="1" Height="22" Background="{DynamicResource LineBrush}" Margin="4,0" VerticalAlignment="Center" />
+          <Button Content="Share" ToolTip.Tip="Your current settings, binds, launch options and mods">
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="Copy a setup code" Command="{Binding CopySetupCodeCommand}" />
+                <MenuItem Header="Save as a file, with mods" Command="{Binding SaveSetupFileCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Button Classes="ghost" Content="Import">
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="Paste a setup code" Command="{Binding PasteSetupCodeCommand}" />
+                <MenuItem Header="Open a setup or profile file" Command="{Binding OpenSetupFileCommand}" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

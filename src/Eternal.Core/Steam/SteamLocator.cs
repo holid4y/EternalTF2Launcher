@@ -135,6 +135,16 @@ public static class SteamLocator
         }
     }
 
+    /// <summary>userdata/&lt;account id&gt; for the signed-in account, which holds its screenshots and server history.</summary>
+    public static string? UserDataDir(string? root = null, string? steamId64 = null)
+    {
+        root ??= FindRoot();
+        if (root is null || !long.TryParse(steamId64 ?? ActiveAccount(root)?.SteamId64, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id64) || id64 <= SteamId64Base)
+            return null;
+        var dir = Path.Combine(root, "userdata", (id64 - SteamId64Base).ToString(CultureInfo.InvariantCulture));
+        return Directory.Exists(dir) ? dir : null;
+    }
+
     public static bool IsTf2Folder(string? path) =>
         !string.IsNullOrWhiteSpace(path) && File.Exists(Path.Combine(path, "gameinfo.txt"))
         && File.Exists(Path.Combine(path, "steam.inf"));

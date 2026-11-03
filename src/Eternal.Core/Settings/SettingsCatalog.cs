@@ -22,6 +22,8 @@ public static class SettingsCatalog
         new("Space", "5"), new("Beepo", "6"), new("Vortex", "7"), new("Squasher", "8"),
     ];
 
+    public const string TransparentViewmodelsId = "TransparentViewmodels";
+
     public static IReadOnlyList<SettingCategory> Categories { get; } = Build();
 
     public static IReadOnlyList<SettingDefinition> All { get; } = Categories.SelectMany(c => c.Settings).ToArray();
@@ -211,6 +213,13 @@ public static class SettingsCatalog
             {
                 Id = "MinimalHud", Title = "Minimal HUD", Cvar = "cl_hud_minmode",
                 Summary = "Smaller health and ammo panels for a cleaner screen.",
+            },
+            new ToggleSetting
+            {
+                Id = TransparentViewmodelsId, Title = "See-through weapons",
+                Summary = "Your weapon becomes see-through, with any HUD or none. It needs motion blur (set to zero strength), HDR and anti-aliasing off, which this turns on its own, and DirectX 9 or higher.",
+                Keywords = ["transparent viewmodels", "viewmodel", "hud"],
+                Emitter = _ => [],
             },
             new ToggleSetting
             {

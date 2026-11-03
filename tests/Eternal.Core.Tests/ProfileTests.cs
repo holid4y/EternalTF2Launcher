@@ -183,20 +183,87 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
-    public void Exported_profile_reimports_with_the_same_values()
+    public void A_shared_code_carries_settings_binds_autoexec_and_mods()
     {
-        var store = NewStore();
         var settings = new GameSettings(new GameConfig());
         settings.Set(SettingsCatalog.Get<SliderSetting>("FpsMax"), 165);
-        var saved = store.Save(ProfileStore.Capture(settings, "Round trip", "desc", "echo mine", null));
-        var exported = Path.Combine(_root, "out.json");
+        settings.SetBinds([new KeyBind { Key = "F", Command = "voicemenu 0 0" }]);
+        var mods = new ProfileMods
+        {
+            Addons = ["Femme Pyro", "My HUD"],
+            Particles = ["Clean explosions"],
+            Sources = new() { ["Femme Pyro"] = "gamebanana:516266:1771624" },
+        };
+        var shared = ProfileStore.Capture(settings, "Round trip", "desc", "echo mine", mods);
 
-        store.Export(saved, exported);
-        var back = store.Import(exported).Profile;
+        var code = ShareCode.Encode(shared);
+        var back = ShareCode.Decode("  " + code[..20] + "\n" + code[20..] + " ").Profile;
 
-        Assert.NotEqual(saved.Id, back.Id);
+        Assert.StartsWith(ShareCode.Prefix, code);
+        Assert.NotEqual(shared.Id, back.Id);
         Assert.True(JsonNode.DeepEquals(JsonValue.Create(165L), back.Values["FpsMax"]));
+        Assert.Equal("voicemenu 0 0", Assert.Single(back.Binds!).Command);
         Assert.Equal("echo mine", back.UserAutoexec);
+        Assert.Equal(["Femme Pyro", "My HUD"], back.Mods!.Addons);
+        Assert.Equal(["Clean explosions"], back.Mods.Particles);
+        Assert.Equal("gamebanana:516266:1771624", back.Mods.Sources!["Femme Pyro"]);
+    }
+
+    [Theory]
+    [InlineData("hello")]
+    [InlineData("ETERNAL1:!!!!")]
+    [InlineData("ETERNAL1:AAAA")]
+    public void Broken_codes_are_refused(string code) =>
+        Assert.Throws<InvalidDataException>(() => ShareCode.Decode(code));
+
+    [Fact]
+    public void A_code_that_unpacks_to_gigabytes_is_refused()
+    {
+        using var packed = new MemoryStream();
+        using (var deflate = new System.IO.Compression.DeflateStream(packed, System.IO.Compression.CompressionLevel.SmallestSize, leaveOpen: true))
+            deflate.Write(new byte[8 * 1024 * 1024]);
+        var code = ShareCode.Prefix + Convert.ToBase64String(packed.ToArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        Assert.Contains("far more", Assert.Throws<InvalidDataException>(() => ShareCode.Decode(code)).Message);
+    }
+
+    [Fact]
+    public void Mod_sources_that_are_not_gamebanana_files_are_dropped()
+    {
+        var json = """
+            {"format":"eternal-profile","name":"x","values":{},"mods":{"addons":["a","b"],"particles":[],
+             "sources":{"a":"gamebanana:1:2","b":"https://evil.example/x.zip"}}}
+            """;
+        var mods = ProfileStore.FromText(json, "x").Profile.Mods!;
+        Assert.Equal(["a"], mods.Sources!.Keys);
+    }
+
+    [Fact]
+    public void A_bundle_carries_mod_files_and_refuses_paths_outside_its_folders()
+    {
+        var mod = Path.Combine(_root, "mymod");
+        Directory.CreateDirectory(Path.Combine(mod, "materials"));
+        File.WriteAllText(Path.Combine(mod, "materials", "a.vmt"), "VertexLitGeneric {}");
+        var settings = new GameSettings(new GameConfig());
+        var profile = ProfileStore.Capture(settings, "Bundle", null, null, new ProfileMods { Addons = ["mymod"] });
+        var bundle = Path.Combine(_root, "setup.eternal");
+
+        ProfileBundle.Write(bundle, profile, [new BundledMod("mymod", Eternal.Core.Engine.ModKind.Addon, mod)]);
+        var contents = ProfileBundle.Open(bundle, Path.Combine(_root, "staging"));
+        var unpacked = Assert.Single(contents.Mods);
+        Assert.Equal("VertexLitGeneric {}", File.ReadAllText(Path.Combine(unpacked.Folder, "materials", "a.vmt")));
+        Assert.Equal(["mymod"], contents.Import.Profile.Mods!.Addons);
+
+        var evil = Path.Combine(_root, "evil.eternal");
+        using (var zip = System.IO.Compression.ZipFile.Open(evil, System.IO.Compression.ZipArchiveMode.Create))
+        {
+            using (var w = new StreamWriter(zip.CreateEntry("profile.json").Open()))
+                w.Write(ProfileStore.ToJson(profile));
+            using (var w = new StreamWriter(zip.CreateEntry("mods/addons/x/../../../../escape.txt").Open()))
+                w.Write("no");
+        }
+        Assert.Throws<InvalidDataException>(() => ProfileBundle.Open(evil, Path.Combine(_root, "staging")));
+        Assert.False(File.Exists(Path.Combine(_root, "escape.txt")));
+        Assert.Equal(contents.Staging, Assert.Single(Directory.GetDirectories(Path.Combine(_root, "staging"))));
     }
 
     [Theory]

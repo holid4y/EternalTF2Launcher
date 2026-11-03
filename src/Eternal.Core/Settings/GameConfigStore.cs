@@ -7,7 +7,7 @@ namespace Eternal.Core.Settings;
 /// game.json and autoexec.cfg can fail separately; a setting that never
 /// reached the game is not a success.
 /// </summary>
-public sealed record SaveReport(bool ConfigSaved, string? ConfigError, AutoexecResult Autoexec)
+public sealed record SaveReport(bool ConfigSaved, string? ConfigError, AutoexecResult Autoexec, ViewmodelResult? Viewmodels = null)
 {
     public bool FullyApplied => ConfigSaved && Autoexec.Applied;
 }
@@ -132,7 +132,9 @@ public sealed class GameConfigStore : IDisposable
             }
         }
 
-        var autoexec = AutoexecFile.Write(_tfPath(), ManagedBlock.Build(new GameSettings(snapshot)), userContent);
+        var settings = new GameSettings(snapshot);
+        var autoexec = AutoexecFile.Write(_tfPath(), ManagedBlock.Build(settings), userContent);
+        var viewmodels = TransparentViewmodels.Sync(_tfPath(), settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId)));
         if (autoexec.Applied && userContent is not null)
         {
             lock (_gate)
@@ -147,7 +149,7 @@ public sealed class GameConfigStore : IDisposable
         if (autoexec.Status == AutoexecStatus.Failed)
             Log.Warn($"autoexec.cfg not updated: {autoexec.Error}");
 
-        var report = new SaveReport(saved, error, autoexec);
+        var report = new SaveReport(saved, error, autoexec, viewmodels);
         LastReport = report;
         Saved?.Invoke(report);
         return report;

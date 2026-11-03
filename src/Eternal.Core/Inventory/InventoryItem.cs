@@ -38,6 +38,18 @@ public sealed partial record InventoryItem : IJsonOnDeserialized
     public long Position { get; init; }
     public IReadOnlyList<DescriptionLine> Lines { get; init; } = [];
 
+    /// <summary>The name a Name Tag gave the item, without the quotes TF2 puts around it.</summary>
+    public string? CustomName { get; init; }
+
+    /// <summary>What the item is called without its custom name.</summary>
+    public string? OriginalName { get; init; }
+
+    /// <summary>The text a Description Tag gave the item.</summary>
+    public string? CustomDescription { get; init; }
+
+    /// <summary>Takes a custom decal (Conscientious Objector, Flair!, Photo Badge, Clan Pride…).</summary>
+    public bool TakesDecal { get; init; }
+
     void IJsonOnDeserialized.OnDeserialized()
     {
         JsonChecks.NoEmptyEntries(Classes, "classes");
@@ -50,6 +62,15 @@ public sealed partial record InventoryItem : IJsonOnDeserialized
 
     [GeneratedRegex(@"^Level\s+(\d+)\b")]
     private static partial Regex LevelPrefix();
+
+    [GeneratedRegex("Original name: \"(.+)\"", RegexOptions.Singleline)]
+    private static partial Regex OriginalNamePattern();
+
+    private const string DecalLine = "Custom decals can be applied to this item.";
+
+    // TF2 shows names and descriptions set with tags between two pairs of apostrophes.
+    private static string? Quoted(string? text) =>
+        text is { Length: > 4 } t && t.StartsWith("''", StringComparison.Ordinal) && t.EndsWith("''", StringComparison.Ordinal) ? t[2..^2].Trim() : null;
 
     public static InventoryItem From(JsonElement asset, JsonElement description, long position)
     {
@@ -79,14 +100,28 @@ public sealed partial record InventoryItem : IJsonOnDeserialized
         var type = Str(description, "type") ?? "";
         var level = LevelPrefix().Match(type) is { Success: true } m ? int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : (int?)null;
 
+        var name = Str(description, "name") ?? "Unknown item";
+        var customName = Quoted(name);
+        var warnings = description.TryGetProperty("fraudwarnings", out var fw) && fw.ValueKind == JsonValueKind.Array
+            ? fw.EnumerateArray().Where(w => w.ValueKind == JsonValueKind.String).Select(w => w.GetString()!).ToArray()
+            : [];
+        var original = warnings.Select(w => OriginalNamePattern().Match(w)).FirstOrDefault(x => x.Success)?.Groups[1].Value;
+        var customDescription = lines.Select(l => Quoted(l.Text)).FirstOrDefault(q => q is not null);
+        if (customDescription is not null)
+            lines.RemoveAll(l => Quoted(l.Text) == customDescription);
+
         return new InventoryItem
         {
             AssetId = Str(asset, "assetid") ?? "",
             ClassId = Str(asset, "classid") ?? "",
             InstanceId = Str(asset, "instanceid") ?? "",
             Amount = int.TryParse(Str(asset, "amount"), out var amount) ? amount : 1,
-            Name = Str(description, "name") ?? "Unknown item",
-            MarketHashName = Str(description, "market_hash_name") ?? Str(description, "name") ?? "",
+            Name = customName ?? name,
+            CustomName = customName,
+            OriginalName = customName is null ? null : original ?? Str(description, "market_hash_name"),
+            CustomDescription = customDescription,
+            TakesDecal = lines.Any(l => l.Text.Contains(DecalLine, StringComparison.OrdinalIgnoreCase)),
+            MarketHashName = Str(description, "market_hash_name") ?? name,
             Quality = Tag("Quality") ?? "Unique",
             QualityColor = Hex(TagColor("Quality")) ?? "#7D6D00",
             NameColor = Hex(Str(description, "name_color")) ?? Hex(TagColor("Quality")) ?? "#B2B2B2",

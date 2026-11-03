@@ -11,6 +11,8 @@ using Eternal.Core.Platform;
 
 namespace Eternal.App.ViewModels;
 
+public sealed record SharedModPlan(string Name, ModKind Kind, string? Source, Eternal.Core.Profiles.BundledMod? Bundled);
+
 public sealed record ImportResult(IReadOnlyList<string> Imported, IReadOnlyList<string> Problems, bool WasCancelled)
 {
     public static ImportResult Cancelled { get; } = new([], [], true);
@@ -79,8 +81,10 @@ public sealed partial class ModRowViewModel : ObservableObject
 
     [ObservableProperty] private bool _enabled;
     [ObservableProperty] private Bitmap? _thumbnail;
+    [ObservableProperty] private bool _isSelected;
 
-    public string PictureAction => Thumbnail is null ? "Add a picture" : "Change picture";
+    public string PictureAction => Item.CustomThumbnail ? "Change picture" : Thumbnail is null ? "Add a picture" : "Use my own picture";
+    public bool HasCustomPicture => Item.CustomThumbnail;
 
     partial void OnThumbnailChanged(Bitmap? value) => OnPropertyChanged(nameof(PictureAction));
 
@@ -102,22 +106,28 @@ public sealed partial class ModRowViewModel : ObservableObject
             LoadThumbnail();
     }
 
-    private void LoadThumbnail()
+    private async void LoadThumbnail()
     {
-        if (Item.Thumbnail is null || !File.Exists(Item.Thumbnail))
+        var path = Item.Thumbnail;
+        if (path is null)
         {
             Thumbnail = null;
             return;
         }
-        try
+        var bitmap = await Task.Run(() =>
         {
-            using var stream = File.OpenRead(Item.Thumbnail);
-            Thumbnail = Bitmap.DecodeToWidth(stream, 320);
-        }
-        catch (Exception ex) when (ex is IOException or ArgumentException or InvalidOperationException)
-        {
-            Thumbnail = null;
-        }
+            try
+            {
+                using var stream = File.OpenRead(path);
+                return Bitmap.DecodeToWidth(stream, 480, BitmapInterpolationMode.MediumQuality);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+            {
+                return null;
+            }
+        });
+        if (Item.Thumbnail == path)
+            Thumbnail = bitmap;
     }
 }
 
@@ -138,10 +148,12 @@ public sealed partial class ModsViewModel : PageViewModel
         RefreshEngine();
         RefreshStatus();
         LoadOptions();
+        View = new ViewOptions(services.Launcher, s => s.Library, textHeight: 62);
         GameBanana = new GameBananaViewModel(services, this);
     }
 
     public GameBananaViewModel GameBanana { get; }
+    public ViewOptions View { get; }
 
     /// <summary>True while the GameBanana browser is showing instead of the library.</summary>
     [ObservableProperty] private bool _browsing;
@@ -206,7 +218,14 @@ public sealed partial class ModsViewModel : PageViewModel
 
     partial void OnSearchChanged(string value) => ApplyFilter();
     partial void OnFilterChanged(string value) => ApplyFilter();
-    partial void OnSelectedChanged(ModRowViewModel? value) => OnPropertyChanged(nameof(HasSelection));
+    partial void OnSelectedChanged(ModRowViewModel? oldValue, ModRowViewModel? newValue)
+    {
+        if (oldValue is not null)
+            oldValue.IsSelected = false;
+        if (newValue is not null)
+            newValue.IsSelected = true;
+        OnPropertyChanged(nameof(HasSelection));
+    }
     partial void OnWarningsChanged(IReadOnlyList<string> value) => OnPropertyChanged(nameof(HasWarnings));
 
     partial void OnDisablePaintColorsChanged(bool value) => SaveOptions();
@@ -459,6 +478,73 @@ public sealed partial class ModsViewModel : PageViewModel
             Log.Warn($"Import of {name} failed: {ex.Message}");
             return ImportResult.Failed($"{name}: {ex.Message}");
         }
+    }
+
+    /// <summary>Downloads one GameBanana file (checked against its size and MD5) and imports it like any other mod.</summary>
+    internal async Task<ImportResult> InstallGameBananaFileAsync(Eternal.Core.GameBanana.Submission submission, Eternal.Core.GameBanana.SubmissionFile file,
+        IProgress<double>? progress, CancellationToken cancellation)
+    {
+        var downloads = Path.Combine(_services.Paths.ImportStagingDir, "downloads");
+        var folder = Path.Combine(downloads, file.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        try
+        {
+            var path = await Eternal.Core.GameBanana.GameBananaClient.Shared.DownloadAsync(file, downloads, progress, cancellation);
+            return await ImportOneAsync(path, submission.SourcePrefix + file.Id, submission.Name, cancellation);
+        }
+        finally
+        {
+            ArchiveIngest.TryDelete(folder);
+        }
+    }
+
+    /// <summary>
+    /// Brings in the mods a shared setup needs: files packed in its bundle, and
+    /// GameBanana files fetched by their exact id. Returns what went wrong.
+    /// </summary>
+    internal async Task<IReadOnlyList<string>> InstallSharedAsync(IReadOnlyList<SharedModPlan> plan, CancellationToken cancellation)
+    {
+        if (plan.Count == 0)
+            return [];
+        if (!await BeginImportAsync())
+            return ["The mod engine isn't ready, so no mods were added."];
+        var problems = new List<string>();
+        try
+        {
+            foreach (var mod in plan)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                try
+                {
+                    var result = mod.Bundled is { } bundled
+                        ? await ImportOneAsync(bundled.Folder, null, null, cancellation)
+                        : await DownloadSharedAsync(mod, cancellation);
+                    if (!result.WasCancelled && result.Imported.Count == 0)
+                        problems.Add($"{mod.Name}: {result.Problems.FirstOrDefault() ?? "nothing in it could be installed"}");
+                }
+                catch (Eternal.Core.GameBanana.GameBananaException ex)
+                {
+                    problems.Add($"{mod.Name}: {ex.Message}");
+                }
+            }
+        }
+        finally
+        {
+            EndImport();
+        }
+        return problems;
+    }
+
+    private async Task<ImportResult> DownloadSharedAsync(SharedModPlan mod, CancellationToken cancellation)
+    {
+        var parts = mod.Source!.Split(':');
+        var section = parts[0] == "gamebanana-sound" ? Eternal.Core.GameBanana.Section.Sounds : Eternal.Core.GameBanana.Section.Mods;
+        var details = await Eternal.Core.GameBanana.GameBananaClient.Shared.DetailsAsync(section, long.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture), cancellation);
+        var file = details.Files.FirstOrDefault(f => f.Id == long.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
+        if (file is null)
+            return ImportResult.Failed("that file is no longer on GameBanana");
+        if (!file.CanInstall)
+            return ImportResult.Failed($"GameBanana won't hand out {file.Name} right now");
+        return await InstallGameBananaFileAsync(details.Summary, file, null, cancellation);
     }
 
     private static string NothingToImport(string name, Inspection inspection)

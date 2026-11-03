@@ -1,0 +1,313 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             x:Class="Eternal.App.Views.ServersView"
+             x:DataType="vm:ServersViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Button.head">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.head:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    </Style>
+    <Style Selector="TextBlock.head">
+      <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ToggleButton.filter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ToggleButton.filter:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    </Style>
+    <Style Selector="Button.star">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="4" />
+      <Setter Property="Foreground" Value="{DynamicResource LineBrush}" />
+    </Style>
+    <Style Selector="Button.star.on">
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="Button.star:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.rows ListBoxItem">
+      <Setter Property="Margin" Value="0,0,0,1" />
+    </Style>
+    <Style Selector="TextBlock.ping.positive">
+      <Setter Property="Foreground" Value="{DynamicResource PositiveBrush}" />
+    </Style>
+    <Style Selector="TextBlock.ping.warning">
+      <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="display" Text="SERVERS" />
+        <StackPanel Orientation="Horizontal" Spacing="24">
+          <Button Classes="tab" Classes.on="{Binding ShowingInternet}" Command="{Binding ShowInternetCommand}" Content="Internet" />
+          <Button Classes="tab" Classes.on="{Binding ShowingFavorites}" Command="{Binding ShowFavoritesCommand}" Content="Favorites" />
+          <Button Classes="tab" Classes.on="{Binding ShowingRecent}" Command="{Binding ShowRecentCommand}" Content="Recently played" />
+        </StackPanel>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+        <Button Classes="ghost" Command="{Binding AddServerCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+            <TextBlock Text="Add by address" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding RefreshCommand}" IsEnabled="{Binding !Loading}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Data="{StaticResource IconRefresh}" Width="14" Height="14" />
+            <TextBlock Text="Refresh" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Spacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+        <TextBox Watermark="Search by name, map, tag or address" Text="{Binding Search}" MaxLength="80" AutomationProperties.Name="Search servers">
+          <TextBox.InnerLeftContent>
+            <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Regions}" SelectedItem="{Binding Region}" MinWidth="150" IsVisible="{Binding ShowingInternet}"
+                  AutomationProperties.Name="Region" ToolTip.Tip="{Binding RegionLabel}" />
+        <ComboBox Grid.Column="2" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" MinWidth="170" IsVisible="{Binding ShowingInternet}"
+                  AutomationProperties.Name="Game mode" />
+        <ComboBox Grid.Column="3" ItemsSource="{Binding PingLimits}" SelectedItem="{Binding PingLimit}" MinWidth="120" IsVisible="{Binding ShowingInternet}"
+                  AutomationProperties.Name="Ping" />
+      </Grid>
+      <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding ShowingInternet}">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <ToggleButton Classes="filter" IsChecked="{Binding HasPlayers}" Content="Has players" />
+          <ToggleButton Classes="filter" IsChecked="{Binding NotFull}" Content="Not full" />
+          <ToggleButton Classes="filter" IsChecked="{Binding NoPassword}" Content="No password" />
+          <ToggleButton Classes="filter" IsChecked="{Binding HideFake}" Content="Hide fake players"
+                        ToolTip.Tip="Hides servers that claim more players than their own player list shows" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Classes="meta" Text="{Binding RegionLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+      </Grid>
+    </StackPanel>
+
+    <StackPanel Grid.Row="2" Spacing="8">
+      <Border Classes="notice" IsVisible="{Binding SteamFiles.HasWaiting}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Margin="12,0,0,0" Content="Restart Steam now" Command="{Binding SteamFiles.RestartSteamCommand}"
+                  IsEnabled="{Binding !SteamFiles.Restarting}" />
+          <TextBlock Text="{Binding SteamFiles.WaitingText}" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13" />
+        </DockPanel>
+      </Border>
+      <Border Classes="notice" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Text="{Binding Error}" TextWrapping="Wrap" FontSize="13" />
+      </Border>
+      <Grid ColumnDefinitions="*,Auto" MinHeight="18">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Classes="meta" Text="{Binding Status}" VerticalAlignment="Center" />
+          <TextBlock Classes="meta" Text="Asking servers…" IsVisible="{Binding Loading}" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+          <TextBlock Classes="meta" Text="{Binding SourcesNote}" VerticalAlignment="Center" />
+          <Button Classes="link" FontSize="12" Content="Add a teamwork.tf key" Command="{Binding OpenTeamworkSettingsCommand}"
+                  IsVisible="{Binding !HasTeamworkKey}" />
+        </StackPanel>
+      </Grid>
+      <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" />
+    </StackPanel>
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,340" ColumnSpacing="20">
+      <DockPanel>
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="22,22,*,150,76,50,30" ColumnSpacing="8" Margin="12,0,14,6">
+          <PathIcon Data="{StaticResource IconLock}" Width="11" Height="11" Foreground="{DynamicResource FaintBrush}" ToolTip.Tip="Password" />
+          <PathIcon Grid.Column="1" Data="{StaticResource IconShield}" Width="11" Height="11" Foreground="{DynamicResource FaintBrush}" ToolTip.Tip="VAC secured" />
+          <Button Grid.Column="2" Classes="head" Content="{Binding NameHeader}" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:ServerSort.Name}" />
+          <Button Grid.Column="3" Classes="head" Content="{Binding MapHeader}" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:ServerSort.Map}" />
+          <Button Grid.Column="4" Classes="head" Content="{Binding PlayersHeader}" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:ServerSort.Players}"
+                  IsVisible="{Binding !ShowingRecent}" />
+          <Button Grid.Column="4" Classes="head" Content="{Binding LastPlayedHeader}" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:ServerSort.LastPlayed}"
+                  IsVisible="{Binding ShowingRecent}" />
+          <Button Grid.Column="5" Classes="head" Content="{Binding PingHeader}" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:ServerSort.Ping}"
+                  HorizontalAlignment="Right" />
+        </Grid>
+
+        <Border Classes="card" DockPanel.Dock="Top" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+          <TextBlock Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
+        </Border>
+
+        <ListBox Name="ServerList" Classes="rows" ItemsSource="{Binding Visible}" SelectedItem="{Binding Selected, Mode=OneWay}"
+                 AutomationProperties.Name="Servers">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:ServerRow">
+              <Grid ColumnDefinitions="22,22,*,150,76,50,30" ColumnSpacing="8" Height="46" Margin="12,0,14,0" Background="Transparent">
+                <PathIcon Data="{StaticResource IconLock}" Width="12" Height="12" Foreground="{DynamicResource MutedBrush}" IsVisible="{Binding Password}"
+                          ToolTip.Tip="Needs a password" />
+                <PathIcon Grid.Column="1" Data="{StaticResource IconShield}" Width="12" Height="12" Foreground="{DynamicResource FaintBrush}" IsVisible="{Binding Vac}"
+                          ToolTip.Tip="VAC secured" />
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="1">
+                  <DockPanel>
+                    <Border DockPanel.Dock="Left" Classes="pill warning" Margin="0,0,8,0" IsVisible="{Binding Fake}"
+                            ToolTip.Tip="Claims more players than its player list shows">
+                      <TextBlock Text="Fake players" />
+                    </Border>
+                    <TextBlock Classes="title" FontSize="14" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                  </DockPanel>
+                  <TextBlock Classes="meta" FontSize="11" Text="{Binding ModeText}" TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding ModeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <TextBlock Grid.Column="3" Classes="muted" FontSize="13" Text="{Binding MapName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           ToolTip.Tip="{Binding Map}" />
+                <StackPanel Grid.Column="4" VerticalAlignment="Center" IsVisible="{Binding !$parent[UserControl].((vm:ServersViewModel)DataContext).ShowingRecent}">
+                  <TextBlock Classes="figure" FontSize="13" Text="{Binding PlayersText}" />
+                  <TextBlock Classes="meta" FontSize="11" Text="{Binding BotsText}" IsVisible="{Binding BotsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <TextBlock Grid.Column="4" Classes="meta" Text="{Binding LastPlayedText}" VerticalAlignment="Center"
+                           IsVisible="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).ShowingRecent}" />
+                <TextBlock Grid.Column="5" Classes="figure ping" Classes.positive="{Binding PingGood}" Classes.warning="{Binding PingBad}"
+                           FontSize="13" Text="{Binding PingText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           ToolTip.Tip="{Binding PingTip}" />
+                <Button Grid.Column="6" Classes="star" Classes.on="{Binding Favorite}" VerticalAlignment="Center"
+                        Command="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).ToggleFavoriteCommand}" CommandParameter="{Binding}"
+                        ToolTip.Tip="Favorite" AutomationProperties.Name="Favorite">
+                  <PathIcon Data="{StaticResource IconStar}" Width="14" Height="14" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <ScrollViewer Grid.Column="1">
+        <StackPanel Spacing="16">
+          <Border Classes="card" IsVisible="{Binding !HasSelection}">
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Pick a server to see who's on it. Double-click one to join, or star it to keep it in Favorites." />
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding HasSelection}">
+            <StackPanel Spacing="14" DataContext="{Binding Selected}" x:DataType="vm:ServerRow">
+              <Border Height="170" Background="{DynamicResource GroundBrush}" CornerRadius="2" ClipToBounds="True">
+                <Panel>
+                  <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
+                    <TextBlock Classes="display" FontSize="26" Foreground="{DynamicResource FaintBrush}" Text="{Binding MapName}"
+                               HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="290" />
+                    <TextBlock Classes="meta" Text="{Binding Mode}" HorizontalAlignment="Center" />
+                  </StackPanel>
+                  <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="680"
+                         views:RemoteImage.Url="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).MapPicture}" />
+                </Panel>
+              </Border>
+
+              <StackPanel Spacing="4">
+                <TextBlock Classes="heading" FontSize="21" Text="{Binding Name}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Classes="meta figure" Text="{Binding AddressText}" VerticalAlignment="Center" />
+                  <Button Classes="link" Padding="2" Command="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).CopyAddressCommand}"
+                          ToolTip.Tip="Copy address" AutomationProperties.Name="Copy address">
+                    <PathIcon Data="{StaticResource IconCopy}" Width="12" Height="12" />
+                  </Button>
+                </StackPanel>
+              </StackPanel>
+
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="6">
+                <TextBlock Classes="meta" Text="Map" />
+                <TextBlock Grid.Column="1" Text="{Binding MapName}" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="1" Classes="meta" Text="Players" />
+                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                  <TextBlock Classes="figure" Text="{Binding PlayersText}" />
+                  <TextBlock Classes="meta" Text="{Binding BotsText}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Grid.Row="2" Classes="meta" Text="Ping" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Classes="figure" Text="{Binding PingText}" ToolTip.Tip="{Binding PingTip}" />
+                <TextBlock Grid.Row="3" Classes="meta" Text="Tags" IsVisible="{Binding TagText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Classes="muted" FontSize="13" Text="{Binding TagText}" TextWrapping="Wrap" />
+              </Grid>
+
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Classes="pill" IsVisible="{Binding Vac}"><TextBlock Text="VAC secured" /></Border>
+                <Border Classes="pill" IsVisible="{Binding Password}"><TextBlock Text="Password" /></Border>
+                <Border Classes="pill warning" IsVisible="{Binding Fake}"><TextBlock Text="Fake players" /></Border>
+                <Border Classes="pill" IsVisible="{Binding Full}"><TextBlock Text="Full" /></Border>
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14,10"
+                        Command="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).JoinCommand}" CommandParameter="{Binding}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PathIcon Data="{StaticResource IconPlay}" Width="14" Height="14" />
+                    <TextBlock Text="Join" />
+                  </StackPanel>
+                </Button>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                  <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                          Content="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).FavoriteLabel}"
+                          Command="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).ToggleFavoriteCommand}" CommandParameter="{Binding}" />
+                  <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Join when free"
+                          ToolTip.Tip="Keeps checking for 10 minutes and joins as soon as a slot opens"
+                          IsEnabled="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).CanWatch}"
+                          Command="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).WatchCommand}" />
+                </Grid>
+                <Border Classes="notice" Background="{DynamicResource RaisedBrush}"
+                        IsVisible="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).WatchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="link" Content="Stop" Margin="10,0,0,0"
+                            Command="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).CancelWatchCommand}" />
+                    <TextBlock FontSize="13" TextWrapping="Wrap" Text="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).WatchText}" />
+                  </DockPanel>
+                </Border>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding HasSelection}">
+            <StackPanel Spacing="10">
+              <TextBlock Classes="heading" Text="PLAYERS" />
+              <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingPlayers}" />
+              <TextBlock Classes="meta" Text="The server didn't list anyone." TextWrapping="Wrap"
+                         IsVisible="{Binding NoPlayersListed}" />
+              <ItemsControl ItemsSource="{Binding SelectedPlayers}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:PlayerRow">
+                    <Grid ColumnDefinitions="*,Auto,64" ColumnSpacing="10" Margin="0,0,0,5">
+                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                      <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding Score}" />
+                      <TextBlock Grid.Column="2" Classes="meta" Text="{Binding Time}" TextAlignment="Right" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Button Classes="link" FontSize="12" Command="{Binding ToggleRulesCommand}" Content="Server rules" HorizontalAlignment="Left" />
+              <ItemsControl ItemsSource="{Binding SelectedRules}" IsVisible="{Binding ShowRules}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:RuleRow">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,3">
+                      <TextBlock Classes="meta" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding Value}" MaxWidth="140" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

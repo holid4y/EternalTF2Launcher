@@ -67,9 +67,11 @@ public sealed partial class GameBananaViewModel : ObservableObject
         _services = services;
         _mods = mods;
         _sort = Sorts[0];
+        View = new ViewOptions(services.Launcher, s => s.GameBanana, textHeight: 114, thumbRatio: 140.0 / 216);
         services.Mods.Changed += () => Dispatcher.UIThread.Post(RefreshInstalled);
     }
 
+    public ViewOptions View { get; }
     public ObservableCollection<CategoryRow> Categories { get; } = [];
     public ObservableCollection<SubmissionCard> Items { get; } = [];
     public ObservableCollection<PageButton> Pages { get; } = [];

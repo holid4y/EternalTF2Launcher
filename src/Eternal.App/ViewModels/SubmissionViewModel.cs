@@ -214,7 +214,6 @@ public sealed partial class SubmissionViewModel : ObservableObject
         if (rows.Count == 0 || !await _mods.BeginImportAsync())
             return;
 
-        var downloads = Path.Combine(_services.Paths.ImportStagingDir, "downloads");
         var cancel = _install = new CancellationTokenSource();
         Installing = true;
         foreach (var row in rows)
@@ -234,7 +233,7 @@ public sealed partial class SubmissionViewModel : ObservableObject
                     row.Status = "Cancelled";
                     continue;
                 }
-                installed.AddRange(await InstallFileAsync(row, downloads, cancel.Token));
+                installed.AddRange(await InstallFileAsync(row, cancel.Token));
             }
         }
         finally
@@ -251,22 +250,24 @@ public sealed partial class SubmissionViewModel : ObservableObject
             _mods.Notify($"{Summary.Name} wasn't installed. {failed.Status}", isError: true);
     }
 
-    private async Task<IReadOnlyList<string>> InstallFileAsync(FileRow row, string downloads, CancellationToken cancellation)
+    private async Task<IReadOnlyList<string>> InstallFileAsync(FileRow row, CancellationToken cancellation)
     {
-        var folder = Path.Combine(downloads, row.File.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
         try
         {
             row.Step = FileStep.Downloading;
             row.Status = "Downloading";
-            var path = await _client.DownloadAsync(row.File, downloads, new Progress<double>(p =>
+            var progress = new Progress<double>(p =>
             {
+                if (p >= 1)
+                {
+                    row.Step = FileStep.Installing;
+                    row.Status = "Installing";
+                    return;
+                }
                 row.Progress = p * 100;
                 row.Status = $"Downloading {p:P0}";
-            }), cancellation);
-
-            row.Step = FileStep.Installing;
-            row.Status = "Installing";
-            var result = await _mods.ImportOneAsync(path, Summary.SourcePrefix + row.File.Id, Summary.Name, cancellation);
+            });
+            var result = await _mods.InstallGameBananaFileAsync(Summary, row.File, progress, cancellation);
             if (result.WasCancelled)
             {
                 row.Step = FileStep.Failed;
@@ -302,10 +303,6 @@ public sealed partial class SubmissionViewModel : ObservableObject
             row.Step = FileStep.Failed;
             row.Status = $"Couldn't install: {ex.Message}";
             return [];
-        }
-        finally
-        {
-            ArchiveIngest.TryDelete(folder);
         }
     }
 }

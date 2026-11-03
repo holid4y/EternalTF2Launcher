@@ -35,32 +35,7 @@ public sealed class ImageCache(string directory)
     {
         try
         {
-            var file = Path.Combine(directory, Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(url)))[..24] + ".img");
-            if (!File.Exists(file))
-            {
-                await _downloads.WaitAsync(cancellation).ConfigureAwait(false);
-                try
-                {
-                    var bytes = await DownloadAsync(url, cancellation).ConfigureAwait(false);
-                    Directory.CreateDirectory(directory);
-                    // Moved into place whole, so an interrupted or parallel download never leaves half a picture.
-                    var partial = $"{file}.{Guid.NewGuid():N}.part";
-                    try
-                    {
-                        await File.WriteAllBytesAsync(partial, bytes, cancellation).ConfigureAwait(false);
-                        File.Move(partial, file, overwrite: true);
-                    }
-                    finally
-                    {
-                        File.Delete(partial);
-                    }
-                }
-                finally
-                {
-                    _downloads.Release();
-                }
-            }
-
+            var file = await FileAsync(url, cancellation).ConfigureAwait(false);
             Bitmap bitmap;
             try
             {
@@ -91,6 +66,39 @@ public sealed class ImageCache(string directory)
         finally
         {
             _inflight.TryRemove(key, out _);
+        }
+    }
+
+    /// <summary>The downloaded file for an https picture, fetched once and kept on disk.</summary>
+    public async Task<string> FileAsync(string url, CancellationToken cancellation = default)
+    {
+        if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Only https pictures are loaded.", nameof(url));
+        var file = Path.Combine(directory, Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(url)))[..24] + ".img");
+        if (File.Exists(file))
+            return file;
+
+        await _downloads.WaitAsync(cancellation).ConfigureAwait(false);
+        try
+        {
+            var bytes = await DownloadAsync(url, cancellation).ConfigureAwait(false);
+            Directory.CreateDirectory(directory);
+            // Moved into place whole, so an interrupted or parallel download never leaves half a picture.
+            var partial = $"{file}.{Guid.NewGuid():N}.part";
+            try
+            {
+                await File.WriteAllBytesAsync(partial, bytes, cancellation).ConfigureAwait(false);
+                File.Move(partial, file, overwrite: true);
+            }
+            finally
+            {
+                File.Delete(partial);
+            }
+            return file;
+        }
+        finally
+        {
+            _downloads.Release();
         }
     }
 

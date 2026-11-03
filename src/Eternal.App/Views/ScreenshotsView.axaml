@@ -1,0 +1,311 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             xmlns:views="using:Eternal.App.Views"
+             x:Class="Eternal.App.Views.ScreenshotsView"
+             x:DataType="vm:ScreenshotsViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Border.shot">
+      <Setter Property="Background" Value="{DynamicResource GroundBrush}" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.shot:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
+    </Style>
+    <Style Selector="Border.shot.selected">
+      <Setter Property="BorderBrush" Value="{DynamicResource InkBrush}" />
+    </Style>
+    <Style Selector="Border.shot:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource MutedBrush}" />
+    </Style>
+    <Style Selector="Button.tool">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="10,7" />
+    </Style>
+    <Style Selector="Button.tool.on">
+      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    </Style>
+    <Style Selector="Button.swatch">
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="13" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
+    </Style>
+    <Style Selector="Button.swatch.on">
+      <Setter Property="BorderBrush" Value="{DynamicResource InkBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14" IsVisible="{Binding Browsing}">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="display" Text="SCREENSHOTS" />
+          <TextBlock Classes="meta" Text="{Binding Summary}" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Bottom">
+          <views:ViewSwitch DataContext="{Binding View}" VerticalAlignment="Center" />
+          <Button Command="{Binding RefreshCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconRefresh}" Width="14" Height="14" />
+              <TextBlock Text="Refresh" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Row="1" Spacing="8">
+        <Border Classes="notice" IsVisible="{Binding SteamFiles.HasWaiting}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Margin="12,0,0,0" Content="Restart Steam now" Command="{Binding SteamFiles.RestartSteamCommand}"
+                    IsEnabled="{Binding !SteamFiles.Restarting}" />
+            <TextBlock Text="{Binding SteamFiles.WaitingText}" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13" />
+          </DockPanel>
+        </Border>
+      </StackPanel>
+
+      <Grid Grid.Row="2" ColumnDefinitions="*,340" ColumnSpacing="24">
+        <Panel>
+          <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding NoAccount}">
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="No Steam account found on this PC, so there are no screenshots to show. Sign in to Steam and come back." />
+          </Border>
+          <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="title" Text="No TF2 screenshots yet" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Press F12 in game (or F5 with TF2's own key) and they show up here as soon as Steam saves them." />
+            </StackPanel>
+          </Border>
+          <ScrollViewer>
+            <Panel>
+              <ItemsRepeater Name="ShotGrid" ItemsSource="{Binding Items}" Margin="0,0,12,12" IsVisible="{Binding View.IsGrid}"
+                             views:CardSizing.Options="{Binding View}">
+                <ItemsRepeater.Layout>
+                  <UniformGridLayout MinRowSpacing="10" MinColumnSpacing="10" ItemsStretch="Fill" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                  <DataTemplate DataType="vm:ShotItem">
+                    <Border Classes="shot" Classes.selected="{Binding IsSelected}" Focusable="True" ToolTip.Tip="{Binding Taken}"
+                            AutomationProperties.Name="{Binding Taken}">
+                      <Panel>
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                        <Border Classes="badge" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Top" IsVisible="{Binding Uploaded}"
+                                ToolTip.Tip="On your Steam profile">
+                          <PathIcon Data="{StaticResource IconUpload}" Width="11" Height="11" />
+                        </Border>
+                      </Panel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+              </ItemsRepeater>
+              <ItemsRepeater Name="ShotList" ItemsSource="{Binding Items}" Margin="0,0,12,12" IsVisible="{Binding View.IsList}">
+                <ItemsRepeater.Layout>
+                  <StackLayout Spacing="4" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                  <DataTemplate DataType="vm:ShotItem">
+                    <Border Classes="shot" Classes.selected="{Binding IsSelected}" Focusable="True" Background="{DynamicResource SurfaceBrush}" Height="72"
+                            AutomationProperties.Name="{Binding Taken}">
+                      <Grid ColumnDefinitions="128,*,Auto" ColumnSpacing="16">
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                          <TextBlock Classes="title" Text="{Binding Taken}" />
+                          <TextBlock Classes="meta" Text="{Binding Size}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Classes="meta" Text="{Binding State}" VerticalAlignment="Center" Margin="0,0,16,0" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+              </ItemsRepeater>
+            </Panel>
+          </ScrollViewer>
+        </Panel>
+
+        <ScrollViewer Grid.Column="1">
+          <StackPanel Spacing="16">
+            <Border Classes="card" IsVisible="{Binding !HasSelection}">
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Pick a screenshot to edit it, copy it or put it on your Steam profile." />
+            </Border>
+            <Border Classes="card" IsVisible="{Binding HasSelection}">
+              <StackPanel Spacing="14" DataContext="{Binding Selected}" x:DataType="vm:ShotItem">
+                <Border Background="{DynamicResource GroundBrush}" CornerRadius="2" ClipToBounds="True" Height="168">
+                  <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                </Border>
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="heading" FontSize="20" Text="{Binding Taken}" />
+                  <TextBlock Classes="meta" Text="{Binding Size}" />
+                  <TextBlock Classes="meta" Text="{Binding State}" />
+                </StackPanel>
+                <Button Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="14,9"
+                        Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).EditCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PathIcon Data="{StaticResource IconEdit}" Width="14" Height="14" />
+                    <TextBlock Text="Edit" />
+                  </StackPanel>
+                </Button>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="8">
+                  <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).CopyImageCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Data="{StaticResource IconCopy}" Width="13" Height="13" />
+                      <TextBlock Text="Copy" />
+                    </StackPanel>
+                  </Button>
+                  <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).UploadCommand}"
+                          IsVisible="{Binding !Uploaded}" ToolTip.Tip="Opens Steam's uploader for TF2">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Data="{StaticResource IconUpload}" Width="13" Height="13" />
+                      <TextBlock Text="Upload" />
+                    </StackPanel>
+                  </Button>
+                  <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).CopyLinkCommand}"
+                          IsVisible="{Binding Uploaded}" ToolTip.Tip="Copies the public steamcommunity.com link">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Data="{StaticResource IconLink}" Width="13" Height="13" />
+                      <TextBlock Text="Copy link" />
+                    </StackPanel>
+                  </Button>
+                  <Button Grid.Row="1" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Show in folder"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).ShowInFolderCommand}" />
+                  <Button Grid.Row="1" Grid.Column="1" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Open on Steam"
+                          IsVisible="{Binding Uploaded}" Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).OpenLinkCommand}" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                  <Button Classes="link" Content="Revert to the original"
+                          IsVisible="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).CanRevert}"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).RevertCommand}" />
+                  <Button Classes="link danger" Content="Delete"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).DeleteCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+
+    <Panel IsVisible="{Binding Editing}">
+      <Grid ColumnDefinitions="*,260" ColumnSpacing="20" DataContext="{Binding Editor}" x:DataType="vm:ScreenshotEditorViewModel">
+        <DockPanel>
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="display" Text="EDIT" />
+              <TextBlock Classes="meta" Text="{Binding Hint}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+              <Button Classes="ghost" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Undo" HotKey="Ctrl+Z">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <PathIcon Data="{StaticResource IconUndo}" Width="14" Height="14" />
+                  <TextBlock Text="Undo" />
+                </StackPanel>
+              </Button>
+              <Button Classes="ghost" Content="Cancel" Command="{Binding CancelCommand}" />
+              <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding HasChanges}" />
+            </StackPanel>
+          </Grid>
+          <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="True" IsVisible="{Binding Saving}" Margin="0,0,0,8" />
+          <Border Background="{DynamicResource GroundBrush}" CornerRadius="3" ClipToBounds="True">
+            <Panel Name="Stage" Background="Transparent" Cursor="Cross">
+              <Image Name="Picture" Source="{Binding Preview}" Stretch="Uniform" />
+              <Canvas Name="Overlay" IsHitTestVisible="False" />
+            </Panel>
+          </Border>
+        </DockPanel>
+
+        <ScrollViewer Grid.Column="1">
+          <StackPanel Spacing="16">
+            <Border Classes="card" Padding="14">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="meta" Text="Tools" Margin="0,0,0,4" />
+                <Button Classes="tool" Classes.on="{Binding Cropping}" Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Crop}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconCrop}" Width="14" Height="14" /><TextBlock Text="Crop" /></StackPanel>
+                </Button>
+                <ComboBox ItemsSource="{Binding Ratios}" SelectedItem="{Binding Ratio}" HorizontalAlignment="Stretch" IsVisible="{Binding Cropping}"
+                          AutomationProperties.Name="Crop shape" />
+                <Button Classes="link" FontSize="12" Content="Remove crop" Command="{Binding ClearCropCommand}" IsVisible="{Binding Cropping}" Margin="10,2,0,4" />
+                <Button Classes="tool" Classes.on="{Binding UsingBlur}"
+                        Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Blur}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconEye}" Width="14" Height="14" /><TextBlock Text="Blur" /></StackPanel>
+                </Button>
+                <Button Classes="tool" Classes.on="{Binding UsingPixelate}"
+                        Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Pixelate}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconPixelate}" Width="14" Height="14" /><TextBlock Text="Pixelate" /></StackPanel>
+                </Button>
+                <Button Classes="tool" Classes.on="{Binding UsingBox}"
+                        Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Box}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconBox}" Width="14" Height="14" /><TextBlock Text="Box" /></StackPanel>
+                </Button>
+                <Button Classes="tool" Classes.on="{Binding UsingArrow}"
+                        Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Arrow}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconArrow}" Width="14" Height="14" /><TextBlock Text="Arrow" /></StackPanel>
+                </Button>
+                <Button Classes="tool" Classes.on="{Binding UsingText}"
+                        Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Text}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconText}" Width="14" Height="14" /><TextBlock Text="Text" /></StackPanel>
+                </Button>
+                <ItemsControl ItemsSource="{Binding Swatches}" IsVisible="{Binding Marking}" Margin="6,6,0,2">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:Swatch">
+                      <Button Classes="swatch" Background="{Binding Brush}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
+                              Classes.on="{Binding Selected}"
+                              Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).Editor.PickColorCommand}" CommandParameter="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Classes="link" FontSize="12" Content="Remove marks" Command="{Binding ClearMarksCommand}" Margin="10,6,0,0" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="14">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="meta" Text="Turn and flip" />
+                <UniformGrid Columns="4">
+                  <Button Classes="ghost" Command="{Binding TurnLeftCommand}" ToolTip.Tip="Turn left" AutomationProperties.Name="Turn left" HorizontalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconRotate}" Width="15" Height="15" RenderTransform="scaleX(-1)" />
+                  </Button>
+                  <Button Classes="ghost" Command="{Binding TurnRightCommand}" ToolTip.Tip="Turn right" AutomationProperties.Name="Turn right" HorizontalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconRotate}" Width="15" Height="15" />
+                  </Button>
+                  <Button Classes="ghost" Command="{Binding FlipHorizontalCommand}" ToolTip.Tip="Mirror" AutomationProperties.Name="Mirror" HorizontalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconFlip}" Width="15" Height="15" />
+                  </Button>
+                  <Button Classes="ghost" Command="{Binding FlipVerticalCommand}" ToolTip.Tip="Upside down" AutomationProperties.Name="Upside down" HorizontalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconFlip}" Width="15" Height="15" RenderTransform="rotate(90deg)" />
+                  </Button>
+                </UniformGrid>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="14">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="meta" Text="Brightness" />
+                <Slider Name="BrightnessSlider" Minimum="-100" Maximum="100" Value="{Binding Brightness}" AutomationProperties.Name="Brightness" />
+                <TextBlock Classes="meta" Text="Contrast" />
+                <Slider Name="ContrastSlider" Minimum="-90" Maximum="100" Value="{Binding Contrast}" AutomationProperties.Name="Contrast" />
+                <TextBlock Classes="meta" Text="Saturation" />
+                <Slider Name="SaturationSlider" Minimum="-100" Maximum="100" Value="{Binding Saturation}" AutomationProperties.Name="Saturation" />
+                <Button Classes="link" FontSize="12" Content="Start over" Command="{Binding ResetCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Panel>
+  </Panel>
+</UserControl>

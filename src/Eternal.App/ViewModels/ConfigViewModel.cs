@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eternal.App.Services;
 using Eternal.Core.Engine;
+using Eternal.Core.Mods;
 using Eternal.Core.Persistence;
 using Eternal.Core.Platform;
 using Eternal.Core.Profiles;
@@ -210,6 +211,15 @@ public sealed partial class ConfigViewModel : PageViewModel
             (true, AutoexecStatus.NoGameFolder) => "Saved. Set your TF2 folder in the Launcher tab to apply it to the game.",
             _ => $"Saved and written to {Path.GetFileName(Path.GetDirectoryName(report.Autoexec.Path ?? "") ?? "")}/autoexec.cfg",
         };
+        if (report.Viewmodels is { Status: ViewmodelStatus.Failed or ViewmodelStatus.NoLayout } vm)
+        {
+            SaveProblem = true;
+            SaveStatus += $". See-through weapons couldn't be set up: {vm.Error}";
+        }
+        else if (report.Viewmodels is { Status: ViewmodelStatus.Applied, From: { } from })
+        {
+            SaveStatus += $". See-through weapons ride on {from}.";
+        }
     }
 
     [RelayCommand]
@@ -313,7 +323,7 @@ public sealed partial class ConfigViewModel : PageViewModel
                 "This profile carries its own autoexec.cfg lines (outside the launcher's block). Replace yours with them?",
                 "Replace", "Keep mine"))
             _services.Game.SetPendingUserContent(text);
-        var missing = profile.Mods is { } mods ? _services.Mods.ApplySelection(mods.Addons, mods.Particles) : [];
+        var missing = profile.Mods is { } mods ? _services.Mods.ApplySelection(mods) : [];
         _main.Notify(missing.Count == 0
             ? $"Applied {profile.Name}."
             : $"Applied {profile.Name}. Not in your mod library, so left out: {string.Join(", ", missing)}.");
@@ -370,32 +380,170 @@ public sealed partial class ConfigViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private async Task ImportProfileAsync()
+    private async Task CopySetupCodeAsync()
     {
-        var files = await Pickers.OpenFilesAsync("Import profile", false, "Profiles", "*.json");
-        if (files.Count == 0)
+        if (await NameSetupAsync() is not { } name)
+            return;
+        var profile = ProfileStore.Capture(_services.Game.Settings, name, null, ReadUserAutoexec(), _services.Mods.Loaded ? CurrentMods() : null);
+        var code = ShareCode.Encode(profile);
+        await Pickers.CopyAsync(code);
+        var handMade = HandMadeMods().Count;
+        _main.Notify(handMade == 0
+            ? "Setup code copied. Paste it anywhere; importing it downloads the GameBanana mods too."
+            : $"Setup code copied. {handMade} of your mods aren't from GameBanana, so they only come along in a bundle (Share, Save as a file).");
+    }
+
+    [RelayCommand]
+    private async Task SaveSetupFileAsync()
+    {
+        if (await NameSetupAsync() is not { } name)
+            return;
+        if (await Pickers.SaveFileAsync("Save setup", $"{name}.{ProfileBundle.Extension}", ProfileBundle.Extension) is not { } path)
+            return;
+        var profile = ProfileStore.Capture(_services.Game.Settings, name, null, ReadUserAutoexec(), _services.Mods.Loaded ? CurrentMods() : null);
+        var mods = HandMadeMods();
+        try
+        {
+            await Task.Run(() => ProfileBundle.Write(path, profile, mods));
+            _main.Notify(mods.Count == 0
+                ? $"Saved {Path.GetFileName(path)}."
+                : $"Saved {Path.GetFileName(path)} with the files of {mods.Count} mod{(mods.Count == 1 ? "" : "s")} that aren't on GameBanana.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            await _main.AlertAsync("Couldn't save the setup", ex.Message);
+        }
+    }
+
+    private Task<string?> NameSetupAsync() =>
+        _main.PromptAsync("Share your setup", "Give it a name the other person will see.", "My setup", "Continue");
+
+    [RelayCommand]
+    private async Task PasteSetupCodeAsync()
+    {
+        var code = await _main.PromptAsync("Import a setup code", "Paste the code someone shared. It starts with " + ShareCode.Prefix, confirm: "Next");
+        if (string.IsNullOrWhiteSpace(code))
             return;
         try
         {
-            var result = _services.Profiles.Import(files[0]);
-            RefreshProfiles();
-            SelectedProfile = Profiles.FirstOrDefault(p => p.Id == result.Profile.Id);
-            var note = result.UnknownSettings > 0 ? $" {result.UnknownSettings} setting(s) from another version were skipped." : "";
-            _main.Notify($"Imported {result.Profile.Name}.{note}");
+            await ImportSetupAsync(ShareCode.Decode(code), [], null);
         }
-        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidDataException or IOException)
+        catch (InvalidDataException ex)
         {
-            await _main.AlertAsync("Not a profile", ex.Message);
+            await _main.AlertAsync("That code can't be used", ex.Message);
         }
     }
 
     [RelayCommand]
-    private async Task ExportProfileAsync()
+    private async Task OpenSetupFileAsync()
     {
-        if (SelectedProfile is not { } profile)
+        var files = await Pickers.OpenFilesAsync("Import a setup", false, "Setups and profiles", "*." + ProfileBundle.Extension, "*.json");
+        if (files.Count == 0)
             return;
-        if (await Pickers.SaveFileAsync("Export profile", $"{profile.Name}.json", "json") is { } path)
-            _services.Profiles.Export(profile, path);
+        try
+        {
+            if (files[0].EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                await ImportSetupAsync(ProfileStore.Read(files[0]), [], null);
+                return;
+            }
+            var contents = await Task.Run(() => ProfileBundle.Open(files[0], _services.Paths.ImportStagingDir));
+            await ImportSetupAsync(contents.Import, contents.Mods, contents.Staging);
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            await _main.AlertAsync("That file can't be used", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Shows what a shared setup will change, then keeps it as a profile, applies
+    /// it, brings in its mods and puts them in its order.
+    /// </summary>
+    private async Task ImportSetupAsync(ProfileImport import, IReadOnlyList<BundledMod> bundled, string? staging)
+    {
+        try
+        {
+            var profile = import.Profile;
+            var wanted = profile.Mods is { } m
+                ? m.Addons.Select(n => (Name: n, Kind: ModKind.Addon)).Concat(m.Particles.Select(n => (Name: n, Kind: ModKind.Particle))).ToList()
+                : [];
+            var plan = new List<SharedModPlan>();
+            var have = 0;
+            var missing = new List<string>();
+            foreach (var (name, kind) in wanted)
+            {
+                var source = profile.Mods!.Sources?.GetValueOrDefault(name);
+                if (_services.Mods.Has(name, kind, source))
+                    have++;
+                else if (bundled.FirstOrDefault(b => b.Name == name && b.Kind == kind) is { } packed)
+                    plan.Add(new SharedModPlan(name, kind, null, packed));
+                else if (source is not null)
+                    plan.Add(new SharedModPlan(name, kind, source, null));
+                else
+                    missing.Add(name);
+            }
+
+            if (!await _main.ConfirmAsync($"Import \"{profile.Name}\"", Describe(import, have, plan, missing), "Import and apply"))
+                return;
+
+            _services.Profiles.Save(profile);
+            RefreshProfiles();
+            SelectedProfile = Profiles.FirstOrDefault(p => p.Id == profile.Id);
+            ProfileStore.Apply(profile, _services.Game.Settings);
+            if (profile.UserAutoexec is { } text)
+                _services.Game.SetPendingUserContent(text);
+
+            var problems = await _main.Mods.InstallSharedAsync(plan, CancellationToken.None);
+            var left = profile.Mods is { } mods ? _services.Mods.ApplySelection(mods) : [];
+            if (problems.Count > 0)
+                await _main.AlertAsync("Imported, with some mods left out", string.Join("\n", problems.Select(p => "• " + p)));
+            _main.Notify(left.Count == 0
+                ? $"{profile.Name} is in place. Press Play to try it."
+                : $"{profile.Name} is in place, without {string.Join(", ", left)}.");
+        }
+        finally
+        {
+            if (staging is not null)
+                ArchiveIngest.TryDelete(staging);
+        }
+    }
+
+    private static string Describe(ProfileImport import, int have, IReadOnlyList<SharedModPlan> plan, IReadOnlyList<string> missing)
+    {
+        var p = import.Profile;
+        var lines = new List<string> { $"Replaces your settings with its {p.Values.Count} settings" + (p.Binds is { Count: > 0 } b ? $", {b.Count} binds" : "") + (string.IsNullOrWhiteSpace(p.ExtraLaunchArgs) ? "." : " and its launch options.") };
+        if (p.UserAutoexec is not null)
+            lines.Add("Replaces the lines you wrote in autoexec.cfg with its own.");
+        if (import.UnknownSettings > 0)
+            lines.Add($"{import.UnknownSettings} setting(s) from another version are skipped.");
+        if (p.Mods is not null)
+        {
+            var downloads = plan.Count(x => x.Source is not null);
+            var packed = plan.Count(x => x.Bundled is not null);
+            var parts = new List<string>();
+            if (have > 0)
+                parts.Add($"{have} already in your library");
+            if (downloads > 0)
+                parts.Add($"{downloads} to download from GameBanana");
+            if (packed > 0)
+                parts.Add($"{packed} packed in the file");
+            lines.Add(parts.Count == 0 ? "Turns all your mods off." : $"Mods: {string.Join(", ", parts)}. Everything else gets switched off.");
+            if (missing.Count > 0)
+                lines.Add($"Not included, so left out: {string.Join(", ", missing.Take(6))}{(missing.Count > 6 ? $" and {missing.Count - 6} more" : "")}.");
+        }
+        return string.Join("\n\n", lines);
+    }
+
+    /// <summary>Enabled mods that GameBanana can't hand out again, with the folder that holds their files.</summary>
+    private List<BundledMod> HandMadeMods()
+    {
+        var sources = _services.Mods.EnabledSources();
+        return _services.Mods.State.Order
+            .Where(e => e.Enabled && !sources.ContainsKey(e.Name))
+            .Select(e => new BundledMod(e.Name, e.Kind, Path.Combine(_services.Paths.EngineDataDir, "mods", e.Kind == ModKind.Particle ? "particles" : "addons", e.Name)))
+            .Where(m => Directory.Exists(m.Folder))
+            .ToList();
     }
 
     [RelayCommand]
@@ -437,10 +585,12 @@ public sealed partial class ConfigViewModel : PageViewModel
     private ProfileMods CurrentMods()
     {
         var enabled = _services.Mods.State.Order.Where(e => e.Enabled).ToList();
+        var sources = _services.Mods.EnabledSources();
         return new ProfileMods
         {
             Addons = enabled.Where(e => e.Kind == ModKind.Addon).Select(e => e.Name).ToList(),
             Particles = enabled.Where(e => e.Kind == ModKind.Particle).Select(e => e.Name).ToList(),
+            Sources = sources.Count > 0 ? sources : null,
         };
     }
 }

@@ -41,6 +41,9 @@ public sealed class LauncherSettingsStore : IDisposable
         try
         {
             JsonFile.Save(_path, Settings, CoreJson.Default.LauncherSettings);
+            // It can hold the player's API keys; other accounts on the machine have no business reading them.
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(_path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

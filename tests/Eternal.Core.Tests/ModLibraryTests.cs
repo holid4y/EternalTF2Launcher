@@ -30,10 +30,31 @@ public sealed class ModLibraryTests : IDisposable
             ]}
             """);
 
-        var missing = library.ApplySelection(["Skybox", "Friend's HUD"], ["Unusuals"]);
+        var missing = library.ApplySelection(new Eternal.Core.Profiles.ProfileMods { Addons = ["Skybox", "Friend's HUD"], Particles = ["Unusuals"] });
 
         Assert.Equal(["Friend's HUD"], missing);
         Assert.Equal(["Skybox", "Unusuals", "Hitsound"], library.State.Order.Select(e => e.Name));
         Assert.Equal([true, true, false], library.State.Order.Select(e => e.Enabled));
+    }
+
+    [Fact]
+    public void A_shared_gamebanana_mod_is_found_by_its_file_even_under_another_name()
+    {
+        var library = Create("""
+            {"order": [
+              {"name": "Femme Pyro 2", "kind": "Addon", "enabled": false, "source": "gamebanana:516266:1771624"},
+              {"name": "Femme Pyro", "kind": "Addon", "enabled": true}
+            ]}
+            """);
+
+        var missing = library.ApplySelection(new Eternal.Core.Profiles.ProfileMods
+        {
+            Addons = ["Femme Pyro"],
+            Sources = new() { ["Femme Pyro"] = "gamebanana:516266:1771624" },
+        });
+
+        Assert.Empty(missing);
+        Assert.Equal([true, false], library.State.Order.Select(e => e.Enabled));
+        Assert.Equal("Femme Pyro 2", library.State.Order[0].Name);
     }
 }
