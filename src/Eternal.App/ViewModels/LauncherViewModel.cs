@@ -53,6 +53,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         _hasCustomAccent = s.AccentOverride is not null;
         _backgroundImage = s.BackgroundImage;
         _backgroundMode = s.Background;
+        _rotateMinutes = s.BackgroundRotateMinutes;
         _backgroundDim = s.BackgroundDim;
         _backgroundBlur = s.BackgroundBlur;
         _uiScale = s.UiScale;
@@ -76,24 +77,31 @@ public sealed partial class LauncherViewModel : PageViewModel
     public string[] Currencies { get; } = [.. PriceService.SteamCurrencies.Keys];
     public string[] LogLevels { get; } = ["Debug", "Info", "Warning", "Error"];
     public string[] StartTabs { get; } = ["home", "servers", "mods", "backpack", "screenshots", "config"];
-    public BackgroundMode[] BackgroundModes { get; } = [BackgroundMode.Screenshots, BackgroundMode.Picture, BackgroundMode.None];
+    public BackgroundMode[] BackgroundModes { get; } = [BackgroundMode.Screenshots, BackgroundMode.Rotate, BackgroundMode.Screenshot, BackgroundMode.Picture, BackgroundMode.None];
+    public int[] RotateMinuteChoices { get; } = [1, 5, 15, 60];
 
-    public bool UsesScreenshots => BackgroundMode == BackgroundMode.Screenshots;
+    public bool UsesScreenshots => BackgroundMode is BackgroundMode.Screenshots or BackgroundMode.Rotate;
     public bool CanCycleScreenshots => UsesScreenshots && _theme.Screenshots.Count > 1;
+    public bool UsesRotate => BackgroundMode == BackgroundMode.Rotate;
+    public bool UsesStaticScreenshot => BackgroundMode == BackgroundMode.Screenshot;
     public bool UsesPicture => BackgroundMode == BackgroundMode.Picture;
     public bool HasBackground => BackgroundMode != BackgroundMode.None;
     public string ScreenshotNote => _theme.Screenshots.Count switch
     {
         0 => "No TF2 screenshots found yet. Press F12 in game to take some; they show up here next time.",
         1 => "1 TF2 screenshot from your Steam library.",
-        var n => $"{n} TF2 screenshots from your Steam library. A different one shows each time the launcher opens.",
+        var n => BackgroundMode == BackgroundMode.Rotate
+            ? $"{n} TF2 screenshots from your Steam library. The background moves to the next one every few minutes."
+            : $"{n} TF2 screenshots from your Steam library. A different one shows each time the launcher opens.",
     };
+    public string StaticScreenshotNote => "Stays until you pick another — use the Set as background button on any screenshot in the Screenshots tab.";
 
     [ObservableProperty] private ThemeChoice _selectedTheme;
     [ObservableProperty] private Color _accent;
     [ObservableProperty] private bool _hasCustomAccent;
     [ObservableProperty] private string? _backgroundImage;
     [ObservableProperty] private BackgroundMode _backgroundMode;
+    [ObservableProperty] private int _rotateMinutes;
     [ObservableProperty] private double _backgroundDim;
     [ObservableProperty] private double _backgroundBlur;
     [ObservableProperty] private double _uiScale;
@@ -236,10 +244,14 @@ public sealed partial class LauncherViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(UsesScreenshots));
         OnPropertyChanged(nameof(CanCycleScreenshots));
+        OnPropertyChanged(nameof(UsesRotate));
+        OnPropertyChanged(nameof(UsesStaticScreenshot));
         OnPropertyChanged(nameof(UsesPicture));
         OnPropertyChanged(nameof(HasBackground));
         Save(s => s.Background = value, restyle: true);
     }
+
+    partial void OnRotateMinutesChanged(int value) => Save(s => s.BackgroundRotateMinutes = value, restyle: true);
 
     [RelayCommand]
     private void NextScreenshot() => _theme.NextScreenshot(_services.Launcher.Settings);

@@ -18,6 +18,8 @@ public static class Converters
         new FuncValueConverter<Eternal.Core.BackgroundMode, string>(mode => mode switch
         {
             Eternal.Core.BackgroundMode.Screenshots => "My TF2 screenshots",
+            Eternal.Core.BackgroundMode.Rotate => "My TF2 screenshots, rotating",
+            Eternal.Core.BackgroundMode.Screenshot => "One chosen screenshot",
             Eternal.Core.BackgroundMode.Picture => "A picture I choose",
             _ => "None",
         });

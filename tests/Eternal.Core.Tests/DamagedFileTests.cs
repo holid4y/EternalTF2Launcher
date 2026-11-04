@@ -26,6 +26,17 @@ public sealed class DamagedFileTests : IDisposable
         Assert.Equal(LauncherSettings.DefaultTabOrder, store.Settings.NormalizedTabs().Select(t => t.Id));
     }
 
+    [Fact]
+    public void Nonsense_background_settings_are_clamped_on_load()
+    {
+        var settings = System.Text.Json.JsonSerializer.Deserialize<Eternal.Core.LauncherSettings>(
+            """{"Background": 99, "BackgroundRotateMinutes": 99999, "BackgroundScreenshot": "x"}""")!;
+
+        Assert.Equal(Eternal.Core.BackgroundMode.Screenshots, settings.Background);
+        Assert.Equal(120, settings.BackgroundRotateMinutes);
+        Assert.Equal("x", settings.BackgroundScreenshot);
+    }
+
     [Theory]
     [InlineData("""{"order": [null]}""")]
     [InlineData("""{"order": [{"name": "Hitsound", "kind": "Addon", "enabled": true}, null]}""")]

@@ -20,6 +20,7 @@ public sealed partial class ShotItem(SteamScreenshot shot) : ObservableObject
 
     [ObservableProperty] private Bitmap? _thumbnail;
     [ObservableProperty] private bool _isSelected;
+    [ObservableProperty] private bool _isBackground;
 
     public string Taken => Shot.Taken.ToLocalTime().ToString("d MMM yyyy, HH:mm", CultureInfo.InvariantCulture);
     public string Size => Shot.Width > 0 ? $"{Shot.Width}×{Shot.Height}" : "";
@@ -152,6 +153,30 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
     [RelayCommand]
     private Task RefreshAsync() => LoadAsync();
 
+    [RelayCommand]
+    private void SetBackground()
+    {
+        if (Selected is not { } item)
+            return;
+        _services.Launcher.Update(s =>
+        {
+            s.Background = Eternal.Core.BackgroundMode.Screenshot;
+            s.BackgroundScreenshot = item.Shot.FullPath;
+        });
+        _main.Theme.Apply(_services.Launcher.Settings);
+        RefreshBackgroundBadges();
+        _main.Notify("This screenshot is now the launcher background. Change the mode in Launcher → Look.");
+    }
+
+    private void RefreshBackgroundBadges()
+    {
+        var current = _services.Launcher.Settings.Background == Eternal.Core.BackgroundMode.Screenshot
+            ? _services.Launcher.Settings.BackgroundScreenshot
+            : null;
+        foreach (var item in Items)
+            item.IsBackground = current is not null && item.Shot.FullPath == current;
+    }
+
     private async Task LoadAsync()
     {
         var userDir = _services.SteamUserDir;
@@ -179,6 +204,7 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
                 return new ShotItem(shot);
             }).ToList();
             Items.ReplaceAll(next);
+            RefreshBackgroundBadges();
             if (Selected is not null && !next.Contains(Selected))
                 Selected = null;
         }

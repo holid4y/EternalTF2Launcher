@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Eternal.Core;
 using Eternal.Core.Logging;
@@ -84,10 +85,36 @@ public sealed partial class ThemeService : ObservableObject
         var source = settings.Background switch
         {
             BackgroundMode.Picture => settings.BackgroundImage,
-            BackgroundMode.Screenshots => CurrentScreenshot(),
+            BackgroundMode.Screenshot => settings.BackgroundScreenshot,
+            BackgroundMode.Screenshots or BackgroundMode.Rotate => CurrentScreenshot(),
             _ => null,
         };
         _ = UpdateBackgroundAsync(source, settings.BackgroundBlur);
+        StartRotation(settings);
+    }
+
+    private DispatcherTimer? _rotate;
+    private int _rotateIndex;
+
+    /// <summary>In Rotate mode, moves to the next screenshot every few minutes.</summary>
+    private void StartRotation(LauncherSettings settings)
+    {
+        _rotate?.Stop();
+        _rotate = null;
+        if (settings.Background != BackgroundMode.Rotate || Screenshots.Count < 2)
+            return;
+        _rotateIndex = 0;
+        var every = TimeSpan.FromMinutes(Math.Clamp(settings.BackgroundRotateMinutes, 1, 120));
+        _rotate = new DispatcherTimer(every, DispatcherPriority.Background, (_, _) =>
+        {
+            var pool = Screenshots.Take(40).ToList();
+            if (pool.Count < 2)
+                return;
+            _rotateIndex = (_rotateIndex + 1) % pool.Count;
+            _screenshot = pool[_rotateIndex];
+            _ = UpdateBackgroundAsync(_screenshot, settings.BackgroundBlur);
+        });
+        _rotate.Start();
     }
 
     /// <summary>The top hat in the accent colour, so a custom accent reaches the window and tray icons too.</summary>

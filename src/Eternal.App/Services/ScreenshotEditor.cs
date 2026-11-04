@@ -3,9 +3,9 @@ using SkiaSharp;
 
 namespace Eternal.App.Services;
 
-public enum MarkKind { Blur, Pixelate, Box, Arrow, Text }
+public enum MarkKind { Blur, Pixelate, Box, Arrow, Text, Image }
 
-public sealed record Mark(MarkKind Kind, SKRect Area, SKColor Color, string? Text = null);
+public sealed record Mark(MarkKind Kind, SKRect Area, SKColor Color, string? Text = null, float Scale = 1f, byte[]? ImageData = null);
 
 public sealed record ImageEdit
 {
@@ -89,7 +89,14 @@ public static class ScreenshotRenderer
                         Arrow(canvas, new SKPoint(r.Left, r.Top), new SKPoint(r.Right, r.Bottom), mark.Color, unit);
                         break;
                     case MarkKind.Text when !string.IsNullOrWhiteSpace(mark.Text):
-                        Text(canvas, mark.Text, new SKPoint(r.Left, r.Top), mark.Color, h);
+                        Text(canvas, mark.Text, new SKPoint(r.Left, r.Top), mark.Color, h, mark.Scale);
+                        break;
+                    case MarkKind.Image when mark.ImageData is { Length: > 0 } data:
+                        using (var image = SKImage.FromEncodedData(data))
+                        {
+                            if (image is not null)
+                                canvas.DrawImage(image, Clamp(r, w, h), new SKPaint { FilterQuality = SKFilterQuality.Medium, IsAntialias = true });
+                        }
                         break;
                 }
             }
@@ -237,6 +244,15 @@ public static class ScreenshotRenderer
         return new SKRect(area.Left + dx, area.Top + dy, area.Right + dx, area.Bottom + dy);
     }
 
+    /// <summary>Moves a mark's right/bottom edge by <paramref name="delta"/>, clamped inside the picture.</summary>
+    public static SKRect Resize(SKRect area, SKPoint delta)
+    {
+        const float min = 0.01f;
+        var right = Math.Clamp(area.Right + delta.X, Math.Min(area.Left + min, 1f), 1f);
+        var bottom = Math.Clamp(area.Bottom + delta.Y, Math.Min(area.Top + min, 1f), 1f);
+        return new SKRect(area.Left, area.Top, right, bottom);
+    }
+
     /// <summary>Index of the topmost mark under <paramref name="at"/> (normalized image coordinates), or -1.</summary>
     public static int HitTest(IReadOnlyList<Mark> marks, SKPoint at, float width, float height)
     {
@@ -251,7 +267,7 @@ public static class ScreenshotRenderer
             }
             else if (m.Kind == MarkKind.Text && !string.IsNullOrWhiteSpace(m.Text))
             {
-                var size = TextSize(height);
+                var size = TextSize(height) * Math.Clamp(m.Scale, 0.2f, 8f);
                 var box = new SKRect(m.Area.Left - pad, m.Area.Top - pad,
                     m.Area.Left + m.Text.Length * size * 0.58f / width + pad, m.Area.Top + size / height + pad);
                 if (box.Contains(at))
@@ -267,6 +283,30 @@ public static class ScreenshotRenderer
         return -1;
     }
 
+    public const int MaxImageFileBytes = 16 * 1024 * 1024;
+    public const int MaxImageDimension = 4096;
+    public static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"];
+
+    /// <summary>Reads a local picture for stamping: known extension, size cap, decodable, dimension cap.</summary>
+    public static byte[] LoadImageFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        if (!ImageExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            throw new InvalidDataException($"{Path.GetFileName(path)} isn't a PNG, JPG, WebP, BMP or GIF picture.");
+        var info = new FileInfo(path);
+        if (!info.Exists)
+            throw new InvalidDataException("That file doesn't exist anymore.");
+        if (info.Length > MaxImageFileBytes)
+            throw new InvalidDataException($"{Path.GetFileName(path)} is larger than {MaxImageFileBytes / (1024 * 1024)} MB.");
+        var data = File.ReadAllBytes(path);
+        using var decoded = SKBitmap.Decode(data);
+        if (decoded is null)
+            throw new InvalidDataException($"{Path.GetFileName(path)} couldn't be read as a picture.");
+        if (decoded.Width > MaxImageDimension || decoded.Height > MaxImageDimension)
+            throw new InvalidDataException($"Pictures up to {MaxImageDimension}×{MaxImageDimension} pixels only.");
+        return data;
+    }
+
     private static float DistanceToSegment(SKPoint p, SKPoint a, SKPoint b)
     {
         var dx = b.X - a.X;
@@ -278,12 +318,12 @@ public static class ScreenshotRenderer
         return MathF.Sqrt(x * x + y * y);
     }
 
-    private static void Text(SKCanvas canvas, string text, SKPoint at, SKColor color, int height)
+    private static void Text(SKCanvas canvas, string text, SKPoint at, SKColor color, int height, float scale = 1f)
     {
         if (text.Length > MaxTextLength)
             text = text[..MaxTextLength];
         using var typeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
-        using var font = new SKFont(typeface, TextSize(height));
+        using var font = new SKFont(typeface, TextSize(height) * Math.Clamp(scale, 0.2f, 8f));
         using var outline = new SKPaint { Color = SKColors.Black.WithAlpha(200), IsStroke = true, StrokeWidth = font.Size * 0.14f, IsAntialias = true, StrokeJoin = SKStrokeJoin.Round };
         using var fill = new SKPaint { Color = color, IsAntialias = true };
         var baseline = new SKPoint(at.X, at.Y + font.Size);

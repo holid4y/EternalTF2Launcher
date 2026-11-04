@@ -375,6 +375,29 @@ public sealed class UpdateInstallTests : IDisposable
     }
 
     [Fact]
+    public async Task Reopen_can_come_from_a_marker_file_written_after_arming()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
+        var installed = Path.Combine(_dir, "installed");
+        var reopened = Path.Combine(_dir, "reopened");
+        var installer = Script("install.sh", $"echo done > '{installed}'");
+        var reopen = Script("launcher", $"echo opened > '{reopened}'");
+        File.WriteAllText(Path.Combine(work, "reopen.txt"), reopen);
+        using var launcher = System.Diagnostics.Process.Start("sleep", "1");
+        var update = new PreparedUpdate(InstallKind.LinuxInstall, new Version(2, 2, 0), installer, work);
+
+        // Armed without a reopen argument; the marker file written later makes it open again.
+        UpdateInstaller.Launch(update, launcher.Id, null, _dir);
+
+        Assert.Equal("ok", await ResultOf(update));
+        for (var i = 0; i < 50 && !File.Exists(reopened); i++)
+            await Task.Delay(100);
+        Assert.True(File.Exists(reopened));
+    }
+
+    [Fact]
     public async Task A_failed_install_is_reported_on_the_next_start()
     {
         if (OperatingSystem.IsWindows())

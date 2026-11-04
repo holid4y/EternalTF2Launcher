@@ -5,7 +5,7 @@ namespace Eternal.Core;
 
 public enum UiDensity { Comfortable, Compact }
 
-public enum BackgroundMode { Screenshots, Picture, None }
+public enum BackgroundMode { Screenshots, Rotate, Screenshot, Picture, None }
 
 public enum ViewLayout { Grid, List }
 
@@ -67,6 +67,12 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public string? AccentOverride { get; set; }
     public BackgroundMode Background { get; set; } = BackgroundMode.Screenshots;
     public string? BackgroundImage { get; set; }
+
+    /// <summary>The one screenshot used as the background when <see cref="Background"/> is Screenshot.</summary>
+    public string? BackgroundScreenshot { get; set; }
+
+    /// <summary>Minutes between background changes when Background is Rotate.</summary>
+    public int BackgroundRotateMinutes { get; set; } = 5;
     public double BackgroundDim { get; set; } = 0.72;
     public double BackgroundBlur { get; set; } = 12;
     public double UiScale { get; set; } = 1.0;
@@ -98,6 +104,11 @@ public sealed class LauncherSettings : IJsonOnDeserialized
             TeamworkKey = null;
         if (SteamApiKey is not null && !Inventory.DecalLookup.IsValidKey(SteamApiKey))
             SteamApiKey = null;
+        if (!Enum.IsDefined(Background))
+            Background = BackgroundMode.Screenshots;
+        BackgroundRotateMinutes = Math.Clamp(BackgroundRotateMinutes, 1, 120);
+        if (BackgroundScreenshot is { Length: > 4096 })
+            BackgroundScreenshot = null;
     }
 
     public static readonly string[] DefaultTabOrder = ["home", "servers", "mods", "backpack", "screenshots", "config", "launcher"];

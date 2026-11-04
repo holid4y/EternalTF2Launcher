@@ -97,6 +97,19 @@ public static class UpdateInstaller
         Log.Info($"Update to {update.Version.ToString(3)} will install when the launcher closes");
     }
 
+    /// <summary>
+    /// Asks the already-armed install script to open the launcher again afterwards,
+    /// by writing reopen.txt next to its result file. Lets "Restart to update" work
+    /// even when the update was armed before the restart was requested.
+    /// </summary>
+    public static void MarkReopen(PreparedUpdate update)
+    {
+        var self = Environment.ProcessPath ?? throw new UpdateException("The launcher couldn't find its own program file.");
+        File.WriteAllText(Path.Combine(update.WorkDir, ReopenFile), self);
+    }
+
+    private const string ReopenFile = "reopen.txt";
+
     internal static void Launch(PreparedUpdate update, int waitFor, string? reopen, string target)
     {
         var pid = waitFor.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -167,12 +180,12 @@ public static class UpdateInstaller
 
     private const string LinuxScript = """
         #!/bin/sh
-        # Installs a downloaded launcher update once the launcher has closed, then opens it again.
+        # Installs a downloaded launcher update once the launcher has closed, then opens it again if asked.
         # usage: apply.sh <launcher pid> <install|files> <install.sh or new app folder> <app folder> <result file> [launcher to open]
         pid=$1 kind=$2 payload=$3 target=$4 result=$5 reopen=${6:-}
         waited=0
         while kill -0 "$pid" 2>/dev/null; do
-            if [ "$waited" -ge 240 ]; then echo "failed:still-running" > "$result"; exit 1; fi
+            if [ "$waited" -ge 480 ]; then echo "failed:still-running" > "$result"; exit 1; fi
             sleep 0.5
             waited=$((waited + 1))
         done
@@ -180,6 +193,10 @@ public static class UpdateInstaller
             if cp -R "$payload/." "$target/" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
         else
             if sh "$payload" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
+        fi
+        if [ -z "$reopen" ]; then
+            marker="$(dirname "$result")/reopen.txt"
+            [ -f "$marker" ] && reopen=$(cat "$marker")
         fi
         if [ -n "$reopen" ] && [ -x "$reopen" ]; then nohup "$reopen" > /dev/null 2>&1 & fi
         exit 0
@@ -191,7 +208,7 @@ public static class UpdateInstaller
         param([int]$Id, [string]$Kind, [string]$Payload, [string]$Target, [string]$Result, [string]$Reopen)
         $ErrorActionPreference = 'Stop'
         try {
-            Wait-Process -Id $Id -Timeout 120 -ErrorAction SilentlyContinue
+            Wait-Process -Id $Id -Timeout 240 -ErrorAction SilentlyContinue
             if (Get-Process -Id $Id -ErrorAction SilentlyContinue) { Set-Content -Path $Result -Value 'failed:still-running'; exit 1 }
             if ($Kind -eq 'setup') {
                 $setup = Start-Process -FilePath $Payload -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
@@ -204,6 +221,10 @@ public static class UpdateInstaller
             Set-Content -Path $Result -Value 'failed:copy'
             exit 1
         } finally {
+            if (-not $Reopen) {
+                $marker = Join-Path (Split-Path $Result) 'reopen.txt'
+                if (Test-Path -LiteralPath $marker) { $Reopen = (Get-Content -LiteralPath $marker -Raw).Trim() }
+            }
             if ($Reopen -and (Test-Path -LiteralPath $Reopen)) { Start-Process -FilePath $Reopen }
         }
 

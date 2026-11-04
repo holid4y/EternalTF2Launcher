@@ -103,6 +103,10 @@
                                 ToolTip.Tip="On your Steam profile">
                           <PathIcon Data="{StaticResource IconUpload}" Width="11" Height="11" />
                         </Border>
+                        <Border Classes="badge" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Top" IsVisible="{Binding IsBackground}"
+                                ToolTip.Tip="Current launcher background">
+                          <PathIcon Data="{StaticResource IconImage}" Width="11" Height="11" />
+                        </Border>
                       </Panel>
                     </Border>
                   </DataTemplate>
@@ -154,7 +158,7 @@
                     <TextBlock Text="Edit" />
                   </StackPanel>
                 </Button>
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="8">
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                   <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                           Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).CopyImageCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -182,6 +186,14 @@
                           Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).ShowInFolderCommand}" />
                   <Button Grid.Row="1" Grid.Column="1" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Open on Steam"
                           IsVisible="{Binding Uploaded}" Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).OpenLinkCommand}" />
+                  <Button Grid.Row="2" Grid.ColumnSpan="2" Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                          ToolTip.Tip="Use this screenshot as the launcher background"
+                          Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).SetBackgroundCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Data="{StaticResource IconImage}" Width="13" Height="13" />
+                      <TextBlock Text="Set as background" />
+                    </StackPanel>
+                  </Button>
                 </Grid>
                 <StackPanel Orientation="Horizontal" Spacing="14">
                   <Button Classes="link" Content="Revert to the original"
@@ -255,6 +267,10 @@
                 <Button Classes="tool" Classes.on="{Binding UsingText}"
                         Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Text}">
                   <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconText}" Width="14" Height="14" /><TextBlock Text="Text" /></StackPanel>
+                </Button>
+                <Button Classes="tool" Classes.on="{Binding UsingImage}"
+                        Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Image}">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconImage}" Width="14" Height="14" /><TextBlock Text="Picture" /></StackPanel>
                 </Button>
                 <ItemsControl ItemsSource="{Binding Swatches}" IsVisible="{Binding Marking}" Margin="6,6,0,2">
                   <ItemsControl.ItemsPanel>

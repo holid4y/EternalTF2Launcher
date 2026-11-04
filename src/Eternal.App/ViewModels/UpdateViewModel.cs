@@ -216,6 +216,16 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
             var file = await _client.DownloadAsync(asset, Path.Combine(UpdatesDir, release.VersionText),
                 new Progress<double>(p => Progress = p));
             _prepared = await Task.Run(() => UpdateInstaller.Prepare(Kind, release.Version, file));
+            // Arm right away: the install script waits for this process to exit, so any
+            // exit (quit, restart, crash) applies the update instead of losing it.
+            if (!TryArm(reopen: false))
+            {
+                Problem = "The update downloaded, but it couldn't be set to install when the launcher closes. Check the logs, or get it from the releases page.";
+                Step = UpdateStep.Failed;
+                CardOpen = false;
+                _main.Notify(Problem, isError: true);
+                return;
+            }
             Step = UpdateStep.Ready;
             OpenCard();
         }
@@ -237,12 +247,22 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
             return;
         _restart = true;
         CardOpen = false;
-        // Arm while the launcher is still open, so a failure is reported instead of
-        // the app just closing; the install script waits for this process to exit.
-        if (!TryArm(reopen: true))
+        try
+        {
+            if (_armed)
+                // Already armed when the download finished; just ask it to open the launcher again.
+                UpdateInstaller.MarkReopen(_prepared);
+            else if (!TryArm(reopen: true))
+            {
+                _restart = false;
+                _main.Notify("The update couldn't be prepared to install, so the launcher stayed open. Check the logs, or get the new version from the releases page.", isError: true);
+                return;
+            }
+        }
+        catch (Exception ex) when (ex is UpdateException or IOException or UnauthorizedAccessException)
         {
             _restart = false;
-            _main.Notify("The update couldn't be prepared to install, so the launcher stayed open. Check the logs, or get the new version from the releases page.", isError: true);
+            _main.Notify($"The update couldn't be prepared to install, so the launcher stayed open: {ex.Message}", isError: true);
             return;
         }
         _main.RequestQuit();

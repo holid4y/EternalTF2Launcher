@@ -11,7 +11,7 @@ using SkiaSharp;
 
 namespace Eternal.App.ViewModels;
 
-public enum EditTool { None, Crop, Blur, Pixelate, Box, Arrow, Text }
+public enum EditTool { None, Crop, Blur, Pixelate, Box, Arrow, Text, Image }
 
 public sealed record CropRatio(string Label, float? Ratio)
 {
@@ -100,7 +100,8 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
     public bool UsingBox => Tool == EditTool.Box;
     public bool UsingArrow => Tool == EditTool.Arrow;
     public bool UsingText => Tool == EditTool.Text;
-    public bool Marking => Tool is EditTool.Box or EditTool.Arrow or EditTool.Text;
+    public bool UsingImage => Tool == EditTool.Image;
+    public bool Marking => Tool is EditTool.Box or EditTool.Arrow or EditTool.Text or EditTool.Image;
     public string Hint => Tool switch
     {
         EditTool.Crop => "Drag over the picture to pick what stays.",
@@ -109,7 +110,8 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         EditTool.Box => "Drag to draw a box.",
         EditTool.Arrow => "Drag from where the arrow starts to where it points.",
         EditTool.Text => "Click where the text should go.",
-        _ => "Drag a placed box, arrow or text to move it, or pick a tool on the right to add one.",
+        EditTool.Image => "Click where the picture should go, then pick an image file.",
+        _ => "Click a placed box, arrow, text or picture to select it; drag to move, drag its corner to resize, right-click for options.",
     };
 
     public double Aspect => Edit.Rotation % 180 == 0 ? (double)_source.Width / _source.Height : (double)_source.Height / _source.Width;
@@ -126,7 +128,7 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
 
     partial void OnToolChanged(EditTool value)
     {
-        foreach (var name in new[] { nameof(Cropping), nameof(UsingBlur), nameof(UsingPixelate), nameof(UsingBox), nameof(UsingArrow), nameof(UsingText), nameof(Marking), nameof(Hint) })
+        foreach (var name in new[] { nameof(Cropping), nameof(UsingBlur), nameof(UsingPixelate), nameof(UsingBox), nameof(UsingArrow), nameof(UsingText), nameof(UsingImage), nameof(Marking), nameof(Hint) })
             OnPropertyChanged(name);
     }
 
@@ -231,6 +233,75 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
             return;
         var mark = Edit.Marks[index];
         Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Area = ScreenshotRenderer.Translate(mark.Area, delta) }) });
+    }
+
+    /// <summary>Moves a mark's right/bottom edge; one undo step per call. Text has a point area, so its resize changes the font scale instead.</summary>
+    public void ResizeMark(int index, SKPoint delta)
+    {
+        if (index < 0 || index >= Edit.Marks.Count)
+            return;
+        var mark = Edit.Marks[index];
+        if (mark.Kind == MarkKind.Text)
+        {
+            var scale = Math.Clamp(mark.Scale + (delta.X + delta.Y) * 1.5f, 0.2f, 8f);
+            Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Scale = scale }) });
+            return;
+        }
+        var area = ScreenshotRenderer.Resize(mark.Area, delta);
+        Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Area = area }) });
+    }
+
+    [ObservableProperty] private int _selectedMark = -1;
+    public bool HasSelectedMark => SelectedMark >= 0 && SelectedMark < Edit.Marks.Count;
+
+    public void SelectMark(int index)
+    {
+        SelectedMark = index >= 0 && index < Edit.Marks.Count ? index : -1;
+        OnPropertyChanged(nameof(HasSelectedMark));
+    }
+
+    public void DeleteMark(int index)
+    {
+        if (index < 0 || index >= Edit.Marks.Count)
+            return;
+        Change(Edit with { Marks = Edit.Marks.RemoveAt(index) });
+        SelectMark(-1);
+    }
+
+    /// <summary>Opens a file picker and stamps the chosen local picture at <paramref name="at"/>.</summary>
+    public async Task AddImageAsync(SKPoint at)
+    {
+        var files = await Pickers.OpenFilesAsync("Add a picture", false, "Images",
+            "*.png", "*.jpg", "*.jpeg", "*.webp", "*.bmp", "*.gif");
+        if (files.Count == 0)
+            return;
+        byte[] data;
+        int width, height;
+        try
+        {
+            data = ScreenshotRenderer.LoadImageFile(files[0]);
+            using var decoded = SKBitmap.Decode(data);
+            width = decoded!.Width;
+            height = decoded.Height;
+        }
+        catch (InvalidDataException ex)
+        {
+            await _dialogs.AlertAsync("That picture can't be used", ex.Message);
+            return;
+        }
+        // Place it centered on the click, at most 30% of the picture on either axis, keeping its shape.
+        const float maxFrac = 0.3f;
+        var fracW = maxFrac;
+        var fracH = (float)(fracW * Aspect * height / Math.Max(1, width));
+        if (fracH > maxFrac)
+        {
+            fracH = maxFrac;
+            fracW = (float)(fracH * width / (Math.Max(1, height) * Aspect));
+        }
+        var left = Clamp(at.X - fracW / 2);
+        var top = Clamp(at.Y - fracH / 2);
+        var area = new SKRect(left, top, Math.Min(1f, left + fracW), Math.Min(1f, top + fracH));
+        Change(Edit with { Marks = Edit.Marks.Add(new Mark(MarkKind.Image, area, Color.Color, ImageData: data)) });
     }
 
     public async Task AddTextAsync(SKPoint at)

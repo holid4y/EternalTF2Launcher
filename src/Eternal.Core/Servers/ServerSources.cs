@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Eternal.Core.Logging;
@@ -200,6 +202,90 @@ public sealed partial class TeamworkSource(HttpClient http, string key)
         {
             throw new ServerListException("teamwork.tf couldn't be reached.", ex);
         }
+    }
+}
+
+/// <summary>
+/// Valve's master server lists every server of a game over plain UDP — no key, no account.
+/// Reply format: FF FF FF FF 66 0A, then 6-byte entries (IPv4 + port, both big-endian);
+/// the query is paginated by sending the last "ip:port" back, and 0.0.0.0:0 ends the list.
+/// </summary>
+public sealed class MasterServerSource
+{
+    public const string Name = "Steam master list";
+    private const string MasterHost = "hl2master.steampowered.com";
+    private const int MasterPort = 27011;
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(8);
+
+    public async IAsyncEnumerable<IReadOnlyList<ListedServer>> ListAsync(int maxServers, [EnumeratorCancellation] CancellationToken cancellation = default)
+    {
+        var servers = await QueryAsync(maxServers, cancellation).ConfigureAwait(false);
+        if (servers.Count > 0)
+            yield return servers;
+    }
+
+    internal static async Task<IReadOnlyList<ListedServer>> QueryAsync(int maxServers, CancellationToken cancellation)
+    {
+        try
+        {
+            var addresses = await Dns.GetHostAddressesAsync(MasterHost, cancellation).ConfigureAwait(false);
+            var masterIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+            if (masterIp is null)
+                return [];
+            var master = new IPEndPoint(masterIp, MasterPort);
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Connect(master);
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            limit.CancelAfter(Timeout);
+
+            var result = new List<ListedServer>();
+            var seen = new HashSet<ServerAddress>();
+            var next = "0.0.0.0:0";
+            while (result.Count < maxServers)
+            {
+                var request = new List<byte> { 0x31, 0xFF }; // query, region: world
+                request.AddRange(Encoding.ASCII.GetBytes(next));
+                request.Add(0);
+                request.AddRange("\\app\\440"u8.ToArray());
+                request.Add(0);
+                await socket.SendAsync(request.ToArray(), SocketFlags.None, limit.Token).ConfigureAwait(false);
+
+                var buffer = new byte[8196];
+                var received = await socket.ReceiveAsync(buffer, SocketFlags.None, limit.Token).ConfigureAwait(false);
+                var page = ParseMasterReply(buffer.AsSpan(0, received));
+                if (page.Count == 0)
+                    break;
+                foreach (var (ip, port) in page)
+                {
+                    if (ip.Equals(IPAddress.Any) && port == 0)
+                        return result;
+                    if (ServerAddress.From(ip.ToString(), port) is { IsPublic: true } address && seen.Add(address))
+                        result.Add(new ListedServer(address, port, "", "", 0, 0, null, null, Name));
+                }
+                var last = page[^1];
+                next = $"{last.Ip}:{last.Port.ToString(CultureInfo.InvariantCulture)}";
+            }
+            return result;
+        }
+        catch (Exception ex) when (ex is SocketException or OperationCanceledException or InvalidDataException or IOException)
+        {
+            // The master list is a bonus source; never let it break the main lists.
+            return [];
+        }
+    }
+
+    internal static IReadOnlyList<(IPAddress Ip, int Port)> ParseMasterReply(ReadOnlySpan<byte> packet)
+    {
+        if (packet.Length < 6 || packet[0] != 0xFF || packet[1] != 0xFF || packet[2] != 0xFF || packet[3] != 0xFF || packet[4] != 0x66 || packet[5] != 0x0A)
+            return [];
+        var list = new List<(IPAddress, int)>();
+        for (var i = 6; i + 6 <= packet.Length; i += 6)
+        {
+            var ip = new IPAddress(packet.Slice(i, 4).ToArray());
+            var port = (packet[i + 4] << 8) | packet[i + 5];
+            list.Add((ip, port));
+        }
+        return list;
     }
 }
 

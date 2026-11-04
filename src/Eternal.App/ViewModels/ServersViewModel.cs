@@ -342,6 +342,7 @@ public sealed partial class ServersViewModel : PageViewModel
         var sources = new List<Task>
         {
             ReadAsync(new GameMonitoringSource(Http.NoRedirects).ListAsync(country, 8, cancellation), writer, errors, cancellation),
+            ReadAsync(new MasterServerSource().ListAsync(250, cancellation), writer, errors, cancellation),
         };
         if (_services.Launcher.Settings.TeamworkKey is { } key)
             sources.Add(ReadAsync(new TeamworkSource(Http.NoRedirects, key).ListAsync(cancellation), writer, errors, cancellation));

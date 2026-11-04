@@ -138,6 +138,32 @@ public class ServerTests
         Assert.Null(servers[1].Country);
     }
 
+    [Fact]
+    public void Master_server_replies_are_read_as_ip_and_port_pairs()
+    {
+        // FF FF FF FF 66 0A, then 6-byte entries: IPv4 big-endian + port big-endian.
+        byte[] packet =
+        [
+            0xFF, 0xFF, 0xFF, 0xFF, 0x66, 0x0A,
+            91, 216, 250, 10, 0x69, 0x87,   // 91.216.250.10:27015
+            1, 2, 3, 4, 0x00, 0x00,          // 1.2.3.4:0 — end-of-list marker
+        ];
+        var entries = MasterServerSource.ParseMasterReply(packet);
+        Assert.Equal(2, entries.Count);
+        Assert.Equal(IPAddress.Parse("91.216.250.10"), entries[0].Ip);
+        Assert.Equal(27015, entries[0].Port);
+        Assert.Equal(IPAddress.Parse("1.2.3.4"), entries[1].Ip);
+        Assert.Equal(0, entries[1].Port);
+    }
+
+    [Fact]
+    public void Anything_but_a_master_reply_is_ignored()
+    {
+        Assert.Empty(MasterServerSource.ParseMasterReply([0xFF, 0xFF, 0xFF, 0xFF, 0x36, 0x00, 1, 2, 3, 4, 0, 1])); // legacy 0x36 header
+        Assert.Empty(MasterServerSource.ParseMasterReply([0x00]));
+        Assert.Empty(MasterServerSource.ParseMasterReply([]));
+    }
+
     [Theory]
     [InlineData("workshop/cp_glassworks_rc7a.ugc454118349", 454118349UL)]
     [InlineData("workshop/454118349", 454118349UL)]

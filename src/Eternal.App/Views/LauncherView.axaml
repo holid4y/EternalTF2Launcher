@@ -109,6 +109,12 @@
               <Button Content="Choose picture" Command="{Binding ChooseBackgroundCommand}" IsVisible="{Binding UsesPicture}" />
             </StackPanel>
           </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding UsesRotate}">
+            <TextBlock Classes="meta" Text="Rotate every" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding RotateMinuteChoices}" SelectedItem="{Binding RotateMinutes}" MinWidth="70" />
+            <TextBlock Classes="meta" Text="minutes" VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Classes="meta" TextWrapping="Wrap" IsVisible="{Binding UsesStaticScreenshot}" Text="{Binding StaticScreenshotNote}" />
           <Grid ColumnDefinitions="*,*" ColumnSpacing="24" IsVisible="{Binding HasBackground}">
             <StackPanel Spacing="4">
               <TextBlock Classes="meta" Text="Darken" />
