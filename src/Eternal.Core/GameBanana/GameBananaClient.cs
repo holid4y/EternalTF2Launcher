@@ -288,7 +288,7 @@ public sealed partial class GameBananaClient(HttpClient http)
     private static Submission? ParseSubmission(JsonElement r, Section section)
     {
         if (Id(r) is not { } id || Text(r, "_sName") is not { Length: > 0 } name
-            || Bool(r, "_bHasContentRatings") || Text(r, "_sInitialVisibility") is { } shown && shown != "show")
+            || Text(r, "_sInitialVisibility") is { } shown && shown != "show")
             return null;
         var category = Text(Object(r, "_aSubCategory"), "_sName") ?? Text(Object(r, "_aRootCategory"), "_sName") ?? Text(Object(r, "_aCategory"), "_sName") ?? "";
         return new Submission(
@@ -299,7 +299,8 @@ public sealed partial class GameBananaClient(HttpClient http)
             Time(r, "_tsDateUpdated") ?? Time(r, "_tsDateModified") ?? Time(r, "_tsDateAdded") ?? DateTimeOffset.UnixEpoch,
             Int(r, "_nLikeCount"), Int(r, "_nViewCount"),
             Tags(r).Any(t => t.StartsWith("Casual Compatibility", StringComparison.OrdinalIgnoreCase)),
-            Bool(r, "_bIsObsolete"));
+            Bool(r, "_bIsObsolete"),
+            Bool(r, "_bHasContentRatings"));
     }
 
     private static SubmissionFile? ParseFile(JsonElement f)

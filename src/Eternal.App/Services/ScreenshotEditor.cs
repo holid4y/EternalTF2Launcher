@@ -227,12 +227,63 @@ public static class ScreenshotRenderer
         canvas.DrawPath(path, paint);
     }
 
+    public static float TextSize(float height) => Math.Max(14f, height * 0.045f);
+
+    /// <summary>Moves a mark's area by <paramref name="delta"/>, clamped so the whole mark stays inside the picture.</summary>
+    public static SKRect Translate(SKRect area, SKPoint delta)
+    {
+        var dx = Math.Clamp(delta.X, -area.Left, 1 - area.Right);
+        var dy = Math.Clamp(delta.Y, -area.Top, 1 - area.Bottom);
+        return new SKRect(area.Left + dx, area.Top + dy, area.Right + dx, area.Bottom + dy);
+    }
+
+    /// <summary>Index of the topmost mark under <paramref name="at"/> (normalized image coordinates), or -1.</summary>
+    public static int HitTest(IReadOnlyList<Mark> marks, SKPoint at, float width, float height)
+    {
+        const float pad = 0.006f;
+        for (var i = marks.Count - 1; i >= 0; i--)
+        {
+            var m = marks[i];
+            if (m.Kind == MarkKind.Arrow)
+            {
+                if (DistanceToSegment(at, new SKPoint(m.Area.Left, m.Area.Top), new SKPoint(m.Area.Right, m.Area.Bottom)) <= pad)
+                    return i;
+            }
+            else if (m.Kind == MarkKind.Text && !string.IsNullOrWhiteSpace(m.Text))
+            {
+                var size = TextSize(height);
+                var box = new SKRect(m.Area.Left - pad, m.Area.Top - pad,
+                    m.Area.Left + m.Text.Length * size * 0.58f / width + pad, m.Area.Top + size / height + pad);
+                if (box.Contains(at))
+                    return i;
+            }
+            else
+            {
+                var r = new SKRect(m.Area.Left - pad, m.Area.Top - pad, m.Area.Right + pad, m.Area.Bottom + pad);
+                if (r.Contains(at))
+                    return i;
+            }
+        }
+        return -1;
+    }
+
+    private static float DistanceToSegment(SKPoint p, SKPoint a, SKPoint b)
+    {
+        var dx = b.X - a.X;
+        var dy = b.Y - a.Y;
+        var len2 = dx * dx + dy * dy;
+        var t = len2 == 0 ? 0 : Math.Clamp(((p.X - a.X) * dx + (p.Y - a.Y) * dy) / len2, 0f, 1f);
+        var x = a.X + t * dx - p.X;
+        var y = a.Y + t * dy - p.Y;
+        return MathF.Sqrt(x * x + y * y);
+    }
+
     private static void Text(SKCanvas canvas, string text, SKPoint at, SKColor color, int height)
     {
         if (text.Length > MaxTextLength)
             text = text[..MaxTextLength];
         using var typeface = SKTypeface.FromFamilyName(null, SKFontStyle.Bold);
-        using var font = new SKFont(typeface, Math.Max(14f, height * 0.045f));
+        using var font = new SKFont(typeface, TextSize(height));
         using var outline = new SKPaint { Color = SKColors.Black.WithAlpha(200), IsStroke = true, StrokeWidth = font.Size * 0.14f, IsAntialias = true, StrokeJoin = SKStrokeJoin.Round };
         using var fill = new SKPaint { Color = color, IsAntialias = true };
         var baseline = new SKPoint(at.X, at.Y + font.Size);

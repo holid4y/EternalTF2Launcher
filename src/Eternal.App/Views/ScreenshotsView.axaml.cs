@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Eternal.App.Services;
 using Eternal.App.ViewModels;
 using SkiaSharp;
 
@@ -20,6 +21,7 @@ public partial class ScreenshotsView : UserControl
     private ScreenshotEditorViewModel? _editor;
     private Point? _dragStart;
     private Point _dragEnd;
+    private int _moving = -1;
 
     public ScreenshotsView()
     {
@@ -74,6 +76,7 @@ public partial class ScreenshotsView : UserControl
             _editor.PropertyChanged -= OnEditorChanged;
         _editor = editor;
         _dragStart = null;
+        _moving = -1;
         if (_editor is not null)
             _editor.PropertyChanged += OnEditorChanged;
         DrawOverlay();
@@ -124,12 +127,19 @@ public partial class ScreenshotsView : UserControl
 
     private void OnStagePressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_editor is null || _editor.Tool == EditTool.None || !e.GetCurrentPoint(Stage).Properties.IsLeftButtonPressed)
+        if (_editor is null || !e.GetCurrentPoint(Stage).Properties.IsLeftButtonPressed)
             return;
         var r = PictureRect();
         var p = e.GetPosition(Stage);
         if (!r.Contains(p))
             return;
+        if (_editor.Tool == EditTool.None)
+        {
+            // No drawing tool: grab a placed mark to move it.
+            _moving = _editor.HitMark(ToImage(p));
+            if (_moving < 0)
+                return;
+        }
         _dragStart = _dragEnd = p;
         e.Pointer.Capture(Stage);
         e.Handled = true;
@@ -151,22 +161,31 @@ public partial class ScreenshotsView : UserControl
     {
         if (_dragStart is not { } start || _editor is not { } editor)
             return;
+        var moving = _moving;
+        _moving = -1;
         _dragStart = null;
         e.Pointer.Capture(null);
         var a = ToImage(start);
         var b = ToImage(_dragEnd);
-        var area = new SKRect(a.X, a.Y, b.X, b.Y);
-        switch (editor.Tool)
+        if (moving >= 0)
         {
-            case EditTool.Crop:
-                editor.SetCrop(area);
-                break;
-            case EditTool.Text:
-                await editor.AddTextAsync(b);
-                break;
-            default:
-                editor.AddMark(area);
-                break;
+            editor.MoveMark(moving, new SKPoint(b.X - a.X, b.Y - a.Y));
+        }
+        else
+        {
+            var area = new SKRect(a.X, a.Y, b.X, b.Y);
+            switch (editor.Tool)
+            {
+                case EditTool.Crop:
+                    editor.SetCrop(area);
+                    break;
+                case EditTool.Text:
+                    await editor.AddTextAsync(b);
+                    break;
+                default:
+                    editor.AddMark(area);
+                    break;
+            }
         }
         DrawOverlay();
     }
@@ -202,6 +221,28 @@ public partial class ScreenshotsView : UserControl
 
         if (_dragStart is not { } start)
             return;
+        if (_moving >= 0 && _moving < _editor.Edit.Marks.Count)
+        {
+            var m = _editor.Edit.Marks[_moving];
+            var dx = _dragEnd.X - start.X;
+            var dy = _dragEnd.Y - start.Y;
+            if (m.Kind == MarkKind.Arrow)
+            {
+                Overlay.Children.Add(new Line
+                {
+                    StartPoint = new Point(r.X + m.Area.Left * r.Width + dx, r.Y + m.Area.Top * r.Height + dy),
+                    EndPoint = new Point(r.X + m.Area.Right * r.Width + dx, r.Y + m.Area.Bottom * r.Height + dy),
+                    Stroke = Outline,
+                    StrokeThickness = 2,
+                });
+            }
+            else
+            {
+                Frame(new Rect(r.X + m.Area.Left * r.Width + dx, r.Y + m.Area.Top * r.Height + dy,
+                    Math.Abs(m.Area.Width) * r.Width, Math.Abs(m.Area.Height) * r.Height));
+            }
+            return;
+        }
         if (_editor.Tool == EditTool.Arrow)
         {
             Overlay.Children.Add(new Line { StartPoint = start, EndPoint = _dragEnd, Stroke = Outline, StrokeThickness = 2 });

@@ -16,6 +16,9 @@ public sealed class BrowseView
     public ViewLayout Layout { get; set; }
     public double CardWidth { get; set; } = 220;
 
+    /// <summary>Also list submissions GameBanana marks as adult (18+). Off by default.</summary>
+    public bool ShowAdult { get; set; }
+
     internal void Clamp() => CardWidth = double.IsFinite(CardWidth) ? Math.Clamp(CardWidth, MinCardWidth, MaxCardWidth) : 220;
 }
 

@@ -40,21 +40,42 @@ public sealed partial class DecalLookup(HttpClient http, string key)
         {
             if (!item.TryGetProperty("attributes", out var attributes) || attributes.ValueKind != JsonValueKind.Array || !item.TryGetProperty("id", out var idElement))
                 continue;
-            uint? low = null, high = null;
+            long? low = null, high = null;
             foreach (var attribute in attributes.EnumerateArray())
             {
-                if (!attribute.TryGetProperty("defindex", out var d) || !d.TryGetInt32(out var defindex) || !attribute.TryGetProperty("value", out var v) || !v.TryGetUInt32(out var value))
+                if (!attribute.TryGetProperty("defindex", out var d) || !TryNumber(d, out var defindex)
+                    || !attribute.TryGetProperty("value", out var v) || !TryNumber(v, out var value))
                     continue;
                 if (defindex == TextureLow)
                     low = value;
                 else if (defindex == TextureHigh)
                     high = value;
             }
-            var id = idElement.ValueKind == JsonValueKind.Number ? idElement.GetUInt64().ToString(CultureInfo.InvariantCulture) : idElement.GetString();
-            if (low is { } lo && high is { } hi && id is not null && ((ulong)hi << 32 | lo) is > 0 and var ugc)
+            var id = idElement.ValueKind switch
+            {
+                JsonValueKind.Number when idElement.TryGetUInt64(out var idNum) => idNum.ToString(CultureInfo.InvariantCulture),
+                JsonValueKind.String => idElement.GetString(),
+                _ => null,
+            };
+            if (low is >= 0 and { } lo && high is >= 0 and { } hi && id is not null && ((ulong)hi << 32 | (ulong)lo) is > 0 and var ugc)
                 result[id] = ugc;
         }
         return result;
+    }
+
+    /// <summary>Steam sends some fields as JSON strings and some as numbers; take both.</summary>
+    private static bool TryNumber(JsonElement e, out long value)
+    {
+        switch (e.ValueKind)
+        {
+            case JsonValueKind.Number when e.TryGetInt64(out value):
+                return true;
+            case JsonValueKind.String when long.TryParse(e.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value):
+                return true;
+            default:
+                value = 0;
+                return false;
+        }
     }
 
     public async Task<string?> UrlAsync(ulong ugc, CancellationToken cancellation = default)

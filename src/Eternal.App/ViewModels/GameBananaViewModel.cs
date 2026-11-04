@@ -22,6 +22,7 @@ public sealed partial class SubmissionCard(Submission submission, bool installed
     public string Updated => MainViewModel.Ago(Submission.Updated);
     public bool CasualReady => Submission.CasualReady;
     public bool Obsolete => Submission.Obsolete;
+    public bool Adult => Submission.Adult;
     public bool IsSound => Submission.Section == Section.Sounds;
 
     [ObservableProperty] private bool _installed = installed;
@@ -62,6 +63,7 @@ public sealed partial class GameBananaViewModel : ObservableObject
         _services = services;
         _mods = mods;
         _sort = Sorts[0];
+        _showAdult = services.Launcher.Settings.GameBanana.ShowAdult;
         View = new ViewOptions(services.Launcher, s => s.GameBanana, textHeight: 114, thumbRatio: 140.0 / 216);
         services.Mods.Changed += () => Dispatcher.UIThread.Post(RefreshInstalled);
     }
@@ -91,6 +93,7 @@ public sealed partial class GameBananaViewModel : ObservableObject
     [ObservableProperty] private bool _loading;
     [ObservableProperty] private string? _error;
     [ObservableProperty] private SubmissionViewModel? _open;
+    [ObservableProperty] private bool _showAdult;
 
     public bool ShowingMods => Section == Section.Mods;
     public bool HasResults => Items.Count > 0;
@@ -162,6 +165,12 @@ public sealed partial class GameBananaViewModel : ObservableObject
     }
 
     partial void OnSortChanged(SortChoice value) => Reload(firstPage: true);
+
+    partial void OnShowAdultChanged(bool value)
+    {
+        _services.Launcher.Update(s => s.GameBanana.ShowAdult = value);
+        Reload(firstPage: true);
+    }
 
     partial void OnPageChanged(int value)
     {
@@ -243,7 +252,7 @@ public sealed partial class GameBananaViewModel : ObservableObject
                 return;
             var installed = _mods.InstalledSources();
             Items.Clear();
-            foreach (var submission in page.Items)
+            foreach (var submission in page.Items.Where(s => ShowAdult || !s.Adult))
                 Items.Add(new SubmissionCard(submission, Installed(installed, submission)));
             Total = page.Total;
             PageCount = page.PageCount;

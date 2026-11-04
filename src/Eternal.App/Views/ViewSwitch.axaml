@@ -20,7 +20,7 @@
   </UserControl.Styles>
 
   <StackPanel Orientation="Horizontal" Spacing="10" Height="32">
-    <Slider Classes="size" Width="110" Height="32" Margin="0,-4" VerticalAlignment="Center" IsVisible="{Binding IsGrid}"
+    <Slider Classes="size" Width="110" Height="32" VerticalAlignment="Center" IsVisible="{Binding IsGrid}"
             Minimum="{Binding MinWidth}" Maximum="{Binding MaxWidth}" Value="{Binding CardWidth}"
             SmallChange="10" LargeChange="40" ToolTip.Tip="Card size" AutomationProperties.Name="Card size" />
     <StackPanel Orientation="Horizontal" Spacing="2">

@@ -109,7 +109,7 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         EditTool.Box => "Drag to draw a box.",
         EditTool.Arrow => "Drag from where the arrow starts to where it points.",
         EditTool.Text => "Click where the text should go.",
-        _ => "Pick a tool on the right, or turn and adjust the picture.",
+        _ => "Drag a placed box, arrow or text to move it, or pick a tool on the right to add one.",
     };
 
     public double Aspect => Edit.Rotation % 180 == 0 ? (double)_source.Width / _source.Height : (double)_source.Height / _source.Width;
@@ -213,6 +213,24 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         if (Math.Abs(shape.Width) < 0.005f && Math.Abs(shape.Height) < 0.005f)
             return;
         Change(Edit with { Marks = Edit.Marks.Add(new Mark(k, shape, Color.Color)) });
+    }
+
+    /// <summary>Index of the mark under <paramref name="at"/> in image coordinates, or -1.</summary>
+    public int HitMark(SKPoint at)
+    {
+        var (w, h) = Edit.Rotation % 180 == 0
+            ? ((float)_source.Width, (float)_source.Height)
+            : ((float)_source.Height, (float)_source.Width);
+        return ScreenshotRenderer.HitTest(Edit.Marks, at, w, h);
+    }
+
+    /// <summary>Moves a placed mark; one undo step per call.</summary>
+    public void MoveMark(int index, SKPoint delta)
+    {
+        if (index < 0 || index >= Edit.Marks.Count)
+            return;
+        var mark = Edit.Marks[index];
+        Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Area = ScreenshotRenderer.Translate(mark.Area, delta) }) });
     }
 
     public async Task AddTextAsync(SKPoint at)

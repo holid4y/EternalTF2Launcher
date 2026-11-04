@@ -169,6 +169,24 @@ public class ItemNameTests
         Assert.Equal("9001", decals.Keys.Single());
     }
 
+    [Fact]
+    public void Decal_fields_sent_as_strings_are_still_read()
+    {
+        // Steam's GetPlayerItems answers with string-typed defindex/value/id on some items;
+        // JsonElement.TryGetInt32 throws on those, so parsing has to accept both shapes.
+        var json = """
+            {"result":{"status":1,"items":[
+              {"id":"9001","attributes":[{"defindex":"152","value":"1234"},{"defindex":"227","value":"5"}]},
+              {"id":9002,"attributes":[{"defindex":"152","value":"1"}]},
+              {"id":9003,"attributes":[{"defindex":152,"value":7},{"defindex":227,"value":"0"}]}
+            ]}}
+            """u8.ToArray();
+        var decals = DecalLookup.ParseDecals(json);
+        Assert.Equal((5UL << 32) | 1234, decals["9001"]);
+        Assert.Equal(7UL, decals["9003"]);
+        Assert.False(decals.ContainsKey("9002"));
+    }
+
     [Theory]
     [InlineData("https://cloud-3.steamusercontent.com/ugc/123/ABC/", true)]
     [InlineData("http://cloud-3.steamusercontent.com/ugc/123/ABC/", false)]

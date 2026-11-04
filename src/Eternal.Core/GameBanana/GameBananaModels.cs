@@ -22,7 +22,8 @@ public sealed record Submission(
     int Likes,
     int Views,
     bool CasualReady,
-    bool Obsolete)
+    bool Obsolete,
+    bool Adult)
 {
     public string Url => $"https://gamebanana.com/{(Section == Section.Sounds ? "sounds" : "mods")}/{Id}";
 

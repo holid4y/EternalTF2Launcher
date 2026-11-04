@@ -58,7 +58,7 @@ public sealed class GameBananaTests : IDisposable
     }
 
     [Fact]
-    public void Rated_hidden_and_malformed_submissions_are_left_out()
+    public void Rated_submissions_are_kept_and_marked_adult_while_hidden_and_malformed_are_left_out()
     {
         const string json = """
             {"_aMetadata": {"_nRecordCount": 4}, "_aRecords": [
@@ -72,7 +72,8 @@ public sealed class GameBananaTests : IDisposable
 
         var page = GameBananaClient.ParsePage(json, Section.Mods, 1);
 
-        Assert.Equal(["Fine"], page.Items.Select(i => i.Name));
+        Assert.Equal(["Fine", "Rated"], page.Items.Select(i => i.Name));
+        Assert.Equal([false, true], page.Items.Select(i => i.Adult));
     }
 
     [Fact]

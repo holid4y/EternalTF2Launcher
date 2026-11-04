@@ -209,7 +209,7 @@ public sealed partial class BackpackViewModel : PageViewModel
                 item.DecalNote = item.DecalUrl is null ? "It has a decal, but Steam didn't share the picture." : null;
             }
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidDataException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidDataException or InvalidOperationException)
         {
             Log.Info($"Decals unavailable: {ex.Message}");
             foreach (var item in items)
