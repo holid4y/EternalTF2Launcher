@@ -35,10 +35,11 @@
         </StackPanel>
       </Button>
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-        <Button Classes="ghost" Command="{Binding ListenCommand}" IsVisible="{Binding CanListen}" ToolTip.Tip="Plays GameBanana's preview in your browser">
+        <Button Classes="ghost" Command="{Binding ListenCommand}" IsVisible="{Binding CanListen}" ToolTip.Tip="Plays GameBanana's preview right here">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <PathIcon Data="{StaticResource IconSound}" Width="14" Height="14" />
-            <TextBlock Text="Listen" />
+            <TextBlock Text="Play" IsVisible="{Binding !PreviewPlaying}" />
+            <TextBlock Text="Stop" IsVisible="{Binding PreviewPlaying}" />
           </StackPanel>
         </Button>
         <Button Classes="ghost" Command="{Binding OpenPageCommand}">
@@ -79,6 +80,23 @@
                 <Button Classes="shot" ToolTip.Tip="Show this picture" AutomationProperties.Name="Show this picture"
                         Command="{Binding $parent[UserControl].((vm:SubmissionViewModel)DataContext).ShowCommand}" CommandParameter="{Binding}">
                   <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="200" views:RemoteImage.Url="{Binding}" />
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <ItemsControl ItemsSource="{Binding Videos}" IsVisible="{Binding HasVideos}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Button Classes="link" ToolTip.Tip="Opens the video in your browser"
+                        Command="{Binding $parent[UserControl].((vm:SubmissionViewModel)DataContext).OpenVideoCommand}" CommandParameter="{Binding}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" />
+                    <TextBlock Text="Video" />
+                  </StackPanel>
                 </Button>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

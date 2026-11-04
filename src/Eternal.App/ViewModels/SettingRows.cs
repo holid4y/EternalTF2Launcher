@@ -150,6 +150,11 @@ public sealed partial class SettingCategoryViewModel(string id, string title, st
 
     [ObservableProperty] private IReadOnlyList<SettingRowViewModel> _visibleRows = [];
     [ObservableProperty] private int _changedCount;
+    [ObservableProperty] private int _advancedHidden;
+
+    public string AdvancedHiddenText => AdvancedHidden > 0 ? $"+{AdvancedHidden} advanced" : "";
+
+    partial void OnAdvancedHiddenChanged(int value) => OnPropertyChanged(nameof(AdvancedHiddenText));
 
     public override string ToString() => Title;
 }

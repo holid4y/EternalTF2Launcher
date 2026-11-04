@@ -68,6 +68,7 @@ public sealed partial class SubmissionViewModel : ObservableObject
         _services = services;
         _mods = mods;
         _client = client;
+        PreviewPlayer.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(PreviewPlaying)));
         _ = LoadAsync();
     }
 
@@ -130,6 +131,9 @@ public sealed partial class SubmissionViewModel : ObservableObject
             AudioPreview = details.AudioPreview;
             foreach (var shot in details.Screenshots)
                 Screenshots.Add(shot);
+            foreach (var video in details.Videos)
+                Videos.Add(video);
+            OnPropertyChanged(nameof(HasVideos));
             Shown = Screenshots.FirstOrDefault() ?? Summary.Thumbnail;
 
             var installed = _mods.InstalledSources();
@@ -193,11 +197,26 @@ public sealed partial class SubmissionViewModel : ObservableObject
     [RelayCommand]
     private void OpenPage() => Shell.OpenUrl(Summary.Url);
 
+    public ObservableCollection<string> Videos { get; } = [];
+
+    public bool HasVideos => Videos.Count > 0;
+
+    public bool PreviewPlaying => PreviewPlayer.PlayingUrl is not null && AudioPreview == PreviewPlayer.PlayingUrl;
+
+    public void RefreshPlaying() => OnPropertyChanged(nameof(PreviewPlaying));
+
     [RelayCommand]
     private void Listen()
     {
-        if (GameBananaClient.IsGameBananaUrl(AudioPreview))
-            Shell.OpenUrl(AudioPreview);
+        if (AudioPreview is { } url && GameBananaClient.IsGameBananaUrl(url))
+            PreviewPlayer.Toggle(url);
+    }
+
+    [RelayCommand]
+    private static void OpenVideo(string? url)
+    {
+        if (url is not null)
+            Shell.OpenUrl(url);
     }
 
     [RelayCommand]

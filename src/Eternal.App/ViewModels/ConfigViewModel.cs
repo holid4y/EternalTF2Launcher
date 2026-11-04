@@ -184,6 +184,7 @@ public sealed partial class ConfigViewModel : PageViewModel
         {
             category.VisibleRows = category.Rows.Where(r => ShowAdvanced || !r.IsAdvanced || r.IsTouched).ToArray();
             category.ChangedCount = category.Rows.Count(r => r.IsTouched);
+            category.AdvancedHidden = category.Rows.Count(r => r.IsAdvanced && !r.IsTouched && !ShowAdvanced);
         }
     }
 

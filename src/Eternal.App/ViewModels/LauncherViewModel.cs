@@ -80,6 +80,12 @@ public sealed partial class LauncherViewModel : PageViewModel
     public BackgroundMode[] BackgroundModes { get; } = [BackgroundMode.Screenshots, BackgroundMode.Rotate, BackgroundMode.Screenshot, BackgroundMode.Picture, BackgroundMode.None];
     public int[] RotateMinuteChoices { get; } = [1, 5, 15, 60];
 
+    public bool BgScreenshots => BackgroundMode == BackgroundMode.Screenshots;
+    public bool BgRotate => BackgroundMode == BackgroundMode.Rotate;
+    public bool BgOne => BackgroundMode == BackgroundMode.Screenshot;
+    public bool BgPicture => BackgroundMode == BackgroundMode.Picture;
+    public bool BgNone => BackgroundMode == BackgroundMode.None;
+
     public bool UsesScreenshots => BackgroundMode is BackgroundMode.Screenshots or BackgroundMode.Rotate;
     public bool CanCycleScreenshots => UsesScreenshots && _theme.Screenshots.Count > 1;
     public bool UsesRotate => BackgroundMode == BackgroundMode.Rotate;
@@ -242,14 +248,14 @@ public sealed partial class LauncherViewModel : PageViewModel
 
     partial void OnBackgroundModeChanged(BackgroundMode value)
     {
-        OnPropertyChanged(nameof(UsesScreenshots));
-        OnPropertyChanged(nameof(CanCycleScreenshots));
-        OnPropertyChanged(nameof(UsesRotate));
-        OnPropertyChanged(nameof(UsesStaticScreenshot));
-        OnPropertyChanged(nameof(UsesPicture));
-        OnPropertyChanged(nameof(HasBackground));
+        foreach (var name in new[] { nameof(BgScreenshots), nameof(BgRotate), nameof(BgOne), nameof(BgPicture), nameof(BgNone),
+                     nameof(UsesScreenshots), nameof(CanCycleScreenshots), nameof(UsesRotate), nameof(UsesStaticScreenshot), nameof(UsesPicture), nameof(HasBackground) })
+            OnPropertyChanged(name);
         Save(s => s.Background = value, restyle: true);
     }
+
+    [RelayCommand]
+    private void SetBackgroundMode(BackgroundMode mode) => BackgroundMode = mode;
 
     partial void OnRotateMinutesChanged(int value) => Save(s => s.BackgroundRotateMinutes = value, restyle: true);
 

@@ -23,7 +23,8 @@ public sealed record Submission(
     int Views,
     bool CasualReady,
     bool Obsolete,
-    bool Adult)
+    bool Adult,
+    string? AudioUrl = null)
 {
     public string Url => $"https://gamebanana.com/{(Section == Section.Sounds ? "sounds" : "mods")}/{Id}";
 
@@ -38,7 +39,11 @@ public sealed record SubmissionDetails(
     string? AudioPreview,
     int Downloads,
     string? Version,
-    IReadOnlyList<SubmissionFile> Files);
+    IReadOnlyList<SubmissionFile> Files,
+    IReadOnlyList<string>? VideoLinks = null)
+{
+    public IReadOnlyList<string> Videos => VideoLinks ?? [];
+}
 
 public enum FileScan { Clean, Pending, Flagged }
 

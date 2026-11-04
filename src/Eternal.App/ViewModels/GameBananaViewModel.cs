@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Eternal.App.Services;
 using Eternal.Core.GameBanana;
 using Eternal.Core.Logging;
+using Eternal.Core.Platform;
 
 namespace Eternal.App.ViewModels;
 
@@ -24,8 +25,10 @@ public sealed partial class SubmissionCard(Submission submission, bool installed
     public bool Obsolete => Submission.Obsolete;
     public bool Adult => Submission.Adult;
     public bool IsSound => Submission.Section == Section.Sounds;
+    public bool HasAudio => Submission.AudioUrl is not null;
 
     [ObservableProperty] private bool _installed = installed;
+    [ObservableProperty] private bool _playing;
 }
 
 public sealed record CategoryRow(Category? Category, long? ParentId, bool Expanded)
@@ -66,6 +69,21 @@ public sealed partial class GameBananaViewModel : ObservableObject
         _showAdult = services.Launcher.Settings.GameBanana.ShowAdult;
         View = new ViewOptions(services.Launcher, s => s.GameBanana, textHeight: 114, thumbRatio: 140.0 / 216);
         services.Mods.Changed += () => Dispatcher.UIThread.Post(RefreshInstalled);
+        PreviewPlayer.Changed += () => Dispatcher.UIThread.Post(RefreshPlaying);
+    }
+
+    private void RefreshPlaying()
+    {
+        foreach (var card in Items)
+            card.Playing = PreviewPlayer.PlayingUrl is not null && card.Submission.AudioUrl == PreviewPlayer.PlayingUrl;
+        Open?.RefreshPlaying();
+    }
+
+    [RelayCommand]
+    private void PlaySound(SubmissionCard? card)
+    {
+        if (card?.Submission.AudioUrl is { } url && GameBananaClient.IsGameBananaUrl(url))
+            PreviewPlayer.Toggle(url);
     }
 
     public ViewOptions View { get; }

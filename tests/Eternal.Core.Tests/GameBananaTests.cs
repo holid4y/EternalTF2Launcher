@@ -58,22 +58,45 @@ public sealed class GameBananaTests : IDisposable
     }
 
     [Fact]
-    public void Rated_submissions_are_kept_and_marked_adult_while_hidden_and_malformed_are_left_out()
+    public void Rated_and_hidden_submissions_are_kept_and_marked_adult_while_malformed_are_left_out()
     {
+        // GameBanana flags adult content either with _bHasContentRatings or with
+        // _sInitialVisibility "hide" (both show on the site only with the adult filter on).
         const string json = """
-            {"_aMetadata": {"_nRecordCount": 4}, "_aRecords": [
+            {"_aMetadata": {"_nRecordCount": 5}, "_aRecords": [
               {"_idRow": 1, "_sName": "Fine", "_aSubmitter": {"_sName": "a"}, "_sInitialVisibility": "show"},
-              {"_idRow": 2, "_sName": "Rated", "_bHasContentRatings": true},
-              {"_idRow": 3, "_sName": "Hidden", "_sInitialVisibility": "hide"},
-              {"_idRow": "4; drop", "_sName": "Bad id"},
+              {"_idRow": 2, "_sName": "Rated", "_bHasContentRatings": true, "_sInitialVisibility": "show"},
+              {"_idRow": 3, "_sName": "Hidden adult", "_sInitialVisibility": "hide"},
+              {"_idRow": 4, "_sName": "Removed", "_sInitialVisibility": "private"},
+              {"_idRow": "5; drop", "_sName": "Bad id"},
               {"_sName": "No id"}
             ]}
             """;
 
         var page = GameBananaClient.ParsePage(json, Section.Mods, 1);
 
-        Assert.Equal(["Fine", "Rated"], page.Items.Select(i => i.Name));
-        Assert.Equal([false, true], page.Items.Select(i => i.Adult));
+        Assert.Equal(["Fine", "Rated", "Hidden adult"], page.Items.Select(i => i.Name));
+        Assert.Equal([false, true, true], page.Items.Select(i => i.Adult));
+    }
+
+    [Fact]
+    public void Sound_cards_carry_their_preview_audio_and_descriptions_carry_video_links()
+    {
+        const string index = """
+            {"_aMetadata": {"_nRecordCount": 1}, "_aRecords": [
+              {"_idRow": 7, "_sName": "Hitsound", "_sInitialVisibility": "show",
+               "_aPreviewMedia": {"_aMetadata": {"_sAudioUrl": "https://files.gamebanana.com/preview/sounds/hit.mp3"}}}
+            ]}
+            """;
+        var card = GameBananaClient.ParsePage(index, Section.Sounds, 1).Items.Single();
+        Assert.Equal("https://files.gamebanana.com/preview/sounds/hit.mp3", card.AudioUrl);
+
+        const string profile = """
+            {"_idRow": 9, "_sName": "Mod", "_sInitialVisibility": "show", "_nDownloadCount": 3,
+             "_sText": "<p>Watch <a href=\"https://youtu.be/dQw4w9WgXcQ\">this</a> and <iframe src=\"https://www.youtube.com/embed/abcDEF12345\"></iframe> or <a href=\"https://evil.example/x.mp4\">no</a></p>"}
+            """;
+        var details = GameBananaClient.ParseDetails(profile, Section.Mods);
+        Assert.Equal(["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=abcDEF12345"], details.Videos);
     }
 
     [Fact]

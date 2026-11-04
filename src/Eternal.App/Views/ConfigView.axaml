@@ -164,10 +164,12 @@
       <ListBox Classes="subnav" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" IsEnabled="{Binding !IsSearching}">
         <ListBox.ItemTemplate>
           <DataTemplate DataType="vm:SettingCategoryViewModel">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
               <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
               <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding ChangedCount}" ToolTip.Tip="Settings changed by you"
                          IsVisible="{Binding ChangedCount}" />
+              <TextBlock Grid.Column="2" Classes="meta figure" Text="{Binding AdvancedHiddenText}" ToolTip.Tip="Shown when Show advanced is on"
+                         IsVisible="{Binding AdvancedHiddenText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             </Grid>
           </DataTemplate>
         </ListBox.ItemTemplate>

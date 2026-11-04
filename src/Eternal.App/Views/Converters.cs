@@ -17,10 +17,10 @@ public static class Converters
     public static readonly IValueConverter BackgroundModeName =
         new FuncValueConverter<Eternal.Core.BackgroundMode, string>(mode => mode switch
         {
-            Eternal.Core.BackgroundMode.Screenshots => "My TF2 screenshots",
-            Eternal.Core.BackgroundMode.Rotate => "My TF2 screenshots, rotating",
-            Eternal.Core.BackgroundMode.Screenshot => "One chosen screenshot",
-            Eternal.Core.BackgroundMode.Picture => "A picture I choose",
+            Eternal.Core.BackgroundMode.Screenshots => "TF2 screenshots",
+            Eternal.Core.BackgroundMode.Rotate => "TF2 screenshots · rotating",
+            Eternal.Core.BackgroundMode.Screenshot => "One screenshot",
+            Eternal.Core.BackgroundMode.Picture => "Custom picture",
             _ => "None",
         });
 

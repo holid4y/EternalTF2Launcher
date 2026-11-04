@@ -18,16 +18,6 @@
     <Style Selector="Button.card:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
     </Style>
-    <Style Selector="Button.segment">
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
-    </Style>
-    <Style Selector="Button.segment.on">
-      <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
-    </Style>
     <Style Selector="Button.page">
       <Setter Property="MinWidth" Value="32" />
       <Setter Property="Padding" Value="8,5" />
@@ -132,6 +122,14 @@
                           </Border>
                           <Border Classes="badge" IsVisible="{Binding Obsolete}"><TextBlock Text="Obsolete" /></Border>
                           <Border Classes="badge" IsVisible="{Binding Adult}" ToolTip.Tip="Marked 18+ on GameBanana"><TextBlock Text="18+" /></Border>
+                          <Button Classes="ghost" Padding="3" IsVisible="{Binding HasAudio}" VerticalAlignment="Center"
+                                  ToolTip.Tip="Play the preview" AutomationProperties.Name="Play preview"
+                                  Command="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).PlaySoundCommand}" CommandParameter="{Binding}">
+                            <Panel>
+                              <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" IsVisible="{Binding !Playing}" />
+                              <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" IsVisible="{Binding Playing}" />
+                            </Panel>
+                          </Button>
                           <TextBlock Classes="title" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
                         </StackPanel>
                         <TextBlock Classes="meta" Text="{Binding Author}" TextTrimming="CharacterEllipsis" />
@@ -173,6 +171,14 @@
                           </Border>
                           <Border Classes="badge" IsVisible="{Binding Obsolete}"><TextBlock Text="Obsolete" /></Border>
                           <Border Classes="badge" IsVisible="{Binding Adult}" ToolTip.Tip="Marked 18+ on GameBanana"><TextBlock Text="18+" /></Border>
+                          <Button Classes="ghost" Padding="3" IsVisible="{Binding HasAudio}" VerticalAlignment="Center"
+                                  ToolTip.Tip="Play the preview" AutomationProperties.Name="Play preview"
+                                  Command="{Binding $parent[UserControl].((vm:GameBananaViewModel)DataContext).PlaySoundCommand}" CommandParameter="{Binding}">
+                            <Panel>
+                              <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" IsVisible="{Binding !Playing}" />
+                              <PathIcon Data="{StaticResource IconClose}" Width="12" Height="12" IsVisible="{Binding Playing}" />
+                            </Panel>
+                          </Button>
                         </StackPanel>
                       </Panel>
                       <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="12,10,12,10" VerticalAlignment="Top">

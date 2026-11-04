@@ -277,20 +277,52 @@ public sealed partial class GameBananaClient(HttpClient http)
             ?? throw new GameBananaException("This submission isn't available in the launcher.");
 
         var screenshots = Images(root).Select(i => ImageUrl(i, "_sFile") ?? ImageUrl(i, "_sFile530")).OfType<string>().Take(12).ToArray();
-        var audio = Object(Object(root, "_aPreviewMedia"), "_aMetadata") is { } media && Text(media, "_sAudioUrl") is { } a && IsGameBananaUrl(a) ? a : null;
+        var media = Object(root, "_aPreviewMedia");
+        var audio = Object(media, "_aMetadata") is { } meta && Text(meta, "_sAudioUrl") is { } a && IsGameBananaUrl(a) ? a : null;
+        var videos = ExtractVideoLinks(Text(root, "_sText")).ToList();
+        if (media is { ValueKind: JsonValueKind.Object } m && m.TryGetProperty("_aVideos", out var vids) && vids.ValueKind == JsonValueKind.Array)
+            videos.AddRange(vids.EnumerateArray().Select(v => Text(v, "_sFile") is { } f && IsGameBananaUrl($"{Text(v, "_sBaseUrl")}/{f}") ? $"{Text(v, "_sBaseUrl")}/{f}" : null).OfType<string>());
         var files = root.TryGetProperty("_aFiles", out var list) && list.ValueKind == JsonValueKind.Array
             ? list.EnumerateArray().Select(ParseFile).OfType<SubmissionFile>().ToArray()
             : [];
         return new SubmissionDetails(summary, PlainText(Text(root, "_sText")), screenshots, audio,
-            Int(root, "_nDownloadCount"), Text(root, "_sVersion") is { Length: > 0 } v ? Clip(v, 40) : null, files);
+            Int(root, "_nDownloadCount"), Text(root, "_sVersion") is { Length: > 0 } v ? Clip(v, 40) : null, files, videos.Distinct().ToArray());
     }
+
+    /// <summary>Video links embedded in a submission's HTML description (YouTube and friends), normalized to watch URLs.</summary>
+    internal static IReadOnlyList<string> ExtractVideoLinks(string? html)
+    {
+        if (string.IsNullOrEmpty(html))
+            return [];
+        var links = new List<string>();
+        foreach (Match m in VideoUrl().Matches(html))
+        {
+            var url = m.Value;
+            if (m.Groups["id"].Success)
+                url = $"https://www.youtube.com/watch?v={m.Groups["id"].Value}";
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+                && (uri.Host.Equals("youtube.com", StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith(".youtube.com", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.Equals("youtu.be", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("youtube-nocookie.com", StringComparison.OrdinalIgnoreCase)
+                    || IsGameBananaUrl(url)))
+                links.Add(uri.AbsoluteUri);
+        }
+        return links;
+    }
+
+    [GeneratedRegex(@"(?:https?://)?(?:www\.)?(?:youtube\.com/(?:watch\?[^""'\s<>]*v=|embed/|shorts/)|youtu\.be/)(?<id>[A-Za-z0-9_-]{6,})|https?://[^""'\s<>]+\.(?:mp4|webm)(?:\?[^""'\s<>]*)?", RegexOptions.IgnoreCase)]
+    private static partial Regex VideoUrl();
 
     private static Submission? ParseSubmission(JsonElement r, Section section)
     {
+        // GameBanana marks adult submissions two ways: _bHasContentRatings, and
+        // _sInitialVisibility "hide" (shown on the site only with the adult filter on).
+        var shown = Text(r, "_sInitialVisibility");
         if (Id(r) is not { } id || Text(r, "_sName") is not { Length: > 0 } name
-            || Text(r, "_sInitialVisibility") is { } shown && shown != "show")
+            || shown is not null && shown is not ("show" or "hide"))
             return null;
         var category = Text(Object(r, "_aSubCategory"), "_sName") ?? Text(Object(r, "_aRootCategory"), "_sName") ?? Text(Object(r, "_aCategory"), "_sName") ?? "";
+        var media = Object(r, "_aPreviewMedia");
+        var audio = Object(media, "_aMetadata") is { } meta && Text(meta, "_sAudioUrl") is { } a && IsGameBananaUrl(a) ? a : null;
         return new Submission(
             id, section, Clip(name, 120),
             Clip(Text(Object(r, "_aSubmitter"), "_sName") ?? "", 60),
@@ -300,7 +332,8 @@ public sealed partial class GameBananaClient(HttpClient http)
             Int(r, "_nLikeCount"), Int(r, "_nViewCount"),
             Tags(r).Any(t => t.StartsWith("Casual Compatibility", StringComparison.OrdinalIgnoreCase)),
             Bool(r, "_bIsObsolete"),
-            Bool(r, "_bHasContentRatings"));
+            Bool(r, "_bHasContentRatings") || shown == "hide",
+            audio);
     }
 
     private static SubmissionFile? ParseFile(JsonElement f)

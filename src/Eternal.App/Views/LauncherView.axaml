@@ -89,26 +89,27 @@
             </StackPanel>
           </Grid>
 
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-            <StackPanel Spacing="2">
-              <TextBlock Classes="title" Text="Background" />
-              <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" Text="{Binding ScreenshotNote}" IsVisible="{Binding UsesScreenshots}" />
-              <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" IsVisible="{Binding UsesPicture}"
-                         Text="{Binding BackgroundImage, TargetNullValue='Pick any image. It is blurred once and kept behind everything.'}" />
-              <TextBlock Classes="muted" FontSize="13" Text="A plain background." IsVisible="{Binding !HasBackground}" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-              <ComboBox ItemsSource="{Binding BackgroundModes}" SelectedItem="{Binding BackgroundMode}" MinWidth="170">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate x:DataType="core:BackgroundMode">
-                    <TextBlock Text="{Binding Converter={x:Static views:Converters.BackgroundModeName}}" />
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
-              <Button Content="Another one" Command="{Binding NextScreenshotCommand}" IsVisible="{Binding CanCycleScreenshots}" />
-              <Button Content="Choose picture" Command="{Binding ChooseBackgroundCommand}" IsVisible="{Binding UsesPicture}" />
-            </StackPanel>
-          </Grid>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="title" Text="Background" />
+            <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" Text="{Binding ScreenshotNote}" IsVisible="{Binding UsesScreenshots}" />
+            <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" IsVisible="{Binding UsesPicture}"
+                       Text="{Binding BackgroundImage, TargetNullValue='Pick any image. It is blurred once and kept behind everything.'}" />
+            <TextBlock Classes="muted" FontSize="13" Text="A plain background." IsVisible="{Binding !HasBackground}" />
+            <WrapPanel Orientation="Horizontal">
+              <Button Classes="segment" Classes.on="{Binding BgScreenshots}" Content="Screenshots" ToolTip.Tip="A different TF2 screenshot each time the launcher opens"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Screenshots}" />
+              <Button Classes="segment" Classes.on="{Binding BgRotate}" Content="Rotating" ToolTip.Tip="TF2 screenshots, changing every few minutes"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Rotate}" />
+              <Button Classes="segment" Classes.on="{Binding BgOne}" Content="One" ToolTip.Tip="One screenshot, set from the Screenshots tab"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Screenshot}" />
+              <Button Classes="segment" Classes.on="{Binding BgPicture}" Content="Picture" ToolTip.Tip="A picture you choose"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Picture}" />
+              <Button Classes="segment" Classes.on="{Binding BgNone}" Content="None" ToolTip.Tip="Plain background"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.None}" />
+              <Button Classes="ghost" Content="Another one" Command="{Binding NextScreenshotCommand}" IsVisible="{Binding CanCycleScreenshots}" Margin="8,0,0,0" />
+              <Button Classes="ghost" Content="Choose picture" Command="{Binding ChooseBackgroundCommand}" IsVisible="{Binding UsesPicture}" />
+            </WrapPanel>
+          </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding UsesRotate}">
             <TextBlock Classes="meta" Text="Rotate every" VerticalAlignment="Center" />
             <ComboBox ItemsSource="{Binding RotateMinuteChoices}" SelectedItem="{Binding RotateMinutes}" MinWidth="70" />
