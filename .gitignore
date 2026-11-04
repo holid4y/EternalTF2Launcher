@@ -26,6 +26,8 @@ engine/.venv/
 # Kept locally, not published: dev tools and working notes
 tools/
 docs/*.md
+agents.md
+AGENTS.md
 
 # Portable-mode data and 1.x engine data in old checkouts
 userdata/

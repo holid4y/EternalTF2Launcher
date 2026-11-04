@@ -32,6 +32,18 @@ public sealed class UpdateTests : IDisposable
               "browser_download_url": "https://github.com/holid4y/EternalTF2Launcher/releases/download/{{tag}}/EternalLauncher-{{tag.TrimStart('v')}}-win-x64-setup.exe",
               "size": 10,
               "digest": "sha256:{{new string('a', 64)}}"
+            },
+            {
+              "name": "EternalLauncher-{{tag.TrimStart('v')}}-win-x64.zip",
+              "browser_download_url": "https://github.com/holid4y/EternalTF2Launcher/releases/download/{{tag}}/EternalLauncher-{{tag.TrimStart('v')}}-win-x64.zip",
+              "size": 20,
+              "digest": "sha256:{{new string('b', 64)}}"
+            },
+            {
+              "name": "EternalLauncher-{{tag.TrimStart('v')}}-win-x64-portable.zip",
+              "browser_download_url": "https://github.com/holid4y/EternalTF2Launcher/releases/download/{{tag}}/EternalLauncher-{{tag.TrimStart('v')}}-win-x64-portable.zip",
+              "size": 21,
+              "digest": "sha256:{{new string('c', 64)}}"
             }
           ]
         }
@@ -54,8 +66,10 @@ public sealed class UpdateTests : IDisposable
         Assert.NotNull(release);
         Assert.Equal(new Version(2, 2, 0), release.Version);
         Assert.Equal("EternalLauncher-2.2.0-linux-x64.tar.gz", release.AssetFor(InstallKind.LinuxInstall)?.Name);
+        Assert.Equal("EternalLauncher-2.2.0-linux-x64.tar.gz", release.AssetFor(InstallKind.LinuxLoose)?.Name);
         Assert.Equal("EternalLauncher-2.2.0-win-x64-setup.exe", release.AssetFor(InstallKind.WindowsInstall)?.Name);
-        Assert.Null(release.AssetFor(InstallKind.WindowsPortable));
+        Assert.Equal("EternalLauncher-2.2.0-win-x64.zip", release.AssetFor(InstallKind.WindowsLoose)?.Name);
+        Assert.Equal("EternalLauncher-2.2.0-win-x64-portable.zip", release.AssetFor(InstallKind.WindowsPortable)?.Name);
         Assert.Null(release.AssetFor(InstallKind.Unmanaged));
         Assert.Equal("Custom robots now load on Linux.\n\nImports keep loose models.", release.Notes);
     }
@@ -199,6 +213,16 @@ public sealed class UpdateTests : IDisposable
 
         Assert.Equal(InstallKind.LinuxInstall, UpdateInstaller.Detect(app + "/", data, isWindows: false, isPortable: false));
         Assert.Equal(InstallKind.Unmanaged, UpdateInstaller.Detect(Path.Combine(_dir, "Downloads", "EternalLauncher"), data, isWindows: false, isPortable: false));
+
+        var loose = Directory.CreateDirectory(Path.Combine(_dir, "loose")).FullName;
+        File.WriteAllText(Path.Combine(loose, "EternalLauncher"), "");
+        Directory.CreateDirectory(Path.Combine(loose, "engine"));
+        File.WriteAllText(Path.Combine(loose, "engine", "run.py"), "");
+        Assert.Equal(InstallKind.LinuxLoose, UpdateInstaller.Detect(loose, data, isWindows: false, isPortable: false));
+
+        var build = Directory.CreateDirectory(Path.Combine(_dir, "build")).FullName;
+        File.WriteAllText(Path.Combine(build, "EternalLauncher"), "");
+        Assert.Equal(InstallKind.Unmanaged, UpdateInstaller.Detect(build, data, isWindows: false, isPortable: false));
     }
 
     [Fact]
@@ -211,6 +235,12 @@ public sealed class UpdateTests : IDisposable
         Assert.Equal(InstallKind.WindowsInstall, UpdateInstaller.Detect(installed, "", isWindows: true, isPortable: false));
         Assert.Equal(InstallKind.WindowsPortable, UpdateInstaller.Detect(unpacked, "", isWindows: true, isPortable: true));
         Assert.Equal(InstallKind.Unmanaged, UpdateInstaller.Detect(unpacked, "", isWindows: true, isPortable: false));
+
+        File.WriteAllText(Path.Combine(unpacked, "EternalLauncher.exe"), "");
+        Assert.Equal(InstallKind.Unmanaged, UpdateInstaller.Detect(unpacked, "", isWindows: true, isPortable: false));
+        Directory.CreateDirectory(Path.Combine(unpacked, "engine"));
+        File.WriteAllText(Path.Combine(unpacked, "engine", "run.py"), "");
+        Assert.Equal(InstallKind.WindowsLoose, UpdateInstaller.Detect(unpacked, "", isWindows: true, isPortable: false));
     }
 
     private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> answer, List<string> requested) : HttpMessageHandler
@@ -303,7 +333,7 @@ public sealed class UpdateInstallTests : IDisposable
         using var launcher = System.Diagnostics.Process.Start("sleep", "1");
         var update = new PreparedUpdate(InstallKind.LinuxInstall, new Version(2, 2, 0), installer, work);
 
-        UpdateInstaller.Launch(update, launcher.Id, reopen);
+        UpdateInstaller.Launch(update, launcher.Id, reopen, _dir);
         Assert.False(File.Exists(installed));
         Assert.DoesNotContain('\r', await File.ReadAllTextAsync(Path.Combine(work, "apply.sh")));
 
@@ -317,6 +347,34 @@ public sealed class UpdateInstallTests : IDisposable
     }
 
     [Fact]
+    public async Task A_loose_linux_copy_is_updated_by_copying_the_new_files_over_it()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
+        var payload = Directory.CreateDirectory(Path.Combine(_dir, "newapp")).FullName;
+        File.WriteAllText(Path.Combine(payload, "EternalLauncher"), "new");
+        File.WriteAllText(Path.Combine(payload, "engine.txt"), "new");
+        var target = Directory.CreateDirectory(Path.Combine(_dir, "app")).FullName;
+        File.WriteAllText(Path.Combine(target, "old.txt"), "old");
+        var reopened = Path.Combine(_dir, "reopened");
+        var reopen = Script("launcher", $"echo opened > '{reopened}'");
+        using var launcher = System.Diagnostics.Process.Start("sleep", "1");
+        var update = new PreparedUpdate(InstallKind.LinuxLoose, new Version(2, 2, 0), payload, work);
+
+        UpdateInstaller.Launch(update, launcher.Id, reopen, target);
+
+        Assert.Equal("ok", await ResultOf(update));
+        Assert.Equal("new", await File.ReadAllTextAsync(Path.Combine(target, "EternalLauncher")));
+        Assert.Equal("new", await File.ReadAllTextAsync(Path.Combine(target, "engine.txt")));
+        Assert.True(File.Exists(Path.Combine(target, "old.txt")));
+
+        for (var i = 0; i < 50 && !File.Exists(reopened); i++)
+            await Task.Delay(100);
+        Assert.True(File.Exists(reopened));
+    }
+
+    [Fact]
     public async Task A_failed_install_is_reported_on_the_next_start()
     {
         if (OperatingSystem.IsWindows())
@@ -324,7 +382,7 @@ public sealed class UpdateInstallTests : IDisposable
         var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
         var update = new PreparedUpdate(InstallKind.LinuxInstall, new Version(2, 2, 0), Script("install.sh", "exit 3"), work);
 
-        UpdateInstaller.Launch(update, 999_999, null);
+        UpdateInstaller.Launch(update, 999_999, null, _dir);
 
         Assert.Equal("failed:3", await ResultOf(update));
         var (version, problem) = UpdateInstaller.TakeResult(Path.Combine(_dir, "updates"))!.Value;

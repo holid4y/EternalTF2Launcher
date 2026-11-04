@@ -117,7 +117,7 @@
                   <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,2,0,0">
                     <Button Classes="primary" Content="Restart now" Command="{Binding RestartNowCommand}" IsVisible="{Binding IsReady}" />
                     <Button Classes="primary" Content="{Binding ActionLabel}" Command="{Binding DownloadCommand}" IsVisible="{Binding IsAvailable}" />
-                    <Button Classes="link" Content="What's new" Command="{Binding OpenNotesCommand}" VerticalAlignment="Center" />
+                    <Button Classes="link" Content="What's new" Command="{Binding OpenPageCommand}" VerticalAlignment="Center" />
                   </StackPanel>
                 </StackPanel>
                 <Button Grid.Column="2" Classes="ghost" Padding="4" VerticalAlignment="Top" Command="{Binding LaterCommand}"

@@ -28,6 +28,7 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     private Countdown? _card;
     private PreparedUpdate? _prepared;
     private bool _restart;
+    private bool _armed;
 
     public UpdateViewModel(AppServices services, MainViewModel main, UpdateClient client, Version current)
     {
@@ -236,6 +237,14 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
             return;
         _restart = true;
         CardOpen = false;
+        // Arm while the launcher is still open, so a failure is reported instead of
+        // the app just closing; the install script waits for this process to exit.
+        if (!TryArm(reopen: true))
+        {
+            _restart = false;
+            _main.Notify("The update couldn't be prepared to install, so the launcher stayed open. Check the logs, or get the new version from the releases page.", isError: true);
+            return;
+        }
         _main.RequestQuit();
     }
 
@@ -254,24 +263,26 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     }
 
     [RelayCommand]
-    private void OpenNotes() => Shell.OpenUrl(Release?.PageUrl ?? UpdateClient.ReleasesPage);
-
-    [RelayCommand]
     private void OpenPage() => Shell.OpenUrl(Release?.PageUrl ?? UpdateClient.ReleasesPage);
 
     /// <summary>Called as the launcher closes: a ready update installs now, and opens again after Restart now.</summary>
-    public void FinishOnExit()
+    public void FinishOnExit() => TryArm(reopen: _restart);
+
+    /// <summary>Starts the install script once; already armed by Restart now, this does nothing.</summary>
+    private bool TryArm(bool reopen)
     {
-        if (_prepared is null)
-            return;
+        if (_armed || _prepared is null)
+            return _armed;
         try
         {
-            UpdateInstaller.Launch(_prepared, reopen: _restart);
+            UpdateInstaller.Launch(_prepared, reopen: reopen);
+            _armed = true;
         }
         catch (Exception ex) when (ex is UpdateException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
             Log.Warn($"The update to {_prepared.Version.ToString(3)} couldn't be started: {ex.Message}");
         }
+        return _armed;
     }
 
     private void OpenCard()

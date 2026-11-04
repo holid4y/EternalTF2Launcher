@@ -354,8 +354,14 @@ public sealed partial class LauncherViewModel : PageViewModel
     [RelayCommand]
     private Task RecheckEngine() => _services.StartAsync();
 
+    public string LogsPath => _services.Paths.LogsDir;
+
     [RelayCommand]
-    private void OpenLogs() => Shell.OpenFolder(_services.Paths.LogsDir);
+    private void OpenLogs()
+    {
+        if (!Shell.OpenFolder(_services.Paths.LogsDir))
+            _main.Notify($"Couldn't open the folder automatically. Your logs are in {LogsPath}", isError: true);
+    }
 
     [RelayCommand]
     private void OpenData() => Shell.OpenFolder(_services.Paths.DataDir);

@@ -138,6 +138,51 @@
         </StackPanel>
       </Border>
 
+      <Border Classes="card">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="heading" Text="ONLINE SERVICES" />
+          <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap"
+                     Text="Both keys are optional and only ever go to the service they belong to. They stay in this computer's launcher settings." />
+          <StackPanel Spacing="6">
+            <TextBlock Classes="title" Text="teamwork.tf key" />
+            <TextBlock Classes="meta" TextWrapping="Wrap"
+                       Text="Adds teamwork.tf's community lists to Servers. Sign in through Steam at teamwork.tf, then Settings, Optional settings." />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBox Text="{Binding TeamworkKeyInput}" PasswordChar="•" Watermark="{Binding TeamworkKeyHint}" MaxLength="64"
+                       AutomationProperties.Name="teamwork.tf key" />
+              <Button Grid.Column="1" Content="Save" Command="{Binding SaveTeamworkKeyCommand}" />
+              <Button Grid.Column="2" Classes="ghost" Content="Remove" Command="{Binding RemoveTeamworkKeyCommand}" IsVisible="{Binding HasTeamworkKey}" />
+            </Grid>
+            <Button Classes="link" Content="Open teamwork.tf" Command="{Binding OpenTeamworkCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel Spacing="6">
+            <TextBlock Classes="title" Text="Steam Web API key" />
+            <TextBlock Classes="meta" TextWrapping="Wrap"
+                       Text="Shows the decals on your Backpack items. Steam only gives keys to accounts that have spent at least $5." />
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBox Text="{Binding SteamKeyInput}" PasswordChar="•" Watermark="{Binding SteamKeyHint}" MaxLength="32"
+                       AutomationProperties.Name="Steam Web API key" />
+              <Button Grid.Column="1" Content="Save" Command="{Binding SaveSteamKeyCommand}" />
+              <Button Grid.Column="2" Classes="ghost" Content="Remove" Command="{Binding RemoveSteamKeyCommand}" IsVisible="{Binding HasSteamKey}" />
+            </Grid>
+            <Button Classes="link" Content="Get a Steam Web API key" Command="{Binding OpenSteamKeyPageCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" Margin="0,0,0,24">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="heading" Text="ABOUT" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="13">
+            <Run Text="{Binding Version, StringFormat='Eternal TF2 Launcher {0}.'}" />
+            <Run Text="Mod preloading by cueki's casual-pre-loader (GPL-3.0), bundled unmodified. Prices from backpack.tf through pricedb.io. Mod feed from GameBanana. Barlow typeface by Jeremy Tribby (SIL Open Font License). Not affiliated with Valve." />
+          </TextBlock>
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Button Classes="link" Content="Launcher on GitHub" Command="{Binding OpenRepoCommand}" />
+            <Button Classes="link" Content="casual-pre-loader" Command="{Binding OpenPreloaderCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
       </StackPanel>
       <StackPanel Grid.Row="1" Grid.Column="1" Spacing="20">
       <Border Classes="card">
@@ -194,38 +239,6 @@
       </Border>
 
       <Border Classes="card">
-        <StackPanel Spacing="14">
-          <TextBlock Classes="heading" Text="ONLINE SERVICES" />
-          <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap"
-                     Text="Both keys are optional and only ever go to the service they belong to. They stay in this computer's launcher settings." />
-          <StackPanel Spacing="6">
-            <TextBlock Classes="title" Text="teamwork.tf key" />
-            <TextBlock Classes="meta" TextWrapping="Wrap"
-                       Text="Adds teamwork.tf's community lists to Servers. Sign in through Steam at teamwork.tf, then Settings, Optional settings." />
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-              <TextBox Text="{Binding TeamworkKeyInput}" PasswordChar="•" Watermark="{Binding TeamworkKeyHint}" MaxLength="64"
-                       AutomationProperties.Name="teamwork.tf key" />
-              <Button Grid.Column="1" Content="Save" Command="{Binding SaveTeamworkKeyCommand}" />
-              <Button Grid.Column="2" Classes="ghost" Content="Remove" Command="{Binding RemoveTeamworkKeyCommand}" IsVisible="{Binding HasTeamworkKey}" />
-            </Grid>
-            <Button Classes="link" Content="Open teamwork.tf" Command="{Binding OpenTeamworkCommand}" HorizontalAlignment="Left" />
-          </StackPanel>
-          <StackPanel Spacing="6">
-            <TextBlock Classes="title" Text="Steam Web API key" />
-            <TextBlock Classes="meta" TextWrapping="Wrap"
-                       Text="Shows the decals on your Backpack items. Steam only gives keys to accounts that have spent at least $5." />
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-              <TextBox Text="{Binding SteamKeyInput}" PasswordChar="•" Watermark="{Binding SteamKeyHint}" MaxLength="32"
-                       AutomationProperties.Name="Steam Web API key" />
-              <Button Grid.Column="1" Content="Save" Command="{Binding SaveSteamKeyCommand}" />
-              <Button Grid.Column="2" Classes="ghost" Content="Remove" Command="{Binding RemoveSteamKeyCommand}" IsVisible="{Binding HasSteamKey}" />
-            </Grid>
-            <Button Classes="link" Content="Get a Steam Web API key" Command="{Binding OpenSteamKeyPageCommand}" HorizontalAlignment="Left" />
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <Border Classes="card">
         <StackPanel Spacing="12">
           <TextBlock Classes="heading" Text="UPDATES" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
@@ -253,8 +266,8 @@
                        Text="New versions download in the background and install when you quit the launcher, or right away with Restart to update." />
           </StackPanel>
           <TextBlock Classes="meta" TextWrapping="Wrap" IsVisible="{Binding !Updates.CanUpdateItself}"
-                     Text="This copy wasn't installed with the installer or install.sh, so it can't update itself. New versions are on the releases page." />
-          <Button Classes="link" Content="Release notes" Command="{Binding Updates.OpenNotesCommand}" HorizontalAlignment="Left" />
+                     Text="This build runs from a folder that isn't a release, so it can't update itself. New versions are on the releases page." />
+          <Button Classes="link" Content="Release notes" Command="{Binding Updates.OpenPageCommand}" HorizontalAlignment="Left" />
         </StackPanel>
       </Border>
 
@@ -275,22 +288,10 @@
             <Button Classes="link" Content="Logs folder" Command="{Binding OpenLogsCommand}" />
             <Button Classes="link" Content="Data folder" Command="{Binding OpenDataCommand}" />
           </StackPanel>
+          <TextBlock Classes="meta" TextWrapping="Wrap" Text="{Binding LogsPath}" />
         </StackPanel>
       </Border>
 
-      <Border Classes="card" Margin="0,0,0,24">
-        <StackPanel Spacing="8">
-          <TextBlock Classes="heading" Text="ABOUT" />
-          <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="13">
-            <Run Text="{Binding Version, StringFormat='Eternal TF2 Launcher {0}.'}" />
-            <Run Text="Mod preloading by cueki's casual-pre-loader (GPL-3.0), bundled unmodified. Prices from backpack.tf through pricedb.io. Mod feed from GameBanana. Barlow typeface by Jeremy Tribby (SIL Open Font License). Not affiliated with Valve." />
-          </TextBlock>
-          <StackPanel Orientation="Horizontal" Spacing="14">
-            <Button Classes="link" Content="Launcher on GitHub" Command="{Binding OpenRepoCommand}" />
-            <Button Classes="link" Content="casual-pre-loader" Command="{Binding OpenPreloaderCommand}" />
-          </StackPanel>
-        </StackPanel>
-      </Border>
       </StackPanel>
     </Grid>
   </ScrollViewer>

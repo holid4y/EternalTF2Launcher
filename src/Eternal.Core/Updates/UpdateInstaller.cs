@@ -30,13 +30,23 @@ public static class UpdateInstaller
         {
             if (isPortable)
                 return InstallKind.WindowsPortable;
-            return File.Exists(Path.Combine(here, "unins000.exe")) ? InstallKind.WindowsInstall : InstallKind.Unmanaged;
+            if (File.Exists(Path.Combine(here, "unins000.exe")))
+                return InstallKind.WindowsInstall;
+            return LooksLikeRelease(here, "EternalLauncher.exe") ? InstallKind.WindowsLoose : InstallKind.Unmanaged;
         }
         if (OperatingSystem.IsMacOS() || dataHome.Length == 0)
             return InstallKind.Unmanaged;
         var installed = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(dataHome, "eternal-launcher", "app")));
-        return string.Equals(here, installed, StringComparison.Ordinal) ? InstallKind.LinuxInstall : InstallKind.Unmanaged;
+        if (string.Equals(here, installed, StringComparison.Ordinal))
+            return InstallKind.LinuxInstall;
+        return LooksLikeRelease(here, "EternalLauncher") ? InstallKind.LinuxLoose : InstallKind.Unmanaged;
     }
+
+    /// <summary>A release archive unpacked into its own folder: the launcher executable plus the bundled engine.</summary>
+    private static bool LooksLikeRelease(string dir, string executable) =>
+        File.Exists(Path.Combine(dir, executable))
+        && Directory.Exists(Path.Combine(dir, "engine"))
+        && (File.Exists(Path.Combine(dir, "engine", "run.py")) || File.Exists(Path.Combine(dir, "engine", "eternal-engine")));
 
     /// <summary>Unpacks <paramref name="download"/> and finds what installs it.</summary>
     public static PreparedUpdate Prepare(InstallKind kind, Version version, string download)
@@ -51,9 +61,9 @@ public static class UpdateInstaller
         Directory.CreateDirectory(unpacked);
         try
         {
-            if (kind == InstallKind.LinuxInstall)
+            if (kind is InstallKind.LinuxInstall or InstallKind.LinuxLoose)
                 Untar(download, unpacked);
-            else if (kind == InstallKind.WindowsPortable)
+            else if (kind is InstallKind.WindowsPortable or InstallKind.WindowsLoose)
                 ZipFile.ExtractToDirectory(download, unpacked);
             else
                 throw new UpdateException("This copy of the launcher wasn't installed in a way it can update itself.");
@@ -63,12 +73,17 @@ public static class UpdateInstaller
             throw new UpdateException($"The update couldn't be unpacked: {ex.Message}", ex);
         }
 
-        var marker = kind == InstallKind.LinuxInstall ? "install.sh" : "EternalLauncher.exe";
+        var marker = kind switch
+        {
+            InstallKind.LinuxInstall => "install.sh",
+            InstallKind.LinuxLoose => "EternalLauncher",
+            _ => "EternalLauncher.exe",
+        };
         var payload = Directory.EnumerateFiles(unpacked, marker, new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 2 })
             .FirstOrDefault();
         if (payload is null)
             throw new UpdateException("The update package doesn't look like a launcher build, so it wasn't installed.");
-        return new PreparedUpdate(kind, version, kind == InstallKind.LinuxInstall ? payload : Path.GetDirectoryName(payload)!, work);
+        return new PreparedUpdate(kind, version, kind is InstallKind.LinuxInstall ? payload : Path.GetDirectoryName(payload)!, work);
     }
 
     /// <summary>
@@ -78,11 +93,11 @@ public static class UpdateInstaller
     public static void Launch(PreparedUpdate update, bool reopen)
     {
         var self = Environment.ProcessPath ?? throw new UpdateException("The launcher couldn't find its own program file.");
-        Launch(update, Environment.ProcessId, reopen ? self : null);
+        Launch(update, Environment.ProcessId, reopen ? self : null, AppContext.BaseDirectory);
         Log.Info($"Update to {update.Version.ToString(3)} will install when the launcher closes");
     }
 
-    internal static void Launch(PreparedUpdate update, int waitFor, string? reopen)
+    internal static void Launch(PreparedUpdate update, int waitFor, string? reopen, string target)
     {
         var pid = waitFor.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var result = Path.Combine(update.WorkDir, ResultFile);
@@ -95,7 +110,7 @@ public static class UpdateInstaller
             start = new ProcessStartInfo("powershell.exe") { CreateNoWindow = true };
             foreach (var arg in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script,
                          "-Id", pid, "-Kind", update.Kind == InstallKind.WindowsInstall ? "setup" : "files", "-Payload", update.Payload,
-                         "-Target", AppContext.BaseDirectory, "-Result", result, "-Reopen", reopen ?? "" })
+                         "-Target", target, "-Result", result, "-Reopen", reopen ?? "" })
                 start.ArgumentList.Add(arg);
         }
         else
@@ -107,7 +122,8 @@ public static class UpdateInstaller
             start = File.Exists("/usr/bin/setsid") ? new ProcessStartInfo("/usr/bin/setsid") : new ProcessStartInfo("/bin/sh");
             if (start.FileName == "/usr/bin/setsid")
                 start.ArgumentList.Add("/bin/sh");
-            foreach (var arg in new[] { script, pid, update.Payload, result, reopen ?? "" })
+            var kind = update.Kind == InstallKind.LinuxInstall ? "install" : "files";
+            foreach (var arg in new[] { script, pid, kind, update.Payload, target, result, reopen ?? "" })
                 start.ArgumentList.Add(arg);
         }
         start.UseShellExecute = false;
@@ -152,15 +168,19 @@ public static class UpdateInstaller
     private const string LinuxScript = """
         #!/bin/sh
         # Installs a downloaded launcher update once the launcher has closed, then opens it again.
-        # usage: apply.sh <launcher pid> <the new install.sh> <result file> [launcher to open]
-        pid=$1 installer=$2 result=$3 reopen=${4:-}
+        # usage: apply.sh <launcher pid> <install|files> <install.sh or new app folder> <app folder> <result file> [launcher to open]
+        pid=$1 kind=$2 payload=$3 target=$4 result=$5 reopen=${6:-}
         waited=0
         while kill -0 "$pid" 2>/dev/null; do
-            if [ "$waited" -ge 120 ]; then echo "failed:still-running" > "$result"; exit 1; fi
+            if [ "$waited" -ge 240 ]; then echo "failed:still-running" > "$result"; exit 1; fi
             sleep 0.5
             waited=$((waited + 1))
         done
-        if sh "$installer" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
+        if [ "$kind" = files ]; then
+            if cp -R "$payload/." "$target/" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
+        else
+            if sh "$payload" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
+        fi
         if [ -n "$reopen" ] && [ -x "$reopen" ]; then nohup "$reopen" > /dev/null 2>&1 & fi
         exit 0
 
@@ -171,7 +191,7 @@ public static class UpdateInstaller
         param([int]$Id, [string]$Kind, [string]$Payload, [string]$Target, [string]$Result, [string]$Reopen)
         $ErrorActionPreference = 'Stop'
         try {
-            Wait-Process -Id $Id -Timeout 60 -ErrorAction SilentlyContinue
+            Wait-Process -Id $Id -Timeout 120 -ErrorAction SilentlyContinue
             if (Get-Process -Id $Id -ErrorAction SilentlyContinue) { Set-Content -Path $Result -Value 'failed:still-running'; exit 1 }
             if ($Kind -eq 'setup') {
                 $setup = Start-Process -FilePath $Payload -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
