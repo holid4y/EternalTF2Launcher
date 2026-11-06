@@ -55,7 +55,7 @@ Download a release from the [Releases](../../releases) page. Release builds incl
 ### Linux
 
 ```sh
-tar xf EternalLauncher-2.2.5-linux-x64.tar.gz
+tar xf EternalLauncher-2.2.6-linux-x64.tar.gz
 cd EternalLauncher && ./install.sh
 ```
 
@@ -63,7 +63,7 @@ This installs for your user only (`~/.local/share/eternal-launcher`), adds a men
 
 ### Windows
 
-Run `EternalLauncher-2.2.5-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
+Run `EternalLauncher-2.2.6-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
 
 Upgrading from 1.x keeps your settings, profiles, thumbnails and mod library; they are imported on first start.
 

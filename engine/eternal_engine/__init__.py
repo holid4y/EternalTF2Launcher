@@ -1,3 +1,3 @@
 """Headless adapter between Eternal Launcher and cueki's casual-pre-loader."""
 
-ADAPTER_VERSION = "2.2.5"
+ADAPTER_VERSION = "2.2.6"
