@@ -216,8 +216,6 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
             var file = await _client.DownloadAsync(asset, Path.Combine(UpdatesDir, release.VersionText),
                 new Progress<double>(p => Progress = p));
             _prepared = await Task.Run(() => UpdateInstaller.Prepare(Kind, release.Version, file));
-            // Arm right away: the install script waits for this process to exit, so any
-            // exit (quit, restart, crash) applies the update instead of losing it.
             if (!TryArm(reopen: false))
             {
                 Problem = "The update downloaded, but it couldn't be set to install when the launcher closes. Check the logs, or get it from the releases page.";
@@ -250,7 +248,6 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
         try
         {
             if (_armed)
-                // Already armed when the download finished; just ask it to open the launcher again.
                 UpdateInstaller.MarkReopen(_prepared);
             else if (!TryArm(reopen: true))
             {

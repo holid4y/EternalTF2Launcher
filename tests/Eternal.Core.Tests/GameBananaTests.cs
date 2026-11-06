@@ -60,8 +60,6 @@ public sealed class GameBananaTests : IDisposable
     [Fact]
     public void Rated_and_hidden_submissions_are_kept_and_marked_adult_while_malformed_are_left_out()
     {
-        // GameBanana flags adult content either with _bHasContentRatings or with
-        // _sInitialVisibility "hide" (both show on the site only with the adult filter on).
         const string json = """
             {"_aMetadata": {"_nRecordCount": 5}, "_aRecords": [
               {"_idRow": 1, "_sName": "Fine", "_aSubmitter": {"_sName": "a"}, "_sInitialVisibility": "show"},
@@ -97,6 +95,23 @@ public sealed class GameBananaTests : IDisposable
             """;
         var details = GameBananaClient.ParseDetails(profile, Section.Mods);
         Assert.Equal(["https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=abcDEF12345"], details.Videos);
+    }
+
+    [Fact]
+    public void Video_files_join_the_base_url_without_doubling_a_slash()
+    {
+        const string profile = """
+            {"_idRow": 9, "_sName": "Mod", "_sInitialVisibility": "show", "_nDownloadCount": 3, "_sText": "",
+             "_aPreviewMedia": {"_aVideos": [
+               {"_sBaseUrl": "https://files.gamebanana.com/preview/videos/", "_sFile": "a.mp4"},
+               {"_sBaseUrl": "https://files.gamebanana.com/preview/videos", "_sFile": "b.mp4"},
+               {"_sBaseUrl": "https://evil.example/", "_sFile": "c.mp4"}
+             ]}}
+            """;
+        var details = GameBananaClient.ParseDetails(profile, Section.Mods);
+        Assert.Equal(
+            ["https://files.gamebanana.com/preview/videos/a.mp4", "https://files.gamebanana.com/preview/videos/b.mp4"],
+            details.Videos);
     }
 
     [Fact]

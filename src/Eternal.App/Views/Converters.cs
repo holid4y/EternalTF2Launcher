@@ -14,15 +14,23 @@ public static class Converters
     public static readonly IValueConverter Percent =
         new FuncValueConverter<double, string>(value => value.ToString("0", CultureInfo.InvariantCulture) + "%");
 
-    public static readonly IValueConverter BackgroundModeName =
-        new FuncValueConverter<Eternal.Core.BackgroundMode, string>(mode => mode switch
+    public static readonly IValueConverter EnumMatch = new EnumMatchConverter();
+
+    private sealed class EnumMatchConverter : IValueConverter
+    {
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            Eternal.Core.BackgroundMode.Screenshots => "TF2 screenshots",
-            Eternal.Core.BackgroundMode.Rotate => "TF2 screenshots · rotating",
-            Eternal.Core.BackgroundMode.Screenshot => "One screenshot",
-            Eternal.Core.BackgroundMode.Picture => "Custom picture",
-            _ => "None",
-        });
+            if (value is null || parameter is not string p)
+                return false;
+            var negate = p.StartsWith('!');
+            var names = (negate ? p[1..] : p).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var match = names.Contains(value.ToString(), StringComparer.Ordinal);
+            return negate ? !match : match;
+        }
+
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+            Avalonia.Data.BindingOperations.DoNothing;
+    }
 
     public static readonly IMultiValueConverter ItemColor = new FuncMultiValueConverter<object?, IBrush?>(values =>
     {

@@ -140,7 +140,6 @@ public partial class ScreenshotsView : UserControl
         var props = e.GetCurrentPoint(Stage).Properties;
         if (props.IsRightButtonPressed)
         {
-            // Right-click on a placed mark: offer move, resize and delete.
             if (r.Contains(p) && _editor.HitMark(ToImage(p)) is var hit && hit >= 0)
             {
                 _editor.SelectMark(hit);
@@ -153,7 +152,6 @@ public partial class ScreenshotsView : UserControl
             return;
         if (_editor.Tool == EditTool.None)
         {
-            // No drawing tool: grab a placed mark to move or resize it.
             var hit = _editor.HitMark(ToImage(p));
             if (hit < 0)
             {
@@ -179,9 +177,20 @@ public partial class ScreenshotsView : UserControl
     private bool NearHandle(Point p, Mark m)
     {
         var r = PictureRect();
-        var hx = r.X + m.Area.Right * r.Width;
-        var hy = r.Y + m.Area.Bottom * r.Height;
+        var area = MarkBounds(m);
+        var hx = r.X + area.Right * r.Width;
+        var hy = r.Y + area.Bottom * r.Height;
         return Math.Abs(p.X - hx) <= 12 && Math.Abs(p.Y - hy) <= 12;
+    }
+
+    private SKRect MarkBounds(Mark m)
+    {
+        if (m.Kind == MarkKind.Text && m.Text is not null && _editor is { } editor)
+        {
+            var (w, h) = editor.ImageSize;
+            return ScreenshotRenderer.TextBounds(m, w, h);
+        }
+        return m.Area;
     }
 
     private void ShowMarkMenu(int index)
@@ -295,8 +304,18 @@ public partial class ScreenshotsView : UserControl
         {
             var m = _editor.Edit.Marks[_moving];
             var delta = new SKPoint(ToImage(_dragEnd).X - ToImage(start).X, ToImage(_dragEnd).Y - ToImage(start).Y);
-            var area = _mode == DragMode.Resize ? ScreenshotRenderer.Resize(m.Area, delta) : ScreenshotRenderer.Translate(m.Area, delta);
-            DrawMarkFrame(r, m with { Area = area }, handle: false);
+            if (_mode == DragMode.Resize && m.Kind == MarkKind.Text)
+            {
+                var scale = Math.Clamp(m.Scale + (delta.X + delta.Y) * 1.5f, 0.2f, 8f);
+                DrawMarkFrame(r, m with { Scale = scale }, handle: false);
+            }
+            else
+            {
+                var area = _mode == DragMode.Resize
+                    ? ScreenshotRenderer.Resize(m.Area, delta, m.Kind == MarkKind.Arrow)
+                    : ScreenshotRenderer.Translate(m.Area, delta);
+                DrawMarkFrame(r, m with { Area = area }, handle: false);
+            }
             return;
         }
         if (_editor.Tool == EditTool.Arrow)
@@ -350,8 +369,9 @@ public partial class ScreenshotsView : UserControl
             });
             return;
         }
-        var box = new Rect(r.X + m.Area.Left * r.Width, r.Y + m.Area.Top * r.Height,
-            Math.Abs(m.Area.Width) * r.Width, Math.Abs(m.Area.Height) * r.Height);
+        var area = MarkBounds(m);
+        var box = new Rect(r.X + area.Left * r.Width, r.Y + area.Top * r.Height,
+            Math.Abs(area.Width) * r.Width, Math.Abs(area.Height) * r.Height);
         Frame(box);
         if (handle)
         {

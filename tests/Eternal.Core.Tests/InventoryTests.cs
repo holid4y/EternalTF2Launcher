@@ -172,8 +172,6 @@ public class ItemNameTests
     [Fact]
     public void Decal_fields_sent_as_strings_are_still_read()
     {
-        // Steam's GetPlayerItems answers with string-typed defindex/value/id on some items;
-        // JsonElement.TryGetInt32 throws on those, so parsing has to accept both shapes.
         var json = """
             {"result":{"status":1,"items":[
               {"id":"9001","attributes":[{"defindex":"152","value":"1234"},{"defindex":"227","value":"5"}]},

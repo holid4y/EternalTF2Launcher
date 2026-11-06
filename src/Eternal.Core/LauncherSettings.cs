@@ -16,7 +16,6 @@ public sealed class BrowseView
     public ViewLayout Layout { get; set; }
     public double CardWidth { get; set; } = 220;
 
-    /// <summary>Also list submissions GameBanana marks as adult (18+). Off by default.</summary>
     public bool ShowAdult { get; set; }
 
     internal void Clamp() => CardWidth = double.IsFinite(CardWidth) ? Math.Clamp(CardWidth, MinCardWidth, MaxCardWidth) : 220;
@@ -68,10 +67,8 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public BackgroundMode Background { get; set; } = BackgroundMode.Screenshots;
     public string? BackgroundImage { get; set; }
 
-    /// <summary>The one screenshot used as the background when <see cref="Background"/> is Screenshot.</summary>
     public string? BackgroundScreenshot { get; set; }
 
-    /// <summary>Minutes between background changes when Background is Rotate.</summary>
     public int BackgroundRotateMinutes { get; set; } = 5;
     public double BackgroundDim { get; set; } = 0.72;
     public double BackgroundBlur { get; set; } = 12;

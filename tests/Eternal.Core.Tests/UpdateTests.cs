@@ -388,7 +388,6 @@ public sealed class UpdateInstallTests : IDisposable
         using var launcher = System.Diagnostics.Process.Start("sleep", "1");
         var update = new PreparedUpdate(InstallKind.LinuxInstall, new Version(2, 2, 0), installer, work);
 
-        // Armed without a reopen argument; the marker file written later makes it open again.
         UpdateInstaller.Launch(update, launcher.Id, null, _dir);
 
         Assert.Equal("ok", await ResultOf(update));
@@ -411,5 +410,42 @@ public sealed class UpdateInstallTests : IDisposable
         var (version, problem) = UpdateInstaller.TakeResult(Path.Combine(_dir, "updates"))!.Value;
         Assert.Equal(new Version(2, 2, 0), version);
         Assert.Contains("3", problem);
+    }
+
+    [Fact]
+    public async Task A_failed_install_does_not_reopen_the_launcher()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
+        var reopened = Path.Combine(_dir, "reopened");
+        var installer = Script("install.sh", "exit 3");
+        var reopen = Script("launcher", $"echo opened > '{reopened}'");
+        var update = new PreparedUpdate(InstallKind.LinuxInstall, new Version(2, 2, 0), installer, work);
+
+        UpdateInstaller.Launch(update, 999_999, reopen, _dir);
+
+        Assert.Equal("failed:3", await ResultOf(update));
+        await Task.Delay(1000);
+        Assert.False(File.Exists(reopened));
+    }
+
+    [Fact]
+    public async Task A_failed_copy_does_not_reopen_even_from_the_marker_file()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
+        var reopened = Path.Combine(_dir, "reopened");
+        var reopen = Script("launcher", $"echo opened > '{reopened}'");
+        File.WriteAllText(Path.Combine(work, "reopen.txt"), reopen);
+        var target = Directory.CreateDirectory(Path.Combine(_dir, "app")).FullName;
+        var update = new PreparedUpdate(InstallKind.LinuxLoose, new Version(2, 2, 0), Path.Combine(_dir, "no-such-payload"), work);
+
+        UpdateInstaller.Launch(update, 999_999, null, target);
+
+        Assert.StartsWith("failed:", await ResultOf(update));
+        await Task.Delay(1000);
+        Assert.False(File.Exists(reopened));
     }
 }

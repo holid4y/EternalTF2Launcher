@@ -97,11 +97,6 @@ public static class UpdateInstaller
         Log.Info($"Update to {update.Version.ToString(3)} will install when the launcher closes");
     }
 
-    /// <summary>
-    /// Asks the already-armed install script to open the launcher again afterwards,
-    /// by writing reopen.txt next to its result file. Lets "Restart to update" work
-    /// even when the update was armed before the restart was requested.
-    /// </summary>
     public static void MarkReopen(PreparedUpdate update)
     {
         var self = Environment.ProcessPath ?? throw new UpdateException("The launcher couldn't find its own program file.");
@@ -129,9 +124,7 @@ public static class UpdateInstaller
         else
         {
             var script = Path.Combine(update.WorkDir, "apply.sh");
-            // This file is checked out with CRLF on some machines, and sh reads "fi\r" as no fi.
             File.WriteAllText(script, LinuxScript.ReplaceLineEndings("\n"));
-            // setsid keeps the script alive after the launcher's session ends.
             start = File.Exists("/usr/bin/setsid") ? new ProcessStartInfo("/usr/bin/setsid") : new ProcessStartInfo("/bin/sh");
             if (start.FileName == "/usr/bin/setsid")
                 start.ArgumentList.Add("/bin/sh");
@@ -190,9 +183,9 @@ public static class UpdateInstaller
             waited=$((waited + 1))
         done
         if [ "$kind" = files ]; then
-            if cp -R "$payload/." "$target/" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
+            if cp -R "$payload/." "$target/" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; exit 1; fi
         else
-            if sh "$payload" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; fi
+            if sh "$payload" > "$result.log" 2>&1; then echo ok > "$result"; else echo "failed:$?" > "$result"; exit 1; fi
         fi
         if [ -z "$reopen" ]; then
             marker="$(dirname "$result")/reopen.txt"
@@ -207,6 +200,7 @@ public static class UpdateInstaller
         # Installs a downloaded launcher update once the launcher has closed, then opens it again.
         param([int]$Id, [string]$Kind, [string]$Payload, [string]$Target, [string]$Result, [string]$Reopen)
         $ErrorActionPreference = 'Stop'
+        $ok = $false
         try {
             Wait-Process -Id $Id -Timeout 240 -ErrorAction SilentlyContinue
             if (Get-Process -Id $Id -ErrorAction SilentlyContinue) { Set-Content -Path $Result -Value 'failed:still-running'; exit 1 }
@@ -217,15 +211,18 @@ public static class UpdateInstaller
                 Copy-Item -Path (Join-Path $Payload '*') -Destination $Target -Recurse -Force
             }
             Set-Content -Path $Result -Value 'ok'
+            $ok = $true
         } catch {
             Set-Content -Path $Result -Value 'failed:copy'
             exit 1
         } finally {
-            if (-not $Reopen) {
-                $marker = Join-Path (Split-Path $Result) 'reopen.txt'
-                if (Test-Path -LiteralPath $marker) { $Reopen = (Get-Content -LiteralPath $marker -Raw).Trim() }
+            if ($ok) {
+                if (-not $Reopen) {
+                    $marker = Join-Path (Split-Path $Result) 'reopen.txt'
+                    if (Test-Path -LiteralPath $marker) { $Reopen = (Get-Content -LiteralPath $marker -Raw).Trim() }
+                }
+                if ($Reopen -and (Test-Path -LiteralPath $Reopen)) { Start-Process -FilePath $Reopen }
             }
-            if ($Reopen -and (Test-Path -LiteralPath $Reopen)) { Start-Process -FilePath $Reopen }
         }
 
         """;

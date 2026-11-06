@@ -1,3 +1,4 @@
+using Eternal.Core.Logging;
 using SoundFlow.Backends.MiniAudio;
 using SoundFlow.Components;
 using SoundFlow.Metadata.Models;
@@ -6,10 +7,6 @@ using SoundFlow.Structs;
 
 namespace Eternal.App.Services;
 
-/// <summary>
-/// Plays one GameBanana preview at a time, in-app, through miniaudio (bundled natively by SoundFlow).
-/// Cards and the details page follow <see cref="Changed"/>.
-/// </summary>
 public static class PreviewPlayer
 {
     private static MiniAudioEngine? _engine;
@@ -27,18 +24,31 @@ public static class PreviewPlayer
             return;
         }
         Stop();
-        _engine ??= new MiniAudioEngine([]);
-        var provider = new NetworkDataProvider(_engine, url, new ReadOptions());
-        var format = new AudioFormat { Format = provider.SampleFormat, Channels = provider.FormatInfo?.ChannelCount ?? 2, SampleRate = provider.SampleRate };
-        _player = new SoundPlayer(_engine, format, provider);
-        _player.Play();
-        PlayingUrl = url;
-        Changed?.Invoke();
+        try
+        {
+            _engine ??= new MiniAudioEngine([]);
+            var provider = new NetworkDataProvider(_engine, url, new ReadOptions());
+            var format = new AudioFormat { Format = provider.SampleFormat, Channels = provider.FormatInfo?.ChannelCount ?? 2, SampleRate = provider.SampleRate };
+            var player = _player = new SoundPlayer(_engine, format, provider);
+            player.PlaybackEnded += (_, _) => ThreadPool.QueueUserWorkItem(_ =>
+            {
+                if (ReferenceEquals(_player, player))
+                    Stop();
+            });
+            player.Play();
+            PlayingUrl = url;
+            Changed?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"The preview of {url} couldn't be played: {ex.Message}");
+            Stop();
+        }
     }
 
     public static void Stop()
     {
-        if (PlayingUrl is null)
+        if (PlayingUrl is null && _player is null)
             return;
         try
         {
@@ -47,7 +57,6 @@ public static class PreviewPlayer
         }
         catch (InvalidOperationException)
         {
-            // engine already torn down
         }
         _player = null;
         PlayingUrl = null;

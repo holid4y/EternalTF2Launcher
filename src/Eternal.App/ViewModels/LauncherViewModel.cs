@@ -77,21 +77,9 @@ public sealed partial class LauncherViewModel : PageViewModel
     public string[] Currencies { get; } = [.. PriceService.SteamCurrencies.Keys];
     public string[] LogLevels { get; } = ["Debug", "Info", "Warning", "Error"];
     public string[] StartTabs { get; } = ["home", "servers", "mods", "backpack", "screenshots", "config"];
-    public BackgroundMode[] BackgroundModes { get; } = [BackgroundMode.Screenshots, BackgroundMode.Rotate, BackgroundMode.Screenshot, BackgroundMode.Picture, BackgroundMode.None];
     public int[] RotateMinuteChoices { get; } = [1, 5, 15, 60];
 
-    public bool BgScreenshots => BackgroundMode == BackgroundMode.Screenshots;
-    public bool BgRotate => BackgroundMode == BackgroundMode.Rotate;
-    public bool BgOne => BackgroundMode == BackgroundMode.Screenshot;
-    public bool BgPicture => BackgroundMode == BackgroundMode.Picture;
-    public bool BgNone => BackgroundMode == BackgroundMode.None;
-
-    public bool UsesScreenshots => BackgroundMode is BackgroundMode.Screenshots or BackgroundMode.Rotate;
-    public bool CanCycleScreenshots => UsesScreenshots && _theme.Screenshots.Count > 1;
-    public bool UsesRotate => BackgroundMode == BackgroundMode.Rotate;
-    public bool UsesStaticScreenshot => BackgroundMode == BackgroundMode.Screenshot;
-    public bool UsesPicture => BackgroundMode == BackgroundMode.Picture;
-    public bool HasBackground => BackgroundMode != BackgroundMode.None;
+    public bool CanCycleScreenshots => BackgroundMode is BackgroundMode.Screenshots or BackgroundMode.Rotate && _theme.Screenshots.Count > 1;
     public string ScreenshotNote => _theme.Screenshots.Count switch
     {
         0 => "No TF2 screenshots found yet. Press F12 in game to take some; they show up here next time.",
@@ -248,9 +236,8 @@ public sealed partial class LauncherViewModel : PageViewModel
 
     partial void OnBackgroundModeChanged(BackgroundMode value)
     {
-        foreach (var name in new[] { nameof(BgScreenshots), nameof(BgRotate), nameof(BgOne), nameof(BgPicture), nameof(BgNone),
-                     nameof(UsesScreenshots), nameof(CanCycleScreenshots), nameof(UsesRotate), nameof(UsesStaticScreenshot), nameof(UsesPicture), nameof(HasBackground) })
-            OnPropertyChanged(name);
+        OnPropertyChanged(nameof(CanCycleScreenshots));
+        OnPropertyChanged(nameof(ScreenshotNote));
         Save(s => s.Background = value, restyle: true);
     }
 

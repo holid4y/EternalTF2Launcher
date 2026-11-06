@@ -96,7 +96,6 @@ public sealed partial class ThemeService : ObservableObject
     private DispatcherTimer? _rotate;
     private int _rotateIndex;
 
-    /// <summary>In Rotate mode, moves to the next screenshot every few minutes.</summary>
     private void StartRotation(LauncherSettings settings)
     {
         _rotate?.Stop();

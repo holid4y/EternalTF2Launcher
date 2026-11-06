@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Eternal.Core\Eternal.Core.csproj" />
+    <ProjectReference Include="..\..\src\Eternal.App\Eternal.App.csproj" />
   </ItemGroup>
 
   <ItemGroup>

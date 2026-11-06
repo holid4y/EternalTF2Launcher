@@ -217,16 +217,16 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         Change(Edit with { Marks = Edit.Marks.Add(new Mark(k, shape, Color.Color)) });
     }
 
-    /// <summary>Index of the mark under <paramref name="at"/> in image coordinates, or -1.</summary>
+    public (float Width, float Height) ImageSize => Edit.Rotation % 180 == 0
+        ? ((float)_source.Width, (float)_source.Height)
+        : ((float)_source.Height, (float)_source.Width);
+
     public int HitMark(SKPoint at)
     {
-        var (w, h) = Edit.Rotation % 180 == 0
-            ? ((float)_source.Width, (float)_source.Height)
-            : ((float)_source.Height, (float)_source.Width);
+        var (w, h) = ImageSize;
         return ScreenshotRenderer.HitTest(Edit.Marks, at, w, h);
     }
 
-    /// <summary>Moves a placed mark; one undo step per call.</summary>
     public void MoveMark(int index, SKPoint delta)
     {
         if (index < 0 || index >= Edit.Marks.Count)
@@ -235,7 +235,6 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Area = ScreenshotRenderer.Translate(mark.Area, delta) }) });
     }
 
-    /// <summary>Moves a mark's right/bottom edge; one undo step per call. Text has a point area, so its resize changes the font scale instead.</summary>
     public void ResizeMark(int index, SKPoint delta)
     {
         if (index < 0 || index >= Edit.Marks.Count)
@@ -247,7 +246,7 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
             Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Scale = scale }) });
             return;
         }
-        var area = ScreenshotRenderer.Resize(mark.Area, delta);
+        var area = ScreenshotRenderer.Resize(mark.Area, delta, mark.Kind == MarkKind.Arrow);
         Change(Edit with { Marks = Edit.Marks.SetItem(index, mark with { Area = area }) });
     }
 
@@ -268,7 +267,6 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         SelectMark(-1);
     }
 
-    /// <summary>Opens a file picker and stamps the chosen local picture at <paramref name="at"/>.</summary>
     public async Task AddImageAsync(SKPoint at)
     {
         var files = await Pickers.OpenFilesAsync("Add a picture", false, "Images",
@@ -279,17 +277,13 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
         int width, height;
         try
         {
-            data = ScreenshotRenderer.LoadImageFile(files[0]);
-            using var decoded = SKBitmap.Decode(data);
-            width = decoded!.Width;
-            height = decoded.Height;
+            (data, width, height) = ScreenshotRenderer.LoadImageFile(files[0]);
         }
-        catch (InvalidDataException ex)
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException)
         {
             await _dialogs.AlertAsync("That picture can't be used", ex.Message);
             return;
         }
-        // Place it centered on the click, at most 30% of the picture on either axis, keeping its shape.
         const float maxFrac = 0.3f;
         var fracW = maxFrac;
         var fracH = (float)(fracW * Aspect * height / Math.Max(1, width));
@@ -298,9 +292,9 @@ public sealed partial class ScreenshotEditorViewModel : ObservableObject, IDispo
             fracH = maxFrac;
             fracW = (float)(fracH * width / (Math.Max(1, height) * Aspect));
         }
-        var left = Clamp(at.X - fracW / 2);
-        var top = Clamp(at.Y - fracH / 2);
-        var area = new SKRect(left, top, Math.Min(1f, left + fracW), Math.Min(1f, top + fracH));
+        var left = Math.Clamp(at.X - fracW / 2, 0f, 1f - fracW);
+        var top = Math.Clamp(at.Y - fracH / 2, 0f, 1f - fracH);
+        var area = new SKRect(left, top, left + fracW, top + fracH);
         Change(Edit with { Marks = Edit.Marks.Add(new Mark(MarkKind.Image, area, Color.Color, ImageData: data)) });
     }
 

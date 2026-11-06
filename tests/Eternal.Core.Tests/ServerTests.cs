@@ -141,12 +141,11 @@ public class ServerTests
     [Fact]
     public void Master_server_replies_are_read_as_ip_and_port_pairs()
     {
-        // FF FF FF FF 66 0A, then 6-byte entries: IPv4 big-endian + port big-endian.
         byte[] packet =
         [
             0xFF, 0xFF, 0xFF, 0xFF, 0x66, 0x0A,
-            91, 216, 250, 10, 0x69, 0x87,   // 91.216.250.10:27015
-            1, 2, 3, 4, 0x00, 0x00,          // 1.2.3.4:0 — end-of-list marker
+            91, 216, 250, 10, 0x69, 0x87,
+            1, 2, 3, 4, 0x00, 0x00,
         ];
         var entries = MasterServerSource.ParseMasterReply(packet);
         Assert.Equal(2, entries.Count);
@@ -162,6 +161,62 @@ public class ServerTests
         Assert.Empty(MasterServerSource.ParseMasterReply([0xFF, 0xFF, 0xFF, 0xFF, 0x36, 0x00, 1, 2, 3, 4, 0, 1])); // legacy 0x36 header
         Assert.Empty(MasterServerSource.ParseMasterReply([0x00]));
         Assert.Empty(MasterServerSource.ParseMasterReply([]));
+    }
+
+    [Fact]
+    public async Task Master_server_keeps_the_pages_that_arrived_before_a_timeout()
+    {
+        using var master = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var endpoint = (IPEndPoint)master.Client.LocalEndPoint!;
+        var serve = Task.Run(async () =>
+        {
+            var first = await master.ReceiveAsync();
+            await master.SendAsync(MasterPage(("1.2.3.4", 27015), ("5.6.7.8", 27016)).AsMemory(), first.RemoteEndPoint);
+            var second = await master.ReceiveAsync();
+            Assert.Equal("5.6.7.8:27016", NextOf(second.Buffer));
+            await master.SendAsync(MasterPage(("9.10.11.12", 27017)).AsMemory(), second.RemoteEndPoint);
+            await master.ReceiveAsync();
+        });
+
+        var servers = await MasterServerSource.QueryAsync(endpoint, 100, TimeSpan.FromMilliseconds(400), CancellationToken.None);
+        await serve;
+
+        Assert.Equal(["1.2.3.4:27015", "5.6.7.8:27016", "9.10.11.12:27017"], servers.Select(s => s.Address.ToString()).ToArray());
+    }
+
+    [Fact]
+    public async Task Master_server_stops_at_the_end_of_list_marker()
+    {
+        using var master = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var endpoint = (IPEndPoint)master.Client.LocalEndPoint!;
+        var serve = Task.Run(async () =>
+        {
+            var request = await master.ReceiveAsync();
+            await master.SendAsync(MasterPage(("1.2.3.4", 27015), ("0.0.0.0", 0)).AsMemory(), request.RemoteEndPoint);
+        });
+
+        var servers = await MasterServerSource.QueryAsync(endpoint, 100, TimeSpan.FromSeconds(5), CancellationToken.None);
+        await serve;
+
+        Assert.Equal(["1.2.3.4:27015"], servers.Select(s => s.Address.ToString()).ToArray());
+    }
+
+    private static byte[] MasterPage(params (string Ip, int Port)[] entries)
+    {
+        var page = new List<byte> { 0xFF, 0xFF, 0xFF, 0xFF, 0x66, 0x0A };
+        foreach (var (ip, port) in entries)
+        {
+            page.AddRange(IPAddress.Parse(ip).GetAddressBytes());
+            page.Add((byte)(port >> 8));
+            page.Add((byte)port);
+        }
+        return [.. page];
+    }
+
+    private static string NextOf(byte[] request)
+    {
+        var end = Array.IndexOf(request, (byte)0, 2);
+        return Encoding.ASCII.GetString(request, 2, end - 2);
     }
 
     [Theory]

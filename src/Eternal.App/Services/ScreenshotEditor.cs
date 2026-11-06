@@ -236,24 +236,34 @@ public static class ScreenshotRenderer
 
     public static float TextSize(float height) => Math.Max(14f, height * 0.045f);
 
-    /// <summary>Moves a mark's area by <paramref name="delta"/>, clamped so the whole mark stays inside the picture.</summary>
     public static SKRect Translate(SKRect area, SKPoint delta)
     {
-        var dx = Math.Clamp(delta.X, -area.Left, 1 - area.Right);
-        var dy = Math.Clamp(delta.Y, -area.Top, 1 - area.Bottom);
+        var dx = Math.Clamp(delta.X, -Math.Min(area.Left, area.Right), 1 - Math.Max(area.Left, area.Right));
+        var dy = Math.Clamp(delta.Y, -Math.Min(area.Top, area.Bottom), 1 - Math.Max(area.Top, area.Bottom));
         return new SKRect(area.Left + dx, area.Top + dy, area.Right + dx, area.Bottom + dy);
     }
 
-    /// <summary>Moves a mark's right/bottom edge by <paramref name="delta"/>, clamped inside the picture.</summary>
-    public static SKRect Resize(SKRect area, SKPoint delta)
+    public static SKRect Resize(SKRect area, SKPoint delta, bool arrow = false)
     {
+        if (arrow)
+        {
+            var headX = Math.Clamp(area.Right + delta.X, 0f, 1f);
+            var headY = Math.Clamp(area.Bottom + delta.Y, 0f, 1f);
+            return new SKRect(area.Left, area.Top, headX, headY);
+        }
         const float min = 0.01f;
         var right = Math.Clamp(area.Right + delta.X, Math.Min(area.Left + min, 1f), 1f);
         var bottom = Math.Clamp(area.Bottom + delta.Y, Math.Min(area.Top + min, 1f), 1f);
         return new SKRect(area.Left, area.Top, right, bottom);
     }
 
-    /// <summary>Index of the topmost mark under <paramref name="at"/> (normalized image coordinates), or -1.</summary>
+    public static SKRect TextBounds(Mark mark, float width, float height)
+    {
+        var size = TextSize(height) * Math.Clamp(mark.Scale, 0.2f, 8f);
+        return new SKRect(mark.Area.Left, mark.Area.Top,
+            mark.Area.Left + mark.Text!.Length * size * 0.58f / width, mark.Area.Top + size / height);
+    }
+
     public static int HitTest(IReadOnlyList<Mark> marks, SKPoint at, float width, float height)
     {
         const float pad = 0.006f;
@@ -267,9 +277,8 @@ public static class ScreenshotRenderer
             }
             else if (m.Kind == MarkKind.Text && !string.IsNullOrWhiteSpace(m.Text))
             {
-                var size = TextSize(height) * Math.Clamp(m.Scale, 0.2f, 8f);
-                var box = new SKRect(m.Area.Left - pad, m.Area.Top - pad,
-                    m.Area.Left + m.Text.Length * size * 0.58f / width + pad, m.Area.Top + size / height + pad);
+                var box = TextBounds(m, width, height);
+                box.Inflate(pad, pad);
                 if (box.Contains(at))
                     return i;
             }
@@ -287,8 +296,7 @@ public static class ScreenshotRenderer
     public const int MaxImageDimension = 4096;
     public static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"];
 
-    /// <summary>Reads a local picture for stamping: known extension, size cap, decodable, dimension cap.</summary>
-    public static byte[] LoadImageFile(string path)
+    public static (byte[] Data, int Width, int Height) LoadImageFile(string path)
     {
         var extension = Path.GetExtension(path);
         if (!ImageExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
@@ -304,7 +312,7 @@ public static class ScreenshotRenderer
             throw new InvalidDataException($"{Path.GetFileName(path)} couldn't be read as a picture.");
         if (decoded.Width > MaxImageDimension || decoded.Height > MaxImageDimension)
             throw new InvalidDataException($"Pictures up to {MaxImageDimension}×{MaxImageDimension} pixels only.");
-        return data;
+        return (data, decoded.Width, decoded.Height);
     }
 
     private static float DistanceToSegment(SKPoint p, SKPoint a, SKPoint b)

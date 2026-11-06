@@ -281,7 +281,13 @@ public sealed partial class GameBananaClient(HttpClient http)
         var audio = Object(media, "_aMetadata") is { } meta && Text(meta, "_sAudioUrl") is { } a && IsGameBananaUrl(a) ? a : null;
         var videos = ExtractVideoLinks(Text(root, "_sText")).ToList();
         if (media is { ValueKind: JsonValueKind.Object } m && m.TryGetProperty("_aVideos", out var vids) && vids.ValueKind == JsonValueKind.Array)
-            videos.AddRange(vids.EnumerateArray().Select(v => Text(v, "_sFile") is { } f && IsGameBananaUrl($"{Text(v, "_sBaseUrl")}/{f}") ? $"{Text(v, "_sBaseUrl")}/{f}" : null).OfType<string>());
+            videos.AddRange(vids.EnumerateArray().Select(v =>
+            {
+                if (Text(v, "_sFile") is not { } f || Text(v, "_sBaseUrl") is not { } b)
+                    return null;
+                var url = $"{b.TrimEnd('/')}/{f}";
+                return IsGameBananaUrl(url) ? url : null;
+            }).OfType<string>());
         var files = root.TryGetProperty("_aFiles", out var list) && list.ValueKind == JsonValueKind.Array
             ? list.EnumerateArray().Select(ParseFile).OfType<SubmissionFile>().ToArray()
             : [];
@@ -289,7 +295,6 @@ public sealed partial class GameBananaClient(HttpClient http)
             Int(root, "_nDownloadCount"), Text(root, "_sVersion") is { Length: > 0 } v ? Clip(v, 40) : null, files, videos.Distinct().ToArray());
     }
 
-    /// <summary>Video links embedded in a submission's HTML description (YouTube and friends), normalized to watch URLs.</summary>
     internal static IReadOnlyList<string> ExtractVideoLinks(string? html)
     {
         if (string.IsNullOrEmpty(html))
@@ -314,8 +319,6 @@ public sealed partial class GameBananaClient(HttpClient http)
 
     private static Submission? ParseSubmission(JsonElement r, Section section)
     {
-        // GameBanana marks adult submissions two ways: _bHasContentRatings, and
-        // _sInitialVisibility "hide" (shown on the site only with the adult filter on).
         var shown = Text(r, "_sInitialVisibility");
         if (Id(r) is not { } id || Text(r, "_sName") is not { Length: > 0 } name
             || shown is not null && shown is not ("show" or "hide"))

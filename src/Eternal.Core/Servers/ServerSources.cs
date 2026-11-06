@@ -205,11 +205,6 @@ public sealed partial class TeamworkSource(HttpClient http, string key)
     }
 }
 
-/// <summary>
-/// Valve's master server lists every server of a game over plain UDP — no key, no account.
-/// Reply format: FF FF FF FF 66 0A, then 6-byte entries (IPv4 + port, both big-endian);
-/// the query is paginated by sending the last "ip:port" back, and 0.0.0.0:0 ends the list.
-/// </summary>
 public sealed class MasterServerSource
 {
     public const string Name = "Steam master list";
@@ -226,31 +221,35 @@ public sealed class MasterServerSource
 
     internal static async Task<IReadOnlyList<ListedServer>> QueryAsync(int maxServers, CancellationToken cancellation)
     {
+        var addresses = await Dns.GetHostAddressesAsync(MasterHost, cancellation).ConfigureAwait(false);
+        var masterIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+        return masterIp is null ? [] : await QueryAsync(new IPEndPoint(masterIp, MasterPort), maxServers, Timeout, cancellation).ConfigureAwait(false);
+    }
+
+    internal static async Task<IReadOnlyList<ListedServer>> QueryAsync(IPEndPoint master, int maxServers, TimeSpan timeout, CancellationToken cancellation)
+    {
+        var result = new List<ListedServer>();
         try
         {
-            var addresses = await Dns.GetHostAddressesAsync(MasterHost, cancellation).ConfigureAwait(false);
-            var masterIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
-            if (masterIp is null)
-                return [];
-            var master = new IPEndPoint(masterIp, MasterPort);
             using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Connect(master);
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-            limit.CancelAfter(Timeout);
+            limit.CancelAfter(timeout);
 
-            var result = new List<ListedServer>();
             var seen = new HashSet<ServerAddress>();
             var next = "0.0.0.0:0";
+            var buffer = new byte[8196];
+            var request = new byte[2 + 22 + 1 + 8 + 1];
             while (result.Count < maxServers)
             {
-                var request = new List<byte> { 0x31, 0xFF }; // query, region: world
-                request.AddRange(Encoding.ASCII.GetBytes(next));
-                request.Add(0);
-                request.AddRange("\\app\\440"u8.ToArray());
-                request.Add(0);
-                await socket.SendAsync(request.ToArray(), SocketFlags.None, limit.Token).ConfigureAwait(false);
+                request[0] = 0x31;
+                request[1] = 0xFF;
+                var n = Encoding.ASCII.GetBytes(next, request.AsSpan(2));
+                request[2 + n] = 0;
+                "\\app\\440"u8.CopyTo(request.AsSpan(3 + n));
+                request[3 + n + 8] = 0;
+                await socket.SendAsync(request.AsMemory(0, 4 + n + 8), SocketFlags.None, limit.Token).ConfigureAwait(false);
 
-                var buffer = new byte[8196];
                 var received = await socket.ReceiveAsync(buffer, SocketFlags.None, limit.Token).ConfigureAwait(false);
                 var page = ParseMasterReply(buffer.AsSpan(0, received));
                 if (page.Count == 0)
@@ -265,13 +264,11 @@ public sealed class MasterServerSource
                 var last = page[^1];
                 next = $"{last.Ip}:{last.Port.ToString(CultureInfo.InvariantCulture)}";
             }
-            return result;
         }
         catch (Exception ex) when (ex is SocketException or OperationCanceledException or InvalidDataException or IOException)
         {
-            // The master list is a bonus source; never let it break the main lists.
-            return [];
         }
+        return result;
     }
 
     internal static IReadOnlyList<(IPAddress Ip, int Port)> ParseMasterReply(ReadOnlySpan<byte> packet)
@@ -281,7 +278,7 @@ public sealed class MasterServerSource
         var list = new List<(IPAddress, int)>();
         for (var i = 6; i + 6 <= packet.Length; i += 6)
         {
-            var ip = new IPAddress(packet.Slice(i, 4).ToArray());
+            var ip = new IPAddress(packet.Slice(i, 4));
             var port = (packet[i + 4] << 8) | packet[i + 5];
             list.Add((ip, port));
         }

@@ -63,7 +63,6 @@ public sealed partial class DecalLookup(HttpClient http, string key)
         return result;
     }
 
-    /// <summary>Steam sends some fields as JSON strings and some as numbers; take both.</summary>
     private static bool TryNumber(JsonElement e, out long value)
     {
         switch (e.ValueKind)

@@ -68,7 +68,6 @@ public sealed partial class SubmissionViewModel : ObservableObject
         _services = services;
         _mods = mods;
         _client = client;
-        PreviewPlayer.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(PreviewPlaying)));
         _ = LoadAsync();
     }
 
