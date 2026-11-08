@@ -110,7 +110,7 @@ class ProcessTests(unittest.TestCase):
 
     def test_files_that_are_not_ours_do_not_end_up_in_the_script(self):
         self.wave("hit_0001.wav")
-        (self.mods / sounds.FOLDER / "evil\"name.wav").write_bytes(b"RIFF")
+        (self.mods / sounds.FOLDER / "evil; quit.wav").write_bytes(b"RIFF")
 
         sounds.wrap(lambda *_: None)(None, self.mods, self.backup, [])
 
