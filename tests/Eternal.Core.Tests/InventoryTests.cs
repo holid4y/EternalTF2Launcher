@@ -186,9 +186,23 @@ public class ItemNameTests
     }
 
     [Theory]
-    [InlineData("https://cloud-3.steamusercontent.com/ugc/123/ABC/", true)]
-    [InlineData("http://cloud-3.steamusercontent.com/ugc/123/ABC/", false)]
-    [InlineData("https://steamusercontent.com.evil.example/ugc/", false)]
-    public void Decal_pictures_only_come_from_steam(string url, bool kept) =>
-        Assert.Equal(kept ? url : null, DecalLookup.ParseUrl(System.Text.Encoding.UTF8.GetBytes($$$"""{"data":{"url":"{{{url}}}"}}""")));
+    [InlineData("https://cloud-3.steamusercontent.com/ugc/123/ABC/", "https://cloud-3.steamusercontent.com/ugc/123/ABC/")]
+    [InlineData("http://cloud-3.steamusercontent.com/ugc/123/ABC/", "https://cloud-3.steamusercontent.com/ugc/123/ABC/")]
+    [InlineData("http://images.akamai.steamusercontent.com/ugc/1/A/", "https://images.akamai.steamusercontent.com/ugc/1/A/")]
+    [InlineData("https://steamusercontent-a.akamaihd.net/ugc/1/A/", "https://steamusercontent-a.akamaihd.net/ugc/1/A/")]
+    [InlineData("http://steamuserimages-a.akamaihd.net/ugc/1/A/", "https://steamuserimages-a.akamaihd.net/ugc/1/A/")]
+    [InlineData("https://steamusercontent.com.evil.example/ugc/", null)]
+    [InlineData("https://evil.akamaihd.net/ugc/", null)]
+    [InlineData("ftp://cloud-3.steamusercontent.com/ugc/", null)]
+    public void Decal_pictures_only_come_from_steam_and_always_over_https(string url, string? expected) =>
+        Assert.Equal(expected, DecalLookup.ParseUrl(System.Text.Encoding.UTF8.GetBytes($$$"""{"data":{"url":"{{{url}}}"}}""")));
+
+    [Fact]
+    public void A_private_backpack_is_told_apart_from_having_no_decals()
+    {
+        var ex = Assert.Throws<DecalLookupException>(() =>
+            DecalLookup.ParseDecals("""{"result":{"status":15,"statusDetail":"Private"}}"""u8.ToArray()));
+
+        Assert.Contains("private", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar
 
-from . import hud, precache
+from . import hud, precache, sounds
 
 log = logging.getLogger(__name__)
 _files_hardened = False
@@ -57,6 +57,7 @@ def configure(data_dir: Path, cache_dir: Path, verbose: bool = False):
     _harden_files()
     hud.install()
     precache.install()
+    sounds.install()
     return config
 
 

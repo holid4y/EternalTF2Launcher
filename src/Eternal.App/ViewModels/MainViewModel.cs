@@ -6,6 +6,7 @@ using Eternal.App.Services;
 using Eternal.App.Theming;
 using Eternal.Core;
 using Eternal.Core.Engine;
+using Eternal.Core.GameFiles;
 using Eternal.Core.Logging;
 using Eternal.Core.Mods;
 using Eternal.Core.Platform;
@@ -106,6 +107,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     [ObservableProperty] private TabViewModel? _selectedTab;
     [ObservableProperty] private DialogViewModel? _dialog;
     [ObservableProperty] private ImportChoiceViewModel? _importChoice;
+    [ObservableProperty] private GameFolderReviewViewModel? _folderReview;
     [ObservableProperty] private PlayState _playState;
     [ObservableProperty] private string _playLabel = "PLAY";
     [ObservableProperty] private string _dockTitle = "";
@@ -165,6 +167,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     public async Task StartAsync()
     {
+        var review = await AskAboutGameFolderAsync();
         try
         {
             await _services.StartAsync();
@@ -176,7 +179,110 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         }
         RefreshDock();
         Mods.EngineStarted();
-        Updates.Start();
+        if (review is not null)
+            await ApplyGameFolderChoicesAsync(review);
+        await Updates.StartAsync();
+    }
+
+    /// <summary>Asks once on a fresh install, before the launcher writes to the game folder; the Launcher tab can ask again.</summary>
+    private async Task<GameFolderChoices?> AskAboutGameFolderAsync(bool always = false)
+    {
+        if ((!always && !_services.GameFolderReviewPending) || _services.TfPath is not { } tf)
+            return null;
+        IReadOnlyList<FoundItem> found;
+        try
+        {
+            found = await Task.Run(() => GameFolderScan.Run(tf));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Warn($"Couldn't look through the game folder: {ex.Message}");
+            Notify("The TF2 folder couldn't be read, so nothing in it was changed. The launcher asks again next time it starts.", isError: true);
+            return null;
+        }
+        if (found.Count == 0)
+        {
+            _services.Launcher.Update(s => s.ReviewedGameFolder = true);
+            if (always)
+                Notify("There's nothing of yours in the TF2 folder to go through.");
+            return null;
+        }
+
+        var review = new GameFolderReviewViewModel(tf, found, _services.Launcher.Settings.ManageAutoexec);
+        FolderReview = review;
+        var choices = await review.Result;
+        FolderReview = null;
+        _services.Launcher.Update(s =>
+        {
+            s.ReviewedGameFolder = true;
+            s.ManageAutoexec = choices.ManageAutoexec;
+        });
+        return choices;
+    }
+
+    [RelayCommand]
+    private async Task ReviewGameFolderAsync()
+    {
+        if (await AskAboutGameFolderAsync(always: true) is { } choices)
+            await ApplyGameFolderChoicesAsync(choices);
+    }
+
+    public Task ReviewGameFolderIfPendingAsync() => _services.GameFolderReviewPending ? ReviewGameFolderCommand.ExecuteAsync(null) : Task.CompletedTask;
+
+    private async Task ApplyGameFolderChoicesAsync(GameFolderChoices choices)
+    {
+        if (_services.TfPath is not { } tf)
+            return;
+        if (choices.ReadAutoexec && _services.ReadAutoexecIntoConfig() is > 0 and var read)
+            Notify($"Read {read} settings from your autoexec.cfg into the Config tab.");
+        if (choices.Rows.Any(r => r.Choice.Action != FoundAction.Keep) && GameProcess.IsRunning())
+        {
+            await AlertAsync("Close TF2 first", "TF2 is using these files, so nothing was moved. Close it and go through your folder again from the Launcher tab.");
+            return;
+        }
+        var aside = Path.Combine(_services.Paths.DataDir, "set-aside", DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture));
+        var problems = new List<string>();
+        var moved = 0;
+        var imported = 0;
+
+        foreach (var row in choices.Rows.Where(r => r.Choice.Action == FoundAction.Import))
+        {
+            var result = await Mods.ImportFoundAsync(row.Item.ImportPath);
+            if (result is { Imported.Count: > 0 })
+            {
+                imported++;
+                await SetAsideAsync(row);
+            }
+            else if (result is { WasCancelled: false })
+            {
+                problems.Add($"{row.Name}: {result.Problems.FirstOrDefault() ?? "nothing in it could be imported"}");
+            }
+        }
+        foreach (var row in choices.Rows.Where(r => r.Choice.Action == FoundAction.SetAside))
+        {
+            if (await SetAsideAsync(row))
+                moved++;
+        }
+
+        if (imported + moved > 0)
+            Notify($"{(imported > 0 ? $"{imported} moved into your mod list. " : "")}{(moved > 0 ? $"{moved} put aside in the launcher's data folder, under set-aside." : "")}".Trim());
+        if (problems.Count > 0)
+            await AlertAsync("Some items were left where they are", string.Join("\n", problems.Select(p => "• " + p)));
+
+        async Task<bool> SetAsideAsync(FoundRowViewModel row)
+        {
+            try
+            {
+                await Task.Run(() => GameFolderScan.SetAside(row.Item, tf, aside));
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                Log.Warn($"Couldn't put {row.Name} aside: {ex.Message}");
+                problems.Add($"{row.Name}: {ex.Message}");
+                return false;
+            }
+        }
     }
 
     public event Action? QuitRequested;

@@ -24,6 +24,7 @@ public sealed partial class ThemeService : ObservableObject
     private IReadOnlyList<string>? _screenshots;
     private Color _logoColor;
     private string? _screenshot;
+    private int _backgroundVersion;
 
     [ObservableProperty] private Theme _current = Theme.All[0];
     [ObservableProperty] private Color _accent;
@@ -77,8 +78,10 @@ public sealed partial class ThemeService : ObservableObject
 
         if (Logo is null || accent != _logoColor)
         {
+            var oldLogo = Logo;
             Logo = Hat(accent);
             Icon = Logo is null ? null : new WindowIcon(Logo);
+            oldLogo?.Dispose();
             _logoColor = accent;
         }
 
@@ -93,17 +96,22 @@ public sealed partial class ThemeService : ObservableObject
         StartRotation(settings);
     }
 
+    private static readonly TimeSpan BackgroundSettle = TimeSpan.FromMilliseconds(120);
     private DispatcherTimer? _rotate;
     private int _rotateIndex;
 
     private void StartRotation(LauncherSettings settings)
     {
-        _rotate?.Stop();
-        _rotate = null;
-        if (settings.Background != BackgroundMode.Rotate || Screenshots.Count < 2)
-            return;
-        _rotateIndex = 0;
         var every = TimeSpan.FromMinutes(Math.Clamp(settings.BackgroundRotateMinutes, 1, 120));
+        if (settings.Background != BackgroundMode.Rotate || Screenshots.Count < 2)
+        {
+            _rotate?.Stop();
+            _rotate = null;
+            return;
+        }
+        if (_rotate?.Interval == every)
+            return;
+        _rotate?.Stop();
         _rotate = new DispatcherTimer(every, DispatcherPriority.Background, (_, _) =>
         {
             var pool = Screenshots.Take(40).ToList();
@@ -124,8 +132,9 @@ public sealed partial class ThemeService : ObservableObject
             using var source = Avalonia.Platform.AssetLoader.Open(new Uri("avares://EternalLauncher/Assets/Logos/logo_minimal.png"));
             using var mask = SKBitmap.Decode(source);
             using var tinted = new SKBitmap(mask.Width, mask.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            using var tint = SKColorFilter.CreateBlendMode(new SKColor(color.R, color.G, color.B), SKBlendMode.SrcIn);
             using (var canvas = new SKCanvas(tinted))
-            using (var paint = new SKPaint { ColorFilter = SKColorFilter.CreateBlendMode(new SKColor(color.R, color.G, color.B), SKBlendMode.SrcIn) })
+            using (var paint = new SKPaint { ColorFilter = tint })
             {
                 canvas.Clear(SKColors.Transparent);
                 canvas.DrawBitmap(mask, 0, 0, paint);
@@ -209,22 +218,36 @@ public sealed partial class ThemeService : ObservableObject
             return;
         _backgroundSource = path;
         _backgroundBlur = blur;
+        var version = ++_backgroundVersion;
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
-            Background = null;
+            ShowBackground(null);
             return;
         }
         try
         {
+            // The blur slider asks for a new picture on every tick; only the last one is worth making.
+            await Task.Delay(BackgroundSettle).ConfigureAwait(true);
+            if (version != _backgroundVersion)
+                return;
             var bitmap = await Task.Run(() => RenderBackground(path, (float)blur)).ConfigureAwait(true);
-            if (_backgroundSource == path)
-                Background = bitmap;
+            if (version == _backgroundVersion)
+                ShowBackground(bitmap);
+            else
+                bitmap?.Dispose();
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException)
         {
             Log.Warn($"Background image {path} couldn't be loaded: {ex.Message}");
-            Background = null;
+            ShowBackground(null);
         }
+    }
+
+    private void ShowBackground(Bitmap? next)
+    {
+        var old = Background;
+        Background = next;
+        old?.Dispose();
     }
 
     private static Bitmap? RenderBackground(string path, float blur)

@@ -34,6 +34,46 @@ public sealed class PreloadCoordinatorTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task No_build_starts_while_a_mod_in_the_library_is_being_replaced()
+    {
+        var coordinator = Create();
+        _builder.AutoComplete = true;
+        var replaced = new TaskCompletionSource();
+
+        var held = coordinator.WithLibraryHeldAsync(() => replaced.Task);
+        coordinator.BuildNow();
+        await Task.Delay(300);
+        Assert.Equal(0, _builder.Builds);
+
+        replaced.SetResult();
+        await held.WaitAsync(TimeSpan.FromSeconds(10));
+        for (var i = 0; i < 100 && _builder.Builds == 0; i++)
+            await Task.Delay(50);
+        Assert.Equal(1, _builder.Builds);
+    }
+
+    [Fact]
+    public async Task Replacing_a_mod_waits_for_a_build_that_is_already_running()
+    {
+        var coordinator = Create();
+        coordinator.BuildNow();
+        await _builder.Started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var ran = false;
+
+        var held = coordinator.WithLibraryHeldAsync(() =>
+        {
+            ran = true;
+            return Task.CompletedTask;
+        });
+        await Task.Delay(200);
+        Assert.False(ran);
+
+        _builder.Complete(success: true);
+        await held.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(ran);
+    }
+
+    [Fact]
     public async Task Play_during_the_debounce_builds_first_and_then_launches()
     {
         var coordinator = Create(debounce: TimeSpan.FromSeconds(30));

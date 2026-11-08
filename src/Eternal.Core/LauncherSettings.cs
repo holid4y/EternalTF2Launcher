@@ -91,6 +91,10 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public string? PythonOverride { get; set; }
     public bool LegacyLibraryChecked { get; set; }
 
+    public bool ReviewedGameFolder { get; set; }
+
+    public bool ManageAutoexec { get; set; } = true;
+
     void IJsonOnDeserialized.OnDeserialized()
     {
         JsonChecks.NoEmptyEntries(Tabs, "tabs");

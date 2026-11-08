@@ -95,6 +95,11 @@
                   <Grid RowDefinitions="*,Auto,Auto,Auto,3">
                     <Image Margin="10,10,10,4" Stretch="Uniform" views:RemoteImage.DecodeWidth="160" views:RemoteImage.Url="{Binding ImageUrl}" />
                     <TextBlock Grid.Row="0" Classes="meta" Text="{Binding Amount}" Margin="8,6" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                    <Border Grid.Row="0" Width="36" Height="36" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="2" ClipToBounds="True"
+                            Background="{DynamicResource GroundBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"
+                            IsVisible="{Binding HasDecal}" ToolTip.Tip="Has a decal">
+                      <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="96" views:RemoteImage.Url="{Binding DecalUrl}" />
+                    </Border>
                     <TextBlock Grid.Row="1" Classes="meta" FontSize="10" Margin="8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
                                Text="{Binding OriginalName}" IsVisible="{Binding Renamed}" Opacity="0.8" />
                     <TextBlock Grid.Row="2" FontSize="12" Margin="8,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}"

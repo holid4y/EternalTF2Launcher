@@ -6,14 +6,22 @@ using Eternal.Core.Logging;
 
 namespace Eternal.Core.Inventory;
 
+/// <summary>Steam answered, but with a reason the player can act on.</summary>
+public sealed class DecalLookupException(string message) : Exception(message);
+
 public sealed partial class DecalLookup(HttpClient http, string key)
 {
     private const int TextureLow = 152;
     private const int TextureHigh = 227;
     private const int MaxItemsBytes = 32 * 1024 * 1024;
     private const int MaxDetailsBytes = 64 * 1024;
+    private const int StatusOk = 1;
+    private const int StatusPrivate = 15;
 
-    private static readonly ConcurrentDictionary<ulong, string?> Urls = new();
+    private static readonly string[] PictureHostSuffixes = [".steamusercontent.com", ".steamstatic.com"];
+    private static readonly string[] PictureHosts = ["steamusercontent-a.akamaihd.net", "steamuserimages-a.akamaihd.net"];
+
+    private static readonly ConcurrentDictionary<ulong, string> Urls = new();
 
     [GeneratedRegex("^[A-Fa-f0-9]{32}$")]
     private static partial Regex KeyPattern();
@@ -25,6 +33,8 @@ public sealed partial class DecalLookup(HttpClient http, string key)
         if (!IsValidKey(key) || !ulong.TryParse(steamId64, NumberStyles.None, CultureInfo.InvariantCulture, out _))
             return new Dictionary<string, ulong>();
         using var response = await http.GetAsync($"https://api.steampowered.com/IEconItems_440/GetPlayerItems/v1/?key={key}&steamid={steamId64}", cancellation).ConfigureAwait(false);
+        if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+            throw new DecalLookupException("Steam turned down the Web API key. Check it under Launcher, Online services.");
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"Steam's item API answered {(int)response.StatusCode}.");
         return ParseDecals(await Http.ReadCappedAsync(response.Content, MaxItemsBytes, cancellation).ConfigureAwait(false));
@@ -34,7 +44,13 @@ public sealed partial class DecalLookup(HttpClient http, string key)
     {
         var result = new Dictionary<string, ulong>(StringComparer.Ordinal);
         using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("result", out var root) || !root.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
+        if (!doc.RootElement.TryGetProperty("result", out var root))
+            return result;
+        if (root.TryGetProperty("status", out var status) && TryNumber(status, out var code) && code != StatusOk)
+            throw new DecalLookupException(code == StatusPrivate
+                ? "This backpack is private on Steam's item API, so its decals can't be read."
+                : $"Steam's item API couldn't read this backpack right now (status {code}).");
+        if (!root.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
             return result;
         foreach (var item in items.EnumerateArray())
         {
@@ -87,7 +103,8 @@ public sealed partial class DecalLookup(HttpClient http, string key)
             if (!response.IsSuccessStatusCode)
                 return null;
             var url = ParseUrl(await Http.ReadCappedAsync(response.Content, MaxDetailsBytes, cancellation).ConfigureAwait(false));
-            Urls[ugc] = url;
+            if (url is not null)
+                Urls[ugc] = url;
             return url;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or JsonException or IOException or TaskCanceledException)
@@ -97,13 +114,15 @@ public sealed partial class DecalLookup(HttpClient http, string key)
         }
     }
 
+    /// <summary>Steam still hands out http links for some uploads; the same hosts serve them over https.</summary>
     internal static string? ParseUrl(byte[] json)
     {
         using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("url", out var u) && u.ValueKind == JsonValueKind.String
-               && Uri.TryCreate(u.GetString(), UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
-               && uri.Host.EndsWith(".steamusercontent.com", StringComparison.OrdinalIgnoreCase)
-            ? uri.AbsoluteUri
-            : null;
+        if (!doc.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("url", out var u) || u.ValueKind != JsonValueKind.String
+            || !Uri.TryCreate(u.GetString(), UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+            return null;
+        var allowed = PictureHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase)
+            || PictureHostSuffixes.Any(s => uri.Host.EndsWith(s, StringComparison.OrdinalIgnoreCase));
+        return allowed ? new UriBuilder(uri) { Scheme = Uri.UriSchemeHttps, Port = -1 }.Uri.AbsoluteUri : null;
     }
 }

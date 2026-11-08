@@ -81,6 +81,12 @@ public partial class MainWindow : Window
             }
             return;
         }
+        if (e.PropertyName == nameof(MainViewModel.FolderReview))
+        {
+            if (Vm?.FolderReview is not null)
+                Dispatcher.UIThread.Post(() => ReviewKeep.Focus(), DispatcherPriority.Loaded);
+            return;
+        }
         if (e.PropertyName != nameof(MainViewModel.Dialog))
             return;
         if (Vm?.Dialog is { } dialog)
@@ -153,6 +159,11 @@ public partial class MainWindow : Window
         var paths = e.DataTransfer.TryGetFiles()?.Select(f => f.TryGetLocalPath()).OfType<string>().ToArray() ?? [];
         if (paths.Length == 0 || Vm is not { } vm)
             return;
+        if (vm.SelectedTab?.Id == "config" && vm.Config.ShowsSounds)
+        {
+            await vm.Config.Sounds.AddAsync(paths);
+            return;
+        }
         vm.Navigate("mods");
         vm.Mods.Browsing = false;
         await vm.Mods.ImportAsync(paths);

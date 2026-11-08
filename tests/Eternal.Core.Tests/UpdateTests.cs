@@ -282,9 +282,13 @@ public sealed class UpdateInstallTests : IDisposable
     private static async Task<string> ResultOf(PreparedUpdate update)
     {
         var file = Path.Combine(update.WorkDir, "result.txt");
-        for (var i = 0; i < 100 && !File.Exists(file); i++)
+        for (var i = 0; i < 100; i++)
+        {
+            if (File.Exists(file) && (await File.ReadAllTextAsync(file)).Trim() is { Length: > 0 } text and not "running")
+                return text;
             await Task.Delay(100);
-        return File.Exists(file) ? (await File.ReadAllTextAsync(file)).Trim() : "no result";
+        }
+        return "no result";
     }
 
     [Fact]
@@ -375,25 +379,84 @@ public sealed class UpdateInstallTests : IDisposable
     }
 
     [Fact]
-    public async Task Reopen_can_come_from_a_marker_file_written_after_arming()
+    public async Task A_copy_that_fails_halfway_puts_the_old_files_back_and_opens_the_old_version()
     {
         if (OperatingSystem.IsWindows())
             return;
         var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
-        var installed = Path.Combine(_dir, "installed");
+        var payload = Directory.CreateDirectory(Path.Combine(_dir, "newapp")).FullName;
+        File.WriteAllText(Path.Combine(payload, "EternalLauncher"), "new");
+        File.WriteAllText(Path.Combine(payload, "engine"), "a file where the old copy has a folder");
+        var target = Directory.CreateDirectory(Path.Combine(_dir, "app")).FullName;
+        File.WriteAllText(Path.Combine(target, "EternalLauncher"), "old");
+        Directory.CreateDirectory(Path.Combine(target, "engine"));
         var reopened = Path.Combine(_dir, "reopened");
-        var installer = Script("install.sh", $"echo done > '{installed}'");
         var reopen = Script("launcher", $"echo opened > '{reopened}'");
-        File.WriteAllText(Path.Combine(work, "reopen.txt"), reopen);
         using var launcher = System.Diagnostics.Process.Start("sleep", "1");
-        var update = new PreparedUpdate(InstallKind.LinuxInstall, new Version(2, 2, 0), installer, work);
+        var update = new PreparedUpdate(InstallKind.LinuxLoose, new Version(2, 2, 0), payload, work);
 
-        UpdateInstaller.Launch(update, launcher.Id, null, _dir);
+        UpdateInstaller.Launch(update, launcher.Id, reopen, target);
 
-        Assert.Equal("ok", await ResultOf(update));
+        Assert.StartsWith("failed", await ResultOf(update));
+        Assert.Equal("old", await File.ReadAllTextAsync(Path.Combine(target, "EternalLauncher")));
         for (var i = 0; i < 50 && !File.Exists(reopened); i++)
             await Task.Delay(100);
         Assert.True(File.Exists(reopened));
+    }
+
+    [Fact]
+    public void A_finished_download_is_picked_up_again_on_the_next_start()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var updates = Path.Combine(_dir, "updates");
+        var work = Directory.CreateDirectory(Path.Combine(updates, "2.2.0")).FullName;
+        var tarball = PackageIn(work);
+        var update = UpdateInstaller.Prepare(InstallKind.LinuxInstall, new Version(2, 2, 0), tarball);
+        UpdateInstaller.Remember(update, tarball);
+
+        var resumed = UpdateInstaller.Resume(updates, InstallKind.LinuxInstall, new Version(2, 1, 0));
+
+        Assert.NotNull(resumed);
+        Assert.Equal(new Version(2, 2, 0), resumed.Version);
+        Assert.True(File.Exists(resumed.Payload));
+    }
+
+    [Fact]
+    public void A_download_that_changed_on_disk_is_not_picked_up()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var updates = Path.Combine(_dir, "updates");
+        var work = Directory.CreateDirectory(Path.Combine(updates, "2.2.0")).FullName;
+        var tarball = PackageIn(work);
+        var update = UpdateInstaller.Prepare(InstallKind.LinuxInstall, new Version(2, 2, 0), tarball);
+        UpdateInstaller.Remember(update, tarball);
+        File.AppendAllText(tarball, "tampered");
+
+        Assert.Null(UpdateInstaller.Resume(updates, InstallKind.LinuxInstall, new Version(2, 1, 0)));
+    }
+
+    [Fact]
+    public void A_download_for_this_version_or_older_is_not_picked_up()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var updates = Path.Combine(_dir, "updates");
+        var work = Directory.CreateDirectory(Path.Combine(updates, "2.2.0")).FullName;
+        var tarball = PackageIn(work);
+        UpdateInstaller.Remember(UpdateInstaller.Prepare(InstallKind.LinuxInstall, new Version(2, 2, 0), tarball), tarball);
+
+        Assert.Null(UpdateInstaller.Resume(updates, InstallKind.LinuxInstall, new Version(2, 2, 0)));
+    }
+
+    private string PackageIn(string work)
+    {
+        var package = Directory.CreateDirectory(Path.Combine(_dir, "package", "EternalLauncher")).FullName;
+        File.WriteAllText(Path.Combine(package, "install.sh"), "#!/bin/sh\n");
+        var tarball = Path.Combine(work, "EternalLauncher-2.2.0-linux-x64.tar.gz");
+        Run("tar", "-czf", tarball, "-C", Path.Combine(_dir, "package"), "EternalLauncher");
+        return tarball;
     }
 
     [Fact]
@@ -413,7 +476,7 @@ public sealed class UpdateInstallTests : IDisposable
     }
 
     [Fact]
-    public async Task A_failed_install_does_not_reopen_the_launcher()
+    public async Task A_failed_install_still_opens_the_launcher_it_left_in_place()
     {
         if (OperatingSystem.IsWindows())
             return;
@@ -426,26 +489,8 @@ public sealed class UpdateInstallTests : IDisposable
         UpdateInstaller.Launch(update, 999_999, reopen, _dir);
 
         Assert.Equal("failed:3", await ResultOf(update));
-        await Task.Delay(1000);
-        Assert.False(File.Exists(reopened));
-    }
-
-    [Fact]
-    public async Task A_failed_copy_does_not_reopen_even_from_the_marker_file()
-    {
-        if (OperatingSystem.IsWindows())
-            return;
-        var work = Directory.CreateDirectory(Path.Combine(_dir, "updates", "2.2.0")).FullName;
-        var reopened = Path.Combine(_dir, "reopened");
-        var reopen = Script("launcher", $"echo opened > '{reopened}'");
-        File.WriteAllText(Path.Combine(work, "reopen.txt"), reopen);
-        var target = Directory.CreateDirectory(Path.Combine(_dir, "app")).FullName;
-        var update = new PreparedUpdate(InstallKind.LinuxLoose, new Version(2, 2, 0), Path.Combine(_dir, "no-such-payload"), work);
-
-        UpdateInstaller.Launch(update, 999_999, null, target);
-
-        Assert.StartsWith("failed:", await ResultOf(update));
-        await Task.Delay(1000);
-        Assert.False(File.Exists(reopened));
+        for (var i = 0; i < 50 && !File.Exists(reopened); i++)
+            await Task.Delay(100);
+        Assert.True(File.Exists(reopened));
     }
 }

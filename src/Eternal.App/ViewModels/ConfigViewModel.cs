@@ -80,6 +80,8 @@ public sealed partial class ConfigViewModel : PageViewModel
             }
             Categories.Add(vm);
         }
+        Sounds = new HitKillSoundsViewModel(services, main, (message, isError) => main.Notify(message, isError));
+        Categories.Add(new SettingCategoryViewModel("sounds", "Hit & Kill Sounds", "Your own audio files as hit and kill sounds."));
         Categories.Add(new SettingCategoryViewModel("binds", "Binds", "Keys that run commands. Written after your settings, so they win."));
         Categories.Add(new SettingCategoryViewModel("launch", "Launch Options", "Your own launch options and the full line TF2 starts with."));
         SelectedCategory = Categories[0];
@@ -95,6 +97,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     public ObservableCollection<SettingCategoryViewModel> Categories { get; } = [];
     public ObservableCollection<BindRowViewModel> Binds { get; } = [];
     public ObservableCollection<Profile> Profiles { get; } = [];
+    public HitKillSoundsViewModel Sounds { get; }
 
     [ObservableProperty] private SettingCategoryViewModel? _selectedCategory;
     [ObservableProperty] private string _search = "";
@@ -107,7 +110,8 @@ public sealed partial class ConfigViewModel : PageViewModel
     [ObservableProperty] private bool _showPreview;
 
     public bool IsSearching => Search.Trim().Length > 0;
-    public bool ShowsSettings => !IsSearching && SelectedCategory is { Id: not ("binds" or "launch") };
+    public bool ShowsSettings => !IsSearching && SelectedCategory is { Id: not ("binds" or "launch" or "sounds") };
+    public bool ShowsSounds => !IsSearching && SelectedCategory?.Id == "sounds";
     public bool ShowsBinds => !IsSearching && SelectedCategory?.Id == "binds";
     public bool ShowsLaunch => !IsSearching && SelectedCategory?.Id == "launch";
     public bool CanEditProfile => SelectedProfile is { BuiltIn: false };
@@ -155,13 +159,17 @@ public sealed partial class ConfigViewModel : PageViewModel
         SearchResults = query.Length == 0 ? [] : _rows.Where(r => r.Matches(query)).ToArray();
         OnPropertyChanged(nameof(IsSearching));
         OnPropertyChanged(nameof(ShowsSettings));
+        OnPropertyChanged(nameof(ShowsSounds));
         OnPropertyChanged(nameof(ShowsBinds));
         OnPropertyChanged(nameof(ShowsLaunch));
     }
 
+    public void ShowSounds() => SelectedCategory = Categories.First(c => c.Id == "sounds");
+
     partial void OnSelectedCategoryChanged(SettingCategoryViewModel? value)
     {
         OnPropertyChanged(nameof(ShowsSettings));
+        OnPropertyChanged(nameof(ShowsSounds));
         OnPropertyChanged(nameof(ShowsBinds));
         OnPropertyChanged(nameof(ShowsLaunch));
         if (value?.Id == "launch")
@@ -210,6 +218,7 @@ public sealed partial class ConfigViewModel : PageViewModel
             (false, _) => $"Settings not saved: {report.ConfigError}",
             (true, AutoexecStatus.Failed) => $"Saved, but autoexec.cfg wasn't updated: {report.Autoexec.Error}",
             (true, AutoexecStatus.NoGameFolder) => "Saved. Set your TF2 folder in the Launcher tab to apply it to the game.",
+            (true, AutoexecStatus.LeftAlone) => "Saved here only. Turn on writing to autoexec.cfg in the Launcher tab to apply it to the game.",
             _ => $"Saved and written to {Path.GetFileName(Path.GetDirectoryName(report.Autoexec.Path ?? "") ?? "")}/autoexec.cfg",
         };
         if (report.Viewmodels is { Status: ViewmodelStatus.Failed or ViewmodelStatus.NoLayout } vm)
@@ -533,7 +542,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     {
         var sources = _services.Mods.EnabledSources();
         return _services.Mods.State.Order
-            .Where(e => e.Enabled && !sources.ContainsKey(e.Name))
+            .Where(e => e.Enabled && !sources.ContainsKey(e.Name) && e.Name != Eternal.Core.Sounds.CustomSoundMod.Folder)
             .Select(e => new BundledMod(e.Name, e.Kind, Path.Combine(_services.Paths.EngineDataDir, "mods", e.Kind == ModKind.Particle ? "particles" : "addons", e.Name)))
             .Where(m => Directory.Exists(m.Folder))
             .ToList();
@@ -577,7 +586,7 @@ public sealed partial class ConfigViewModel : PageViewModel
 
     private ProfileMods CurrentMods()
     {
-        var enabled = _services.Mods.State.Order.Where(e => e.Enabled).ToList();
+        var enabled = _services.Mods.State.Order.Where(e => e.Enabled && e.Name != Eternal.Core.Sounds.CustomSoundMod.Folder).ToList();
         var sources = _services.Mods.EnabledSources();
         return new ProfileMods
         {

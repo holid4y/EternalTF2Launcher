@@ -4,11 +4,11 @@ using Eternal.Core.Persistence;
 
 namespace Eternal.Core.Settings;
 
-public enum AutoexecStatus { Written, Unchanged, NoGameFolder, Failed }
+public enum AutoexecStatus { Written, Unchanged, NoGameFolder, Failed, LeftAlone }
 
 public sealed record AutoexecResult(AutoexecStatus Status, string? Path = null, string? Error = null)
 {
-    public bool Applied => Status is AutoexecStatus.Written or AutoexecStatus.Unchanged;
+    public bool Applied => Status is AutoexecStatus.Written or AutoexecStatus.Unchanged or AutoexecStatus.LeftAlone;
 }
 
 public sealed class AutoexecDocument
@@ -136,6 +136,8 @@ public static class AutoexecFile
             }
 
             var document = AutoexecDocument.Parse(original);
+            if (managedLines.Count == 0 && !document.HasManagedBlock && replaceUserContent is null)
+                return new AutoexecResult(AutoexecStatus.Unchanged, path);
             var text = AutoexecDocument.Render(replaceUserContent ?? document.UserContent, managedLines);
             if (original == text)
                 return new AutoexecResult(AutoexecStatus.Unchanged, path);

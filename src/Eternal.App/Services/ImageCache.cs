@@ -9,7 +9,7 @@ namespace Eternal.App.Services;
 
 public sealed class ImageCache(string directory)
 {
-    private const int MemoryLimit = 600;
+    private const int MemoryLimit = 300;
     private const int MaxImageBytes = 16 * 1024 * 1024;
     private readonly ConcurrentDictionary<string, Bitmap> _memory = new();
     private readonly ConcurrentQueue<string> _order = new();

@@ -17,12 +17,18 @@ if [ "${1:-}" = "--remove" ]; then
     exit 0
 fi
 
-mkdir -p "$target" "$bin" "$apps" "$icons"
-rm -rf "$target"
-cp -r "$here" "$target"
-rm -f "$target/install.sh"
-chmod +x "$target/EternalLauncher"
-[ -f "$target/engine/eternal-engine" ] && chmod +x "$target/engine/eternal-engine"
+mkdir -p "$(dirname "$target")" "$bin" "$apps" "$icons"
+# The working copy is only replaced once the new one is complete.
+staged="$target.new"
+previous="$target.old"
+rm -rf "$staged" "$previous"
+cp -r "$here" "$staged"
+rm -f "$staged/install.sh"
+chmod +x "$staged/EternalLauncher"
+[ -f "$staged/engine/eternal-engine" ] && chmod +x "$staged/engine/eternal-engine"
+[ -d "$target" ] && mv "$target" "$previous"
+mv "$staged" "$target"
+rm -rf "$previous"
 ln -sf "$target/EternalLauncher" "$bin/eternal-launcher"
 cp "$here/eternal-launcher.png" "$icons/eternal-launcher.png"
 sed "s|^Exec=.*|Exec=\"$bin/eternal-launcher\"|" "$here/eternal-launcher.desktop" > "$apps/eternal-launcher.desktop"

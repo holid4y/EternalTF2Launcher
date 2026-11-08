@@ -28,7 +28,6 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     private Countdown? _card;
     private PreparedUpdate? _prepared;
     private bool _restart;
-    private bool _armed;
 
     public UpdateViewModel(AppServices services, MainViewModel main, UpdateClient client, Version current)
     {
@@ -45,6 +44,7 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     }
 
     public InstallKind Kind { get; }
+    private readonly bool _canWrite = UpdateInstaller.CanWriteTo(AppContext.BaseDirectory);
     public string CurrentVersion => _current.ToString(3);
     private string UpdatesDir => Path.Combine(_services.Paths.CacheDir, "updates");
     private LauncherSettings Settings => _services.Launcher.Settings;
@@ -58,7 +58,7 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
 
     public string NewVersion => Release?.VersionText ?? "";
     public bool CanUpdateItself => Kind != InstallKind.Unmanaged;
-    public bool CanSelfUpdate => Release?.AssetFor(Kind) is not null;
+    public bool CanSelfUpdate => CanUpdateItself && _canWrite && Release?.AssetFor(Kind) is not null;
     public string ActionLabel => CanSelfUpdate ? $"Update · {Format.Size(Release!.AssetFor(Kind)!.Size)}" : "Open the releases page";
     public bool IsReady => Step == UpdateStep.Ready;
     public bool IsDownloading => Step == UpdateStep.Downloading;
@@ -75,9 +75,10 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
         UpdateStep.Checking => "Checking for updates…",
         UpdateStep.UpToDate => "You're on the latest version.",
         UpdateStep.Available when CanSelfUpdate => $"Version {NewVersion} is out.",
+        UpdateStep.Available when !_canWrite => $"Version {NewVersion} is out, but the launcher can't write to its own folder, so get it from the releases page.",
         UpdateStep.Available => $"Version {NewVersion} is out. This copy wasn't installed with the installer or install.sh, so get it from the releases page.",
         UpdateStep.Downloading => $"Downloading version {NewVersion}… {ProgressText}",
-        UpdateStep.Ready => $"Version {NewVersion} is ready. It installs when you quit, or now if you restart.",
+        UpdateStep.Ready => $"Version {NewVersion} is downloaded. Restart to install it, or it installs the next time you quit.",
         UpdateStep.Failed => Problem ?? "",
         _ when !Settings.CheckForUpdates => "Update checks are off.",
         _ => "",
@@ -135,12 +136,14 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     partial void OnProblemChanged(string? value) => OnPropertyChanged(nameof(Status));
     partial void OnCheckedAtChanged(DateTimeOffset? value) => OnPropertyChanged(nameof(Checked));
 
-    public void Start()
+    public async Task StartAsync()
     {
-        ReportLastUpdate();
+        await ResumeOrCleanUpAsync();
         _schedule.Start();
+        if (Step == UpdateStep.Ready)
+            return;
         if (Settings.CheckForUpdates)
-            _ = CheckAsync(manual: false);
+            await CheckAsync(manual: false);
         else
             OnPropertyChanged(nameof(Status));
     }
@@ -186,15 +189,14 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
             else
                 OpenCard();
         }
-        catch (UpdateException ex)
+        catch (Exception ex)
         {
             Log.Info($"Update check failed: {ex.Message}");
             CheckedAt = DateTimeOffset.Now;
-            Problem = ex.Message;
+            Problem = ex is UpdateException ? ex.Message : "The update check ran into a problem. The launcher tries again later.";
             Step = UpdateStep.Failed;
-            // A check that runs by itself fails quietly; Settings shows why.
             if (manual)
-                _main.Notify(ex.Message, isError: true);
+                _main.Notify(Problem, isError: true);
         }
     }
 
@@ -203,7 +205,7 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     {
         if (Release is not { } release || Step is UpdateStep.Downloading or UpdateStep.Ready)
             return;
-        if (release.AssetFor(Kind) is not { } asset)
+        if (!CanSelfUpdate || release.AssetFor(Kind) is not { } asset)
         {
             OpenPage();
             return;
@@ -215,26 +217,24 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
             ArchiveIngest.TryDelete(UpdatesDir);
             var file = await _client.DownloadAsync(asset, Path.Combine(UpdatesDir, release.VersionText),
                 new Progress<double>(p => Progress = p));
-            _prepared = await Task.Run(() => UpdateInstaller.Prepare(Kind, release.Version, file));
-            if (!TryArm(reopen: false))
+            _prepared = await Task.Run(() =>
             {
-                Problem = "The update downloaded, but it couldn't be set to install when the launcher closes. Check the logs, or get it from the releases page.";
-                Step = UpdateStep.Failed;
-                CardOpen = false;
-                _main.Notify(Problem, isError: true);
-                return;
-            }
+                var prepared = UpdateInstaller.Prepare(Kind, release.Version, file);
+                UpdateInstaller.Remember(prepared, file);
+                return prepared;
+            });
             Step = UpdateStep.Ready;
             OpenCard();
         }
-        catch (UpdateException ex)
+        catch (Exception ex)
         {
             Log.Warn($"Update to {release.VersionText} failed: {ex.Message}");
+            _prepared = null;
             ArchiveIngest.TryDelete(UpdatesDir);
-            Problem = ex.Message;
+            Problem = ex is UpdateException ? ex.Message : $"The update couldn't be prepared: {ex.Message}";
             Step = UpdateStep.Failed;
             CardOpen = false;
-            _main.Notify(ex.Message, isError: true);
+            _main.Notify(Problem, isError: true);
         }
     }
 
@@ -243,25 +243,18 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     {
         if (_prepared is null)
             return;
-        _restart = true;
-        CardOpen = false;
         try
         {
-            if (_armed)
-                UpdateInstaller.MarkReopen(_prepared);
-            else if (!TryArm(reopen: true))
-            {
-                _restart = false;
-                _main.Notify("The update couldn't be prepared to install, so the launcher stayed open. Check the logs, or get the new version from the releases page.", isError: true);
-                return;
-            }
+            UpdateInstaller.WriteScript(_prepared);
         }
-        catch (Exception ex) when (ex is UpdateException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _restart = false;
-            _main.Notify($"The update couldn't be prepared to install, so the launcher stayed open: {ex.Message}", isError: true);
+            Log.Warn($"The update can't be installed from {_prepared.WorkDir}: {ex.Message}");
+            _main.Notify($"The update couldn't be set up, so the launcher stayed open: {ex.Message}", isError: true);
             return;
         }
+        _restart = true;
+        CardOpen = false;
         _main.RequestQuit();
     }
 
@@ -282,34 +275,30 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     [RelayCommand]
     private void OpenPage() => Shell.OpenUrl(Release?.PageUrl ?? UpdateClient.ReleasesPage);
 
-    /// <summary>Called as the launcher closes: a ready update installs now, and opens again after Restart now.</summary>
-    public void FinishOnExit() => TryArm(reopen: _restart);
-
-    /// <summary>Starts the install script once; already armed by Restart now, this does nothing.</summary>
-    private bool TryArm(bool reopen)
+    /// <summary>Called as the launcher closes. If the script can't start, the download is still there for the next start.</summary>
+    public void FinishOnExit()
     {
-        if (_armed || _prepared is null)
-            return _armed;
+        _schedule.Stop();
+        if (_prepared is null)
+            return;
         try
         {
-            UpdateInstaller.Launch(_prepared, reopen: reopen);
-            _armed = true;
+            UpdateInstaller.Launch(_prepared, reopen: _restart);
         }
         catch (Exception ex) when (ex is UpdateException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
             Log.Warn($"The update to {_prepared.Version.ToString(3)} couldn't be started: {ex.Message}");
         }
-        return _armed;
     }
 
     private void OpenCard()
     {
         _card?.Stop();
         CardOpen = true;
-        _card = new Countdown(CardFor, () => CardOpen = false);
+        _card = Step == UpdateStep.Ready ? null : new Countdown(CardFor, () => CardOpen = false);
     }
 
-    private void ReportLastUpdate()
+    private async Task ResumeOrCleanUpAsync()
     {
         try
         {
@@ -319,11 +308,22 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
                     _main.Notify($"Eternal was updated to {CurrentVersion}. Your mods and settings are as you left them.");
                 else if (problem is not null)
                     _main.Notify($"The update to {version.ToString(3)} didn't install: {problem}. This version still works, and the next check tries again.", isError: true);
+                ArchiveIngest.TryDelete(UpdatesDir);
+                return;
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Warn($"Couldn't read how the last update went: {ex.Message}");
+        }
+
+        if (CanUpdateItself && _canWrite && await Task.Run(() => UpdateInstaller.Resume(UpdatesDir, Kind, _current)) is { } pending)
+        {
+            _prepared = pending;
+            Release = new Release(pending.Version, UpdateClient.ReleasesPage, "", []);
+            Step = UpdateStep.Ready;
+            OpenCard();
+            return;
         }
         ArchiveIngest.TryDelete(UpdatesDir);
     }

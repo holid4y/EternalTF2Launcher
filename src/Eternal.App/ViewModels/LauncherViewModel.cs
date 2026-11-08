@@ -24,6 +24,14 @@ public sealed partial class TabPreferenceViewModel(string id, string title, bool
     partial void OnVisibleChanged(bool value) => changed();
 }
 
+public sealed partial class RotateChoice(int minutes, bool on) : ObservableObject
+{
+    public int Minutes { get; } = minutes;
+    public string Label { get; } = minutes == 60 ? "1 h" : $"{minutes} min";
+
+    [ObservableProperty] private bool _on = on;
+}
+
 public sealed record ThemeChoice(Theme Theme)
 {
     public string Name => Theme.Name;
@@ -54,6 +62,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         _backgroundImage = s.BackgroundImage;
         _backgroundMode = s.Background;
         _rotateMinutes = s.BackgroundRotateMinutes;
+        RotateChoices = new[] { 1, 5, 15, 60 }.Select(m => new RotateChoice(m, m == s.BackgroundRotateMinutes)).ToArray();
         _backgroundDim = s.BackgroundDim;
         _backgroundBlur = s.BackgroundBlur;
         _uiScale = s.UiScale;
@@ -62,6 +71,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         _closeToTray = s.CloseToTray;
         _checkForUpdates = s.CheckForUpdates;
         _autoUpdate = s.AutoUpdate;
+        _manageAutoexec = s.ManageAutoexec;
         _currency = s.Currency;
         _logLevel = s.LogLevel;
         _clearLogsOnStart = s.ClearLogsOnStart;
@@ -77,18 +87,37 @@ public sealed partial class LauncherViewModel : PageViewModel
     public string[] Currencies { get; } = [.. PriceService.SteamCurrencies.Keys];
     public string[] LogLevels { get; } = ["Debug", "Info", "Warning", "Error"];
     public string[] StartTabs { get; } = ["home", "servers", "mods", "backpack", "screenshots", "config"];
-    public int[] RotateMinuteChoices { get; } = [1, 5, 15, 60];
+    public IReadOnlyList<RotateChoice> RotateChoices { get; }
 
+    public bool BackgroundIsRandom => BackgroundMode == BackgroundMode.Screenshots;
+    public bool BackgroundIsRotating => BackgroundMode == BackgroundMode.Rotate;
+    public bool BackgroundIsOne => BackgroundMode == BackgroundMode.Screenshot;
+    public bool BackgroundIsPicture => BackgroundMode == BackgroundMode.Picture;
+    public bool BackgroundIsPlain => BackgroundMode == BackgroundMode.None;
+    public bool HasBackground => BackgroundMode != BackgroundMode.None;
     public bool CanCycleScreenshots => BackgroundMode is BackgroundMode.Screenshots or BackgroundMode.Rotate && _theme.Screenshots.Count > 1;
-    public string ScreenshotNote => _theme.Screenshots.Count switch
+    public string DimText => $"{BackgroundDim * 100:0}%";
+    public string BlurText => BackgroundBlur < 0.5 ? "Off" : $"{BackgroundBlur:0}";
+
+    public string BackgroundNote
     {
-        0 => "No TF2 screenshots found yet. Press F12 in game to take some; they show up here next time.",
-        1 => "1 TF2 screenshot from your Steam library.",
-        var n => BackgroundMode == BackgroundMode.Rotate
-            ? $"{n} TF2 screenshots from your Steam library. The background moves to the next one every few minutes."
-            : $"{n} TF2 screenshots from your Steam library. A different one shows each time the launcher opens.",
-    };
-    public string StaticScreenshotNote => "Stays until you pick another — use the Set as background button on any screenshot in the Screenshots tab.";
+        get
+        {
+            var shots = _theme.Screenshots.Count;
+            var library = shots == 1 ? "your 1 TF2 screenshot" : $"your {shots} TF2 screenshots";
+            return BackgroundMode switch
+            {
+                BackgroundMode.None => "Just the theme's own colour.",
+                BackgroundMode.Picture when BackgroundImage is { } file => Path.GetFileName(file),
+                BackgroundMode.Picture => "Any image on this computer.",
+                BackgroundMode.Screenshot when _services.Launcher.Settings.BackgroundScreenshot is { } shot => Path.GetFileName(shot),
+                BackgroundMode.Screenshot => "No screenshot picked yet. Open one in the Screenshots tab and press Set as background.",
+                _ when shots == 0 => "No TF2 screenshots yet. Press F12 in game and they show up here next time.",
+                BackgroundMode.Rotate => $"Goes through {library}.",
+                _ => $"A different one of {library} each time the launcher opens.",
+            };
+        }
+    }
 
     [ObservableProperty] private ThemeChoice _selectedTheme;
     [ObservableProperty] private Color _accent;
@@ -104,6 +133,7 @@ public sealed partial class LauncherViewModel : PageViewModel
     [ObservableProperty] private bool _closeToTray;
     [ObservableProperty] private bool _checkForUpdates;
     [ObservableProperty] private bool _autoUpdate;
+    [ObservableProperty] private bool _manageAutoexec;
 
     public UpdateViewModel Updates => _main.Updates;
     [ObservableProperty] private string _currency;
@@ -236,21 +266,42 @@ public sealed partial class LauncherViewModel : PageViewModel
 
     partial void OnBackgroundModeChanged(BackgroundMode value)
     {
-        OnPropertyChanged(nameof(CanCycleScreenshots));
-        OnPropertyChanged(nameof(ScreenshotNote));
+        foreach (var name in new[] { nameof(BackgroundIsRandom), nameof(BackgroundIsRotating), nameof(BackgroundIsOne), nameof(BackgroundIsPicture),
+                     nameof(BackgroundIsPlain), nameof(HasBackground), nameof(CanCycleScreenshots), nameof(BackgroundNote) })
+            OnPropertyChanged(name);
         Save(s => s.Background = value, restyle: true);
     }
 
     [RelayCommand]
     private void SetBackgroundMode(BackgroundMode mode) => BackgroundMode = mode;
 
-    partial void OnRotateMinutesChanged(int value) => Save(s => s.BackgroundRotateMinutes = value, restyle: true);
+    partial void OnRotateMinutesChanged(int value)
+    {
+        foreach (var choice in RotateChoices)
+            choice.On = choice.Minutes == value;
+        Save(s => s.BackgroundRotateMinutes = value, restyle: true);
+    }
+
+    [RelayCommand]
+    private void SetRotateMinutes(RotateChoice choice) => RotateMinutes = choice.Minutes;
+
+    [RelayCommand]
+    private void PickScreenshot() => _main.Navigate("screenshots");
 
     [RelayCommand]
     private void NextScreenshot() => _theme.NextScreenshot(_services.Launcher.Settings);
 
-    partial void OnBackgroundDimChanged(double value) => Save(s => s.BackgroundDim = value, restyle: true);
-    partial void OnBackgroundBlurChanged(double value) => Save(s => s.BackgroundBlur = value, restyle: true);
+    partial void OnBackgroundDimChanged(double value)
+    {
+        OnPropertyChanged(nameof(DimText));
+        Save(s => s.BackgroundDim = value, restyle: true);
+    }
+
+    partial void OnBackgroundBlurChanged(double value)
+    {
+        OnPropertyChanged(nameof(BlurText));
+        Save(s => s.BackgroundBlur = value, restyle: true);
+    }
     partial void OnUiScaleChanged(double value)
     {
         OnPropertyChanged(nameof(ScaleText));
@@ -270,6 +321,13 @@ public sealed partial class LauncherViewModel : PageViewModel
         Save(s => s.AutoUpdate = value);
         _main.Updates.SettingsChanged();
     }
+    partial void OnManageAutoexecChanged(bool value)
+    {
+        Save(s => s.ManageAutoexec = value);
+        if (!_loading && value)
+            _ = _services.Game.ReapplyAsync();
+    }
+
     partial void OnCurrencyChanged(string value) => Save(s => s.Currency = value);
     partial void OnClearLogsOnStartChanged(bool value) => Save(s => s.ClearLogsOnStart = value);
     partial void OnStartTabChanged(string value) => Save(s => s.StartTab = value);
@@ -290,6 +348,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         BackgroundImage = files[0];
         Save(s => s.BackgroundImage = files[0], restyle: true);
         BackgroundMode = BackgroundMode.Picture;
+        OnPropertyChanged(nameof(BackgroundNote));
     }
 
     [RelayCommand]
@@ -319,6 +378,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         OnPropertyChanged(nameof(TfPath));
         OnPropertyChanged(nameof(TfValid));
         OnPropertyChanged(nameof(TfStatus));
+        await _main.ReviewGameFolderIfPendingAsync();
         await _services.Game.ReapplyAsync();
         _services.Preload.RequestBuild();
     }
@@ -360,6 +420,11 @@ public sealed partial class LauncherViewModel : PageViewModel
     private Task RecheckEngine() => _services.StartAsync();
 
     public string LogsPath => _services.Paths.LogsDir;
+
+    public MainViewModel Main => _main;
+
+    [RelayCommand]
+    private void OpenSetAside() => Shell.OpenFolder(Directory.CreateDirectory(Path.Combine(_services.Paths.DataDir, "set-aside")).FullName);
 
     [RelayCommand]
     private void OpenLogs()

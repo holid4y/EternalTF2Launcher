@@ -51,6 +51,9 @@ public sealed partial class ModRowViewModel : ObservableObject
         ? "" : Item.Description;
     public string Files => Item.Kind == ModKind.Particle ? $"{Item.Particles.Count} particle file{(Item.Particles.Count == 1 ? "" : "s")}" : $"{Item.FileCount} file{(Item.FileCount == 1 ? "" : "s")}";
     public string Rank => Item.Priority >= 0 ? (Item.Priority + 1).ToString() : "";
+    public bool CanSwitch => !Item.Managed;
+    public bool IsManaged => Item.Managed;
+    public string SwitchTip => Item.Managed ? "Switched on and off in Config, Hit & Kill Sounds" : "Enable or disable this mod";
     public bool HasIssues => Item.Issues.Count > 0;
     public string IssueText => string.Join("\n\n", Item.Issues.Select(i => i.Message));
     public bool HasConflicts => Item.Wins.Count > 0 || Item.Loses.Count > 0;
@@ -88,7 +91,7 @@ public sealed partial class ModRowViewModel : ObservableObject
 
     partial void OnEnabledChanged(bool value)
     {
-        if (!_syncing && value != Item.Enabled)
+        if (!_syncing && value != Item.Enabled && !Item.Managed)
             _owner.SetEnabled(this, value);
     }
 
@@ -429,6 +432,21 @@ public sealed partial class ModsViewModel : PageViewModel
 
     internal void EndImport() => Importing = false;
 
+    /// <summary>Copies a mod found in tf/custom into the library; the caller then moves the original out of the game.</summary>
+    internal async Task<ImportResult?> ImportFoundAsync(string path)
+    {
+        if (!await BeginImportAsync())
+            return null;
+        try
+        {
+            return await ImportOneAsync(path, null, null, CancellationToken.None);
+        }
+        finally
+        {
+            EndImport();
+        }
+    }
+
     internal async Task<ImportResult> ImportOneAsync(string path, string? source, string? modName, CancellationToken cancellation)
     {
         var name = Path.GetFileName(path);
@@ -581,7 +599,7 @@ public sealed partial class ModsViewModel : PageViewModel
     [RelayCommand]
     private async Task RemoveAsync(ModRowViewModel? row)
     {
-        if ((row ?? Selected) is not { } r)
+        if ((row ?? Selected) is not { } r || r.Item.Managed)
             return;
         if (!await _dialogs.ConfirmAsync("Remove mod", $"Delete {r.DisplayName} from your library? The original file you imported is not touched.", "Remove", danger: true))
             return;
@@ -624,11 +642,19 @@ public sealed partial class ModsViewModel : PageViewModel
     private async Task RestoreVanillaAsync()
     {
         if (!await _dialogs.ConfirmAsync("Restore vanilla",
-                "Turn every mod off and remove the preload from the game folder? Your library stays as it is, so you can switch mods back on later.",
+                "Turn every mod off, your hit and kill sounds included, and remove the preload from the game folder? Your library stays as it is, so you can switch mods back on later.",
                 "Restore vanilla"))
             return;
-        _services.Mods.SetAllEnabled(false);
+        _main.Config.Sounds.Enabled = false;
+        _services.Mods.SetAllEnabled(false, includeManaged: true);
         _services.Preload.BuildNow();
+    }
+
+    [RelayCommand]
+    private void OpenSounds()
+    {
+        _main.Navigate("config");
+        _main.Config.ShowSounds();
     }
 
     [RelayCommand]

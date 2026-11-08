@@ -162,7 +162,7 @@
                     <PathIcon Grid.Column="4" Data="{StaticResource IconWarning}" Foreground="{DynamicResource WarningBrush}"
                               IsVisible="{Binding HasIssues}" ToolTip.Tip="{Binding IssueText}" />
                     <ToggleSwitch Grid.Column="5" IsChecked="{Binding Enabled}" OnContent="" OffContent="" MinWidth="0"
-                                  ToolTip.Tip="Enable or disable this mod" />
+                                  IsEnabled="{Binding CanSwitch}" ToolTip.Tip="{Binding SwitchTip}" />
                   </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
@@ -201,7 +201,7 @@
                             <TextBlock Classes="meta" Text="{Binding Meta}" IsVisible="{Binding !HasConflicts}" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                           <ToggleSwitch Grid.Column="1" IsChecked="{Binding Enabled}" OnContent="" OffContent="" MinWidth="0"
-                                        ToolTip.Tip="Enable or disable this mod" />
+                                        IsEnabled="{Binding CanSwitch}" ToolTip.Tip="{Binding SwitchTip}" />
                         </Grid>
                       </Grid>
                     </Border>
@@ -227,7 +227,9 @@
                 </StackPanel>
                 <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap"
                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                <ToggleSwitch IsChecked="{Binding Enabled}" OnContent="Enabled" OffContent="Disabled" />
+                <ToggleSwitch IsChecked="{Binding Enabled}" OnContent="Enabled" OffContent="Disabled" IsEnabled="{Binding CanSwitch}" ToolTip.Tip="{Binding SwitchTip}" />
+                <Button Classes="link" Content="Change these in Config" IsVisible="{Binding IsManaged}" HorizontalAlignment="Left"
+                        Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).OpenSoundsCommand}" />
                 <StackPanel Spacing="6">
                   <TextBlock Classes="meta" Text="Priority" />
                   <StackPanel Orientation="Horizontal" Spacing="6">
@@ -266,7 +268,7 @@
                           IsVisible="{Binding HasCustomPicture}"
                           Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveThumbnailCommand}" CommandParameter="{Binding}" />
                 </StackPanel>
-                <Button Classes="danger" Content="Remove from library"
+                <Button Classes="danger" Content="Remove from library" IsVisible="{Binding CanSwitch}"
                         Command="{Binding $parent[UserControl].((vm:ModsViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}" />
               </StackPanel>
             </Border>

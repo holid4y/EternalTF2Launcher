@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using System.Windows.Input;
 using Eternal.App.Services;
 using Eternal.App.ViewModels;
 using SkiaSharp;
@@ -16,15 +17,19 @@ public partial class ScreenshotsView : UserControl
 {
     private static readonly IBrush Dim = new SolidColorBrush(Color.FromArgb(150, 0, 0, 0));
     private static readonly IBrush Outline = new SolidColorBrush(Color.FromArgb(230, 255, 255, 255));
+    private static readonly IBrush Grip = new SolidColorBrush(Colors.Black);
+    private const double KnobSize = 10;
+    private const double HandleGrab = 10;
+    private const double HitTolerance = 6;
 
     private ScreenshotsViewModel? _vm;
     private ScreenshotEditorViewModel? _editor;
     private Point? _dragStart;
     private Point _dragEnd;
-    private int _moving = -1;
-    private enum DragMode { None, Move, Resize }
-    private DragMode _mode;
-    private DragMode _armed;
+    private MarkHandle _handle;
+    private Mark? _dragMark;
+    private int _dragIndex = -1;
+    private StandardCursorType _cursorType = StandardCursorType.Cross;
 
     public ScreenshotsView()
     {
@@ -32,6 +37,7 @@ public partial class ScreenshotsView : UserControl
         foreach (var repeater in new[] { ShotGrid, ShotList })
         {
             repeater.ElementPrepared += (_, e) => (e.Element.DataContext as ShotItem)?.LoadThumbnailAsync();
+            repeater.ElementClearing += (_, e) => (e.Element.DataContext as ShotItem)?.ReleaseThumbnail();
             repeater.AddHandler(PointerReleasedEvent, OnShotReleased, RoutingStrategies.Bubble);
             repeater.AddHandler(KeyDownEvent, OnShotKey);
             repeater.DoubleTapped += (_, e) =>
@@ -47,12 +53,13 @@ public partial class ScreenshotsView : UserControl
         Stage.PointerPressed += OnStagePressed;
         Stage.PointerMoved += OnStageMoved;
         Stage.PointerReleased += OnStageReleased;
+        Stage.KeyDown += OnStageKey;
         Stage.PropertyChanged += (_, e) =>
         {
             if (e.Property == BoundsProperty)
                 DrawOverlay();
         };
-        foreach (var slider in new[] { BrightnessSlider, ContrastSlider, SaturationSlider })
+        foreach (var slider in new[] { BrightnessSlider, ContrastSlider, SaturationSlider, RotationSlider, OpacitySlider })
             slider.AddHandler(PointerCaptureLostEvent, (_, _) => _editor?.EndSliderChange(), RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
     }
 
@@ -79,9 +86,9 @@ public partial class ScreenshotsView : UserControl
             _editor.PropertyChanged -= OnEditorChanged;
         _editor = editor;
         _dragStart = null;
-        _moving = -1;
-        _mode = DragMode.None;
-        _armed = DragMode.None;
+        _handle = MarkHandle.None;
+        _dragMark = null;
+        _dragIndex = -1;
         if (_editor is not null)
             _editor.PropertyChanged += OnEditorChanged;
         DrawOverlay();
@@ -131,138 +138,209 @@ public partial class ScreenshotsView : UserControl
         return r.Width <= 0 ? default : new SKPoint((float)((p.X - r.X) / r.Width), (float)((p.Y - r.Y) / r.Height));
     }
 
+    private float PicturePixels(double viewPixels) => _editor is null || PictureRect().Width <= 0 ? 0 : (float)(viewPixels * _editor.ImageSize.Width / PictureRect().Width);
+
+    private MarkHandle HandleUnder(Point p)
+    {
+        if (_editor?.Selected is not { } mark)
+            return MarkHandle.None;
+        var (w, h) = _editor.ImageSize;
+        return MarkTransform.HandleAt(mark, ToImage(p), w, h, PicturePixels(HandleGrab), PicturePixels(MarkTransform.RotateOffset));
+    }
+
     private void OnStagePressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_editor is null)
+        if (_editor is not { } editor)
             return;
+        Stage.Focus();
         var r = PictureRect();
         var p = e.GetPosition(Stage);
         var props = e.GetCurrentPoint(Stage).Properties;
+        var (w, h) = editor.ImageSize;
+
         if (props.IsRightButtonPressed)
         {
-            if (r.Contains(p) && _editor.HitMark(ToImage(p)) is var hit && hit >= 0)
+            if (r.Contains(p) && MarkTransform.HitTest(editor.Edit.Marks, ToImage(p), w, h, PicturePixels(HitTolerance)) is >= 0 and var hit)
             {
-                _editor.SelectMark(hit);
-                ShowMarkMenu(hit);
+                editor.SelectMark(hit);
+                ShowMarkMenu();
             }
             e.Handled = true;
             return;
         }
-        if (!props.IsLeftButtonPressed || !r.Contains(p))
+        if (!props.IsLeftButtonPressed)
             return;
-        if (_editor.Tool == EditTool.None)
+
+        var handle = HandleUnder(p);
+        if (handle == MarkHandle.None && !r.Contains(p))
+            return;
+        if (handle == MarkHandle.None && editor.Tool == EditTool.None)
         {
-            var hit = _editor.HitMark(ToImage(p));
+            var hit = MarkTransform.HitTest(editor.Edit.Marks, ToImage(p), w, h, PicturePixels(HitTolerance));
+            editor.SelectMark(hit);
             if (hit < 0)
-            {
-                _editor.SelectMark(-1);
                 return;
-            }
-            _editor.SelectMark(hit);
-            _moving = hit;
-            _mode = _armed != DragMode.None ? _armed
-                : NearHandle(p, _editor.Edit.Marks[hit]) ? DragMode.Resize : DragMode.Move;
-            _armed = DragMode.None;
+            handle = MarkHandle.Body;
+        }
+
+        if (handle != MarkHandle.None && editor.Selected is { } mark)
+        {
+            _handle = handle;
+            _dragMark = mark;
+            _dragIndex = editor.SelectedMark;
+            editor.BeginTransform();
         }
         else
         {
-            _editor.SelectMark(-1);
-            _armed = DragMode.None;
+            editor.SelectMark(-1);
         }
         _dragStart = _dragEnd = p;
         e.Pointer.Capture(Stage);
         e.Handled = true;
     }
 
-    private bool NearHandle(Point p, Mark m)
+    private void ShowMarkMenu()
     {
-        var r = PictureRect();
-        var area = MarkBounds(m);
-        var hx = r.X + area.Right * r.Width;
-        var hy = r.Y + area.Bottom * r.Height;
-        return Math.Abs(p.X - hx) <= 12 && Math.Abs(p.Y - hy) <= 12;
-    }
-
-    private SKRect MarkBounds(Mark m)
-    {
-        if (m.Kind == MarkKind.Text && m.Text is not null && _editor is { } editor)
-        {
-            var (w, h) = editor.ImageSize;
-            return ScreenshotRenderer.TextBounds(m, w, h);
-        }
-        return m.Area;
-    }
-
-    private void ShowMarkMenu(int index)
-    {
-        if (_editor is null)
+        if (_editor is not { } editor)
             return;
         var menu = new ContextMenu();
-        void Item(string header, Action action)
+        void Item(string header, ICommand command)
         {
-            var item = new MenuItem { Header = header };
-            item.Click += (_, _) => action();
+            var item = new MenuItem { Header = header, Command = command };
             menu.Items.Add(item);
         }
-        Item("Move", () => { _armed = DragMode.Move; _editor.SelectMark(index); });
-        Item("Resize", () => { _armed = DragMode.Resize; _editor.SelectMark(index); });
-        Item("Delete", () => _editor.DeleteMark(index));
+        Item("Duplicate", editor.DuplicateSelectedCommand);
+        Item("Bring to front", editor.BringToFrontCommand);
+        Item("Send to back", editor.SendToBackCommand);
+        Item("Delete", editor.DeleteSelectedCommand);
         menu.PlacementTarget = Stage;
         menu.Open(Stage);
     }
 
     private void OnStageMoved(object? sender, PointerEventArgs e)
     {
-        if (_dragStart is null)
-            return;
-        var r = PictureRect();
         var p = e.GetPosition(Stage);
+        if (_dragStart is not { } start)
+        {
+            UpdateCursor(p);
+            return;
+        }
+        var r = PictureRect();
         _dragEnd = new Point(Math.Clamp(p.X, r.Left, r.Right), Math.Clamp(p.Y, r.Top, r.Bottom));
-        if (_editor is { Tool: EditTool.Crop, Ratio.Ratio: { } ratio })
-            _dragEnd = KeepRatio(_dragStart.Value, _dragEnd, ratio, r);
+        if (_editor is not { } editor)
+            return;
+        if (_handle != MarkHandle.None && _dragMark is { } mark)
+        {
+            var (w, h) = editor.ImageSize;
+            editor.UpdateTransform(_dragIndex, MarkTransform.Drag(mark, _handle, ToImage(start), ToImage(_dragEnd), w, h, e.KeyModifiers.HasFlag(KeyModifiers.Shift)));
+            return;
+        }
+        if (editor is { Tool: EditTool.Crop, Ratio.Ratio: { } ratio })
+            _dragEnd = KeepRatio(start, _dragEnd, ratio, r);
         DrawOverlay();
+    }
+
+    private void UpdateCursor(Point p)
+    {
+        if (_editor is not { } editor)
+            return;
+        var handle = HandleUnder(p);
+        var (w, h) = editor.ImageSize;
+        if (handle == MarkHandle.None && editor.Tool == EditTool.None && PictureRect().Contains(p)
+            && MarkTransform.HitTest(editor.Edit.Marks, ToImage(p), w, h, PicturePixels(HitTolerance)) >= 0)
+            handle = MarkHandle.Body;
+        var type = handle switch
+        {
+            MarkHandle.Body => StandardCursorType.SizeAll,
+            MarkHandle.Rotate => StandardCursorType.Hand,
+            MarkHandle.North or MarkHandle.South => StandardCursorType.SizeNorthSouth,
+            MarkHandle.East or MarkHandle.West => StandardCursorType.SizeWestEast,
+            MarkHandle.NorthWest => StandardCursorType.TopLeftCorner,
+            MarkHandle.NorthEast => StandardCursorType.TopRightCorner,
+            MarkHandle.SouthWest => StandardCursorType.BottomLeftCorner,
+            MarkHandle.SouthEast => StandardCursorType.BottomRightCorner,
+            MarkHandle.Start or MarkHandle.End => StandardCursorType.Hand,
+            _ => editor.Tool == EditTool.None ? StandardCursorType.Arrow : StandardCursorType.Cross,
+        };
+        if (type != _cursorType)
+        {
+            _cursorType = type;
+            Stage.Cursor = new Cursor(type);
+        }
     }
 
     private async void OnStageReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (_dragStart is not { } start || _editor is not { } editor)
             return;
-        var moving = _moving;
-        var mode = _mode;
-        _moving = -1;
-        _mode = DragMode.None;
+        var transforming = _handle != MarkHandle.None;
+        _handle = MarkHandle.None;
+        _dragMark = null;
+        _dragIndex = -1;
         _dragStart = null;
         e.Pointer.Capture(null);
+        if (transforming)
+        {
+            editor.EndTransform();
+            DrawOverlay();
+            return;
+        }
+
         var a = ToImage(start);
         var b = ToImage(_dragEnd);
-        if (moving >= 0)
+        var area = new SKRect(a.X, a.Y, b.X, b.Y);
+        switch (editor.Tool)
         {
-            var delta = new SKPoint(b.X - a.X, b.Y - a.Y);
-            if (mode == DragMode.Resize)
-                editor.ResizeMark(moving, delta);
-            else
-                editor.MoveMark(moving, delta);
-        }
-        else
-        {
-            var area = new SKRect(a.X, a.Y, b.X, b.Y);
-            switch (editor.Tool)
-            {
-                case EditTool.Crop:
-                    editor.SetCrop(area);
-                    break;
-                case EditTool.Text:
-                    await editor.AddTextAsync(b);
-                    break;
-                case EditTool.Image:
-                    await editor.AddImageAsync(b);
-                    break;
-                default:
-                    editor.AddMark(area);
-                    break;
-            }
+            case EditTool.Crop:
+                editor.SetCrop(area);
+                break;
+            case EditTool.Text:
+                await editor.AddTextAsync(b);
+                break;
+            case EditTool.Image:
+                await editor.AddImageAsync(b);
+                break;
+            case EditTool.None:
+                break;
+            default:
+                editor.AddMark(area);
+                break;
         }
         DrawOverlay();
+    }
+
+    private void OnStageKey(object? sender, KeyEventArgs e)
+    {
+        if (_editor is not { HasSelectedMark: true } editor)
+            return;
+        var step = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
+        switch (e.Key)
+        {
+            case Key.Delete or Key.Back:
+                editor.DeleteSelectedCommand.Execute(null);
+                break;
+            case Key.Escape:
+                editor.SelectMark(-1);
+                break;
+            case Key.Left:
+                editor.Nudge(-step, 0);
+                break;
+            case Key.Right:
+                editor.Nudge(step, 0);
+                break;
+            case Key.Up:
+                editor.Nudge(0, -step);
+                break;
+            case Key.Down:
+                editor.Nudge(0, step);
+                break;
+            case Key.D when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                editor.DuplicateSelectedCommand.Execute(null);
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
     }
 
     private static Point KeepRatio(Point start, Point end, double ratio, Rect bounds)
@@ -288,41 +366,24 @@ public partial class ScreenshotsView : UserControl
         if (r.Width <= 0)
             return;
 
-        if (_editor.Edit.Crop is { } crop && !(_dragStart is not null && _editor.Tool == EditTool.Crop))
+        if (_editor.Edit.Crop is { } crop && !(_dragStart is not null && _handle == MarkHandle.None && _editor.Tool == EditTool.Crop))
         {
             var c = new Rect(r.X + crop.Left * r.Width, r.Y + crop.Top * r.Height, crop.Width * r.Width, crop.Height * r.Height);
             Shade(r, c);
         }
 
-        if (_dragStart is not { } start)
-        {
-            if (_editor is { HasSelectedMark: true } selected)
-                DrawMarkFrame(r, selected.Edit.Marks[selected.SelectedMark], handle: true);
+        if (_editor.Selected is { } selected)
+            DrawSelection(r, selected);
+
+        if (_dragStart is not { } start || _handle != MarkHandle.None)
             return;
-        }
-        if (_moving >= 0 && _moving < _editor.Edit.Marks.Count)
-        {
-            var m = _editor.Edit.Marks[_moving];
-            var delta = new SKPoint(ToImage(_dragEnd).X - ToImage(start).X, ToImage(_dragEnd).Y - ToImage(start).Y);
-            if (_mode == DragMode.Resize && m.Kind == MarkKind.Text)
-            {
-                var scale = Math.Clamp(m.Scale + (delta.X + delta.Y) * 1.5f, 0.2f, 8f);
-                DrawMarkFrame(r, m with { Scale = scale }, handle: false);
-            }
-            else
-            {
-                var area = _mode == DragMode.Resize
-                    ? ScreenshotRenderer.Resize(m.Area, delta, m.Kind == MarkKind.Arrow)
-                    : ScreenshotRenderer.Translate(m.Area, delta);
-                DrawMarkFrame(r, m with { Area = area }, handle: false);
-            }
-            return;
-        }
         if (_editor.Tool == EditTool.Arrow)
         {
             Overlay.Children.Add(new Line { StartPoint = start, EndPoint = _dragEnd, Stroke = Outline, StrokeThickness = 2 });
             return;
         }
+        if (_editor.Tool == EditTool.None)
+            return;
         var box = new Rect(start, _dragEnd).Normalize();
         if (_editor.Tool == EditTool.Crop)
             Shade(r, box);
@@ -356,29 +417,40 @@ public partial class ScreenshotsView : UserControl
         Overlay.Children.Add(frame);
     }
 
-    private void DrawMarkFrame(Rect r, Mark m, bool handle)
+    private void DrawSelection(Rect r, Mark m)
     {
+        var (w, h) = _editor!.ImageSize;
+        var scale = r.Width / w;
+        Point View(SKPoint picture) => new(r.X + picture.X * scale, r.Y + picture.Y * scale);
+        var handles = MarkTransform.Handles(m, w, h, PicturePixels(MarkTransform.RotateOffset)).ToDictionary(x => x.Handle, x => View(x.At));
+
         if (m.Kind == MarkKind.Arrow)
         {
-            Overlay.Children.Add(new Line
-            {
-                StartPoint = new Point(r.X + m.Area.Left * r.Width, r.Y + m.Area.Top * r.Height),
-                EndPoint = new Point(r.X + m.Area.Right * r.Width, r.Y + m.Area.Bottom * r.Height),
-                Stroke = Outline,
-                StrokeThickness = 2,
-            });
-            return;
+            Overlay.Children.Add(new Line { StartPoint = handles[MarkHandle.Start], EndPoint = handles[MarkHandle.End], Stroke = Outline, StrokeThickness = 1.5, StrokeDashArray = [4, 3] });
         }
-        var area = MarkBounds(m);
-        var box = new Rect(r.X + area.Left * r.Width, r.Y + area.Top * r.Height,
-            Math.Abs(area.Width) * r.Width, Math.Abs(area.Height) * r.Height);
-        Frame(box);
-        if (handle)
+        else
         {
-            const double hs = 9;
-            var grip = new Rectangle { Width = hs, Height = hs, Fill = Outline, Stroke = new SolidColorBrush(Colors.Black), StrokeThickness = 1 };
-            Canvas.SetLeft(grip, box.Right - hs / 2);
-            Canvas.SetTop(grip, box.Bottom - hs / 2);
+            Overlay.Children.Add(new Polygon
+            {
+                Points = [handles[MarkHandle.NorthWest], handles[MarkHandle.NorthEast], handles[MarkHandle.SouthEast], handles[MarkHandle.SouthWest]],
+                Stroke = Outline,
+                StrokeThickness = 1.5,
+                StrokeDashArray = [4, 3],
+            });
+            if (handles.TryGetValue(MarkHandle.Rotate, out var knob))
+            {
+                var top = new Point((handles[MarkHandle.NorthWest].X + handles[MarkHandle.NorthEast].X) / 2, (handles[MarkHandle.NorthWest].Y + handles[MarkHandle.NorthEast].Y) / 2);
+                Overlay.Children.Add(new Line { StartPoint = top, EndPoint = knob, Stroke = Outline, StrokeThickness = 1.5 });
+            }
+        }
+
+        foreach (var (handle, at) in handles)
+        {
+            Shape grip = handle == MarkHandle.Rotate
+                ? new Ellipse { Width = KnobSize, Height = KnobSize, Fill = Outline, Stroke = Grip, StrokeThickness = 1 }
+                : new Rectangle { Width = KnobSize, Height = KnobSize, Fill = Outline, Stroke = Grip, StrokeThickness = 1 };
+            Canvas.SetLeft(grip, at.X - KnobSize / 2);
+            Canvas.SetTop(grip, at.Y - KnobSize / 2);
             Overlay.Children.Add(grip);
         }
     }

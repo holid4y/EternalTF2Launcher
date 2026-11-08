@@ -33,7 +33,7 @@ public sealed partial class UpdateClient(HttpClient http)
         {
             using var response = await GetAsync(new Uri(Latest), cancellation).ConfigureAwait(false);
             if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests)
-                throw new UpdateException("GitHub's limit on update checks from your connection was reached. The launcher tries again in an hour.");
+                throw new UpdateException("GitHub's limit on update checks from your connection was reached. The launcher tries again later.");
             if (response.StatusCode == HttpStatusCode.NotFound)
                 throw new UpdateException("There's no release on GitHub yet.");
             if (!response.IsSuccessStatusCode)
@@ -65,12 +65,12 @@ public sealed partial class UpdateClient(HttpClient http)
     {
         if (asset.Sha256 is null)
             throw new UpdateException("GitHub lists no checksum for this update, so it won't be installed automatically.");
-        Directory.CreateDirectory(folder);
         var target = Path.Combine(folder, Path.GetFileName(asset.Name));
         var partial = target + ".part";
         using var stall = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         try
         {
+            Directory.CreateDirectory(folder);
             stall.CancelAfter(StallLimit);
             using var response = await GetAsync(new Uri(asset.Url), stall.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
@@ -81,6 +81,7 @@ public sealed partial class UpdateClient(HttpClient http)
             using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var buffer = ArrayPool<byte>.Shared.Rent(81920);
             long read = 0;
+            long reported = 0;
             try
             {
                 await using var input = await response.Content.ReadAsStreamAsync(stall.Token).ConfigureAwait(false);
@@ -94,7 +95,11 @@ public sealed partial class UpdateClient(HttpClient http)
                         throw new UpdateException("The update came in bigger than GitHub says it is, so the download was stopped.");
                     sha.AppendData(buffer, 0, n);
                     await output.WriteAsync(buffer.AsMemory(0, n), stall.Token).ConfigureAwait(false);
-                    progress?.Report((double)read / asset.Size);
+                    if (read - reported >= asset.Size / 100 || read == asset.Size)
+                    {
+                        reported = read;
+                        progress?.Report((double)read / asset.Size);
+                    }
                 }
             }
             finally
@@ -118,13 +123,14 @@ public sealed partial class UpdateClient(HttpClient http)
         {
             throw new UpdateException("The update download lost its connection to GitHub.", ex);
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new UpdateException($"The update couldn't be saved: {ex.Message}", ex);
         }
         finally
         {
-            File.Delete(partial);
+            if (File.Exists(partial))
+                File.Delete(partial);
         }
     }
 

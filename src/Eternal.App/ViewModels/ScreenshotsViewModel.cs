@@ -15,6 +15,7 @@ public sealed partial class ShotItem(SteamScreenshot shot) : ObservableObject
     private static readonly SemaphoreSlim Decoding = new(3, 3);
     private DateTime _loadedStamp;
     private bool _loading;
+    private bool _wanted;
 
     public SteamScreenshot Shot { get; private set; } = shot;
 
@@ -47,8 +48,19 @@ public sealed partial class ShotItem(SteamScreenshot shot) : ObservableObject
         }
     }
 
+    /// <summary>Frees the picture once its card has scrolled away, so a big library doesn't sit in memory.</summary>
+    public void ReleaseThumbnail()
+    {
+        _wanted = false;
+        if (IsSelected || Thumbnail is not { } old)
+            return;
+        Thumbnail = null;
+        old.Dispose();
+    }
+
     public async Task LoadThumbnailAsync(bool force = false)
     {
+        _wanted = true;
         if (_loading || (Thumbnail is not null && !force))
             return;
         _loading = true;
@@ -70,7 +82,14 @@ public sealed partial class ShotItem(SteamScreenshot shot) : ObservableObject
                 }
             });
             _loadedStamp = stamp;
+            if (!_wanted && !IsSelected)
+            {
+                bitmap?.Dispose();
+                return;
+            }
+            var old = Thumbnail;
             Thumbnail = bitmap;
+            old?.Dispose();
         }
         finally
         {

@@ -158,7 +158,7 @@ public sealed partial class BackpackViewModel : PageViewModel
             ApplyFilter();
             OnPropertyChanged(nameof(HasItems));
             _ = PriceAsync();
-            _ = LoadDecalsAsync(snapshot.SteamId, _all.Where(i => i.TakesDecal).ToList());
+            _ = LoadDecalsAsync(snapshot.SteamId, _all);
         }
         catch (InventoryRateLimitedException)
         {
@@ -186,35 +186,44 @@ public sealed partial class BackpackViewModel : PageViewModel
 
     private async Task LoadDecalsAsync(string steamId, IReadOnlyList<ItemViewModel> items)
     {
-        if (items.Count == 0)
-            return;
         if (_services.Launcher.Settings.SteamApiKey is not { } key)
         {
-            foreach (var item in items)
-                item.DecalNote = "To see the decal on it, add a Steam Web API key in Launcher settings.";
+            Note(items, "To see the decal on it, add a Steam Web API key in Launcher settings.");
             return;
         }
         try
         {
             var lookup = new DecalLookup(Http.NoRedirects, key);
             var decals = await lookup.DecalsAsync(steamId);
+            Log.Info($"Backpack: {decals.Count} item(s) with a decal");
             foreach (var item in items)
             {
                 if (!decals.TryGetValue(item.Item.AssetId, out var ugc))
                 {
-                    item.DecalNote = "No decal on this one yet.";
+                    if (item.TakesDecal)
+                        item.DecalNote = "No decal on this one yet.";
                     continue;
                 }
                 item.DecalUrl = await lookup.UrlAsync(ugc);
                 item.DecalNote = item.DecalUrl is null ? "It has a decal, but Steam didn't share the picture." : null;
             }
         }
+        catch (DecalLookupException ex)
+        {
+            Log.Info($"Decals unavailable: {ex.Message}");
+            Note(items, ex.Message);
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidDataException or InvalidOperationException)
         {
             Log.Info($"Decals unavailable: {ex.Message}");
-            foreach (var item in items)
-                item.DecalNote = "Steam's item API didn't answer, so decals can't be shown right now.";
+            Note(items, "Steam's item API didn't answer, so decals can't be shown right now.");
         }
+    }
+
+    private static void Note(IEnumerable<ItemViewModel> items, string note)
+    {
+        foreach (var item in items.Where(i => i.TakesDecal))
+            item.DecalNote = note;
     }
 
     private void ClearItems()

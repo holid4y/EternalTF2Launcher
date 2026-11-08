@@ -67,6 +67,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
     private bool _immediate;
     private TaskCompletionSource? _skipDebounce;
     private bool _launchHold;
+    private int _libraryHolds;
     private bool _building;
     private bool _recover;
     private string? _lastError;
@@ -236,6 +237,34 @@ public sealed class PreloadCoordinator : IAsyncDisposable
         _wake.Release();
     }
 
+    /// <summary>Runs <paramref name="work"/> with no build reading the library: waits out a running build and holds back new ones.</summary>
+    public async Task WithLibraryHeldAsync(Func<Task> work)
+    {
+        lock (_gate)
+            _libraryHolds++;
+        try
+        {
+            while (true)
+            {
+                Task pass;
+                lock (_gate)
+                {
+                    if (!_building)
+                        break;
+                    pass = _pass.Task;
+                }
+                await pass.ConfigureAwait(false);
+            }
+            await work().ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_gate)
+                _libraryHolds--;
+            _wake.Release();
+        }
+    }
+
     /// <summary>Lets an in-flight build finish before the app exits.</summary>
     public async Task ShutdownAsync()
     {
@@ -304,7 +333,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
         lock (_gate)
         {
             // Checked and claimed together, so a launch can't be admitted in between.
-            if (_launchHold)
+            if (_launchHold || _libraryHolds > 0)
                 return;
             _building = true;
         }

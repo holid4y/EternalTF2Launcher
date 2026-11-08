@@ -8,6 +8,7 @@ using Eternal.Core.Platform;
 using Eternal.Core.Profiles;
 using Eternal.Core.Servers;
 using Eternal.Core.Settings;
+using Eternal.Core.Sounds;
 using Eternal.Core.Steam;
 
 namespace Eternal.App.Services;
@@ -28,7 +29,9 @@ public sealed class AppServices : IAsyncDisposable
         if (!SteamLocator.IsTf2Folder(Launcher.Settings.TfPath) && SteamLocator.FindTf2() is { } detected)
             Launcher.Update(s => s.TfPath = detected);
 
-        Game = new GameConfigStore(paths.GameConfigFile, () => TfPath);
+        Game = new GameConfigStore(paths.GameConfigFile, () => TfPath, () => Launcher.Settings.ManageAutoexec && !GameFolderReviewPending);
+        if (!Game.IsNew)
+            Launcher.Settings.ReviewedGameFolder = true;
         Profiles = new ProfileStore(paths.ProfilesDir);
         Profiles.Load();
         FirstRunImport();
@@ -38,6 +41,7 @@ public sealed class AppServices : IAsyncDisposable
         EngineClient = new EngineClient(Runtime);
         Engine = new PreloaderEngine(EngineClient);
         Mods = new ModLibrary(Engine, paths, new ThumbnailStore(paths.ThumbnailsDir), () => TfPath);
+        CustomSounds = new CustomSoundStore(paths);
         Preload = new PreloadCoordinator(new EnginePreloadBuilder(Engine), Mods.Desired, () => TfPath, GameProcess.IsRunning, paths.PreloadStateFile);
         Mods.DesiredChanged += Preload.RequestBuild;
         Preload.Recovered += result => Notice?.Invoke(result.Success
@@ -72,6 +76,7 @@ public sealed class AppServices : IAsyncDisposable
     public EngineClient EngineClient { get; }
     public PreloaderEngine Engine { get; }
     public ModLibrary Mods { get; }
+    public CustomSoundStore CustomSounds { get; }
     public PreloadCoordinator Preload { get; }
     public InventoryService Inventory { get; }
     public PriceService Prices { get; }
@@ -96,6 +101,9 @@ public sealed class AppServices : IAsyncDisposable
     public IReadOnlyList<string> Notices => _notices;
     public string? TfPath => Launcher.Settings.TfPath;
 
+    /// <summary>Until the player has seen what is already in the game folder, nothing gets written there.</summary>
+    public bool GameFolderReviewPending => !Launcher.Settings.ReviewedGameFolder && SteamLocator.IsTf2Folder(TfPath);
+
     public event Action<string>? Notice;
 
     private void FirstRunImport()
@@ -104,17 +112,28 @@ public sealed class AppServices : IAsyncDisposable
             return;
         var legacy = LegacyImporter.Run(Paths, Game, Launcher.Settings, Profiles);
         _notices.AddRange(legacy.Notes);
-        if (!legacy.Imported && TfPath is not null
-            && AtomicFile.ReadAllTextOrNull(AutoexecFile.Locate(TfPath)) is { } autoexec)
-        {
-            var values = ObservedSettings.ImportFromAutoexec(autoexec);
-            if (values.Count > 0)
-            {
-                Game.Settings.Apply(values.ToDictionary(kv => kv.Key, kv => (System.Text.Json.Nodes.JsonNode?)kv.Value));
-                _notices.Add($"Read {values.Count} settings from your existing autoexec.cfg.");
-            }
-        }
+        if (legacy.Imported)
+            Launcher.Settings.ReviewedGameFolder = true;
         Launcher.Save();
+    }
+
+    public int ReadAutoexecIntoConfig()
+    {
+        if (TfPath is null || AtomicFile.ReadAllTextOrNull(AutoexecFile.Locate(TfPath)) is not { } autoexec)
+            return 0;
+        var values = ObservedSettings.ImportFromAutoexec(autoexec);
+        Game.Settings.Apply(values.ToDictionary(kv => kv.Key, kv => (System.Text.Json.Nodes.JsonNode?)kv.Value));
+        return values.Count;
+    }
+
+    private string AddonsDir => Path.Combine(Paths.EngineDataDir, "mods", "addons");
+    private string CustomSoundsFolder => Path.Combine(AddonsDir, CustomSoundMod.Folder);
+
+    public async Task RebuildCustomSoundsAsync()
+    {
+        var staging = Path.Combine(Paths.EngineDataDir, "mods", ".custom-sounds-staging");
+        await Preload.WithLibraryHeldAsync(() => Task.Run(() => CustomSounds.WriteMod(AddonsDir, staging))).ConfigureAwait(false);
+        await Mods.SyncManagedAsync(CustomSounds.Enabled).ConfigureAwait(false);
     }
 
     public void RefreshObserved() => Game.Settings.UpdateObserved(ObservedSettings.Read(TfPath));
@@ -142,6 +161,8 @@ public sealed class AppServices : IAsyncDisposable
             {
                 if (!await Mods.RefreshAsync().ConfigureAwait(false))
                     Notice?.Invoke("The mod library couldn't be read. Open the Mods tab and press Check again.");
+                if (CustomSounds.Sounds.Count > 0 && !Directory.Exists(CustomSoundsFolder))
+                    await RebuildCustomSoundsAsync().ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
         finally

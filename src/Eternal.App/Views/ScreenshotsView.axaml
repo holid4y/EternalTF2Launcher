@@ -215,7 +215,7 @@
           <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
             <StackPanel Spacing="4">
               <TextBlock Classes="display" Text="EDIT" />
-              <TextBlock Classes="meta" Text="{Binding Hint}" />
+              <TextBlock Classes="meta" Text="{Binding Hint}" TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
               <Button Classes="ghost" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Undo" HotKey="Ctrl+Z">
@@ -224,13 +224,13 @@
                   <TextBlock Text="Undo" />
                 </StackPanel>
               </Button>
-              <Button Classes="ghost" Content="Cancel" Command="{Binding CancelCommand}" />
+              <Button Classes="ghost" Content="Cancel" Command="{Binding CancelCommand}" IsEnabled="{Binding !Saving}" />
               <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding HasChanges}" />
             </StackPanel>
           </Grid>
           <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="True" IsVisible="{Binding Saving}" Margin="0,0,0,8" />
           <Border Background="{DynamicResource GroundBrush}" CornerRadius="3" ClipToBounds="True">
-            <Panel Name="Stage" Background="Transparent" Cursor="Cross">
+            <Panel Name="Stage" Background="Transparent" Focusable="True">
               <Image Name="Picture" Source="{Binding Preview}" Stretch="Uniform" />
               <Canvas Name="Overlay" IsHitTestVisible="False" />
             </Panel>
@@ -242,6 +242,10 @@
             <Border Classes="card" Padding="14">
               <StackPanel Spacing="4">
                 <TextBlock Classes="meta" Text="Tools" Margin="0,0,0,4" />
+                <Button Classes="tool" Classes.on="{Binding Selecting}" Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.None}"
+                        ToolTip.Tip="Select, move, resize and turn what you placed">
+                  <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconExpand}" Width="14" Height="14" /><TextBlock Text="Select and move" /></StackPanel>
+                </Button>
                 <Button Classes="tool" Classes.on="{Binding Cropping}" Command="{Binding UseToolCommand}" CommandParameter="{x:Static vm:EditTool.Crop}">
                   <StackPanel Orientation="Horizontal" Spacing="10"><PathIcon Data="{StaticResource IconCrop}" Width="14" Height="14" /><TextBlock Text="Crop" /></StackPanel>
                 </Button>
@@ -285,6 +289,55 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Button Classes="link" FontSize="12" Content="Remove marks" Command="{Binding ClearMarksCommand}" Margin="10,6,0,0" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="14" IsVisible="{Binding HasSelectedMark}">
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+                  <TextBlock Classes="title" Text="{Binding SelectedTitle}" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Classes="ghost" Padding="6" Command="{Binding DuplicateSelectedCommand}" ToolTip.Tip="Duplicate (Ctrl+D)" AutomationProperties.Name="Duplicate">
+                    <PathIcon Data="{StaticResource IconCopy}" Width="13" Height="13" />
+                  </Button>
+                  <Button Grid.Column="2" Classes="ghost" Padding="6" Command="{Binding DeleteSelectedCommand}" ToolTip.Tip="Delete (Del)" AutomationProperties.Name="Delete">
+                    <PathIcon Data="{StaticResource IconTrash}" Width="13" Height="13" />
+                  </Button>
+                </Grid>
+                <TextBox Text="{Binding SelectedText}" IsVisible="{Binding SelectedIsText}" AutomationProperties.Name="Text" MaxLength="120" />
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2" IsVisible="{Binding SelectedHasBox}">
+                  <TextBlock Classes="meta" Text="Left %" />
+                  <TextBlock Grid.Column="1" Classes="meta" Text="Top %" />
+                  <NumericUpDown Grid.Row="1" Value="{Binding SelectedLeft}" Minimum="-100" Maximum="200" Increment="0.5" FormatString="0.#" ShowButtonSpinner="False" AutomationProperties.Name="Left" />
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SelectedTop}" Minimum="-100" Maximum="200" Increment="0.5" FormatString="0.#" ShowButtonSpinner="False" AutomationProperties.Name="Top" />
+                  <TextBlock Grid.Row="2" Classes="meta" Text="Width %" Margin="0,6,0,0" />
+                  <TextBlock Grid.Row="2" Grid.Column="1" Classes="meta" Text="Height %" Margin="0,6,0,0" />
+                  <NumericUpDown Grid.Row="3" Value="{Binding SelectedWidth}" Minimum="0.5" Maximum="200" Increment="0.5" FormatString="0.#" ShowButtonSpinner="False" AutomationProperties.Name="Width" />
+                  <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SelectedHeight}" Minimum="0.5" Maximum="200" Increment="0.5" FormatString="0.#" ShowButtonSpinner="False" AutomationProperties.Name="Height" />
+                </Grid>
+                <StackPanel Spacing="0" IsVisible="{Binding SelectedCanRotate}">
+                  <TextBlock Classes="meta" Text="Turn" />
+                  <Slider Name="RotationSlider" Minimum="-180" Maximum="180" Value="{Binding SelectedRotation}" AutomationProperties.Name="Turn" />
+                </StackPanel>
+                <StackPanel Spacing="0" IsVisible="{Binding SelectedHasOpacity}">
+                  <TextBlock Classes="meta" Text="Opacity" />
+                  <Slider Name="OpacitySlider" Minimum="5" Maximum="100" Value="{Binding SelectedOpacity}" AutomationProperties.Name="Opacity" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding Swatches}" IsVisible="{Binding SelectedUsesColor}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:Swatch">
+                      <Button Classes="swatch" Background="{Binding Brush}" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
+                              Classes.on="{Binding Selected}"
+                              Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).Editor.RecolorSelectedCommand}" CommandParameter="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="14">
+                  <Button Classes="link" FontSize="12" Content="Bring to front" Command="{Binding BringToFrontCommand}" />
+                  <Button Classes="link" FontSize="12" Content="Send to back" Command="{Binding SendToBackCommand}" />
+                </StackPanel>
               </StackPanel>
             </Border>
 

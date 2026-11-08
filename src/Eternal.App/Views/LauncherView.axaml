@@ -51,6 +51,14 @@
             <TextBlock Classes="meta" Text="Steam account" />
             <TextBlock Text="{Binding Account}" />
           </StackPanel>
+          <StackPanel Spacing="2">
+            <ToggleSwitch IsChecked="{Binding ManageAutoexec}" OnContent="Write my settings to autoexec.cfg" OffContent="Write my settings to autoexec.cfg" />
+            <TextBlock Classes="meta" TextWrapping="Wrap" Text="Eternal keeps to one marked block at the end of the file, and only once you change a setting in Config. Off, it never opens the file." />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Button Classes="link" Content="Go through what's in my TF2 folder" Command="{Binding Main.ReviewGameFolderCommand}" />
+            <Button Classes="link" Content="Files put aside" Command="{Binding OpenSetAsideCommand}" />
+          </StackPanel>
         </StackPanel>
       </Border>
 
@@ -89,43 +97,89 @@
             </StackPanel>
           </Grid>
 
-          <StackPanel Spacing="6">
+          <StackPanel Spacing="10">
             <TextBlock Classes="title" Text="Background" />
-            <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" Text="{Binding ScreenshotNote}" IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter='Screenshots,Rotate'}" />
-            <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Picture}"
-                       Text="{Binding BackgroundImage, TargetNullValue='Pick any image. It is blurred once and kept behind everything.'}" />
-            <TextBlock Classes="muted" FontSize="13" Text="A plain background." IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter='!None'}" />
-            <WrapPanel Orientation="Horizontal">
-              <Button Classes="segment" Classes.on="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Screenshots}" Content="Screenshots" ToolTip.Tip="A different TF2 screenshot each time the launcher opens"
-                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Screenshots}" />
-              <Button Classes="segment" Classes.on="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Rotate}" Content="Rotating" ToolTip.Tip="TF2 screenshots, changing every few minutes"
-                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Rotate}" />
-              <Button Classes="segment" Classes.on="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Screenshot}" Content="One" ToolTip.Tip="One screenshot, set from the Screenshots tab"
-                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Screenshot}" />
-              <Button Classes="segment" Classes.on="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Picture}" Content="Picture" ToolTip.Tip="A picture you choose"
-                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Picture}" />
-              <Button Classes="segment" Classes.on="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=None}" Content="None" ToolTip.Tip="Plain background"
-                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.None}" />
-              <Button Classes="ghost" Content="Another one" Command="{Binding NextScreenshotCommand}" IsVisible="{Binding CanCycleScreenshots}" Margin="8,0,0,0" />
-              <Button Classes="ghost" Content="Choose picture" Command="{Binding ChooseBackgroundCommand}" IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Picture}" />
-            </WrapPanel>
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Rotate}">
-            <TextBlock Classes="meta" Text="Rotate every" VerticalAlignment="Center" />
-            <ComboBox ItemsSource="{Binding RotateMinuteChoices}" SelectedItem="{Binding RotateMinutes}" MinWidth="70" />
-            <TextBlock Classes="meta" Text="minutes" VerticalAlignment="Center" />
-          </StackPanel>
-          <TextBlock Classes="meta" TextWrapping="Wrap" IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter=Screenshot}" Text="{Binding StaticScreenshotNote}" />
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="24" IsVisible="{Binding BackgroundMode, Converter={x:Static views:Converters.EnumMatch}, ConverterParameter='!None'}">
-            <StackPanel Spacing="4">
-              <TextBlock Classes="meta" Text="Darken" />
-              <Slider Minimum="0.3" Maximum="0.95" Value="{Binding BackgroundDim}" />
+            <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="6">
+              <Button Classes="bgtile" Classes.on="{Binding BackgroundIsRandom}" ToolTip.Tip="A different screenshot each time the launcher opens"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Screenshots}">
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconRefresh}" Width="18" Height="18" HorizontalAlignment="Center" />
+                  <TextBlock Text="Random" HorizontalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="1" Classes="bgtile" Classes.on="{Binding BackgroundIsRotating}" ToolTip.Tip="Your screenshots, one after another"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Rotate}">
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconClock}" Width="18" Height="18" HorizontalAlignment="Center" />
+                  <TextBlock Text="Slideshow" HorizontalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="2" Classes="bgtile" Classes.on="{Binding BackgroundIsOne}" ToolTip.Tip="One screenshot you pick"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Screenshot}">
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconCamera}" Width="18" Height="18" HorizontalAlignment="Center" />
+                  <TextBlock Text="One shot" HorizontalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="3" Classes="bgtile" Classes.on="{Binding BackgroundIsPicture}" ToolTip.Tip="Any image on this computer"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.Picture}">
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconImage}" Width="18" Height="18" HorizontalAlignment="Center" />
+                  <TextBlock Text="My picture" HorizontalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="4" Classes="bgtile" Classes.on="{Binding BackgroundIsPlain}" ToolTip.Tip="No picture, just the theme's colour"
+                      Command="{Binding SetBackgroundModeCommand}" CommandParameter="{x:Static core:BackgroundMode.None}">
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconBox}" Width="18" Height="18" HorizontalAlignment="Center" />
+                  <TextBlock Text="Plain" HorizontalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <Border Classes="raised" Padding="12,10">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <TextBlock Classes="muted" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding BackgroundNote}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <Button Content="Another one" Command="{Binding NextScreenshotCommand}" IsVisible="{Binding CanCycleScreenshots}" />
+                  <Button Content="Pick a screenshot" Command="{Binding PickScreenshotCommand}" IsVisible="{Binding BackgroundIsOne}" />
+                  <Button Content="Choose a picture" Command="{Binding ChooseBackgroundCommand}" IsVisible="{Binding BackgroundIsPicture}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding BackgroundIsRotating}">
+              <TextBlock Classes="meta" Text="Change every" VerticalAlignment="Center" />
+              <ItemsControl ItemsSource="{Binding RotateChoices}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="2" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:RotateChoice">
+                    <Button Classes="segment" Padding="10,4" Classes.on="{Binding On}" Content="{Binding Label}"
+                            Command="{Binding $parent[UserControl].((vm:LauncherViewModel)DataContext).SetRotateMinutesCommand}" CommandParameter="{Binding}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
-            <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock Classes="meta" Text="Blur" />
-              <Slider Minimum="0" Maximum="40" Value="{Binding BackgroundBlur}" />
-            </StackPanel>
-          </Grid>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="24" IsVisible="{Binding HasBackground}">
+              <StackPanel Spacing="2">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="meta" Text="Darken" />
+                  <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding DimText}" />
+                </Grid>
+                <Slider Minimum="0.3" Maximum="0.95" Value="{Binding BackgroundDim}" AutomationProperties.Name="Darken" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="2">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="meta" Text="Blur" />
+                  <TextBlock Grid.Column="1" Classes="meta figure" Text="{Binding BlurText}" />
+                </Grid>
+                <Slider Minimum="0" Maximum="40" Value="{Binding BackgroundBlur}" AutomationProperties.Name="Blur" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
 
           <Grid ColumnDefinitions="*,*" ColumnSpacing="24">
             <StackPanel Spacing="4">
@@ -182,7 +236,7 @@
           <TextBlock Classes="heading" Text="ABOUT" />
           <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="13">
             <Run Text="{Binding Version, StringFormat='Eternal TF2 Launcher {0}.'}" />
-            <Run Text="Mod preloading by cueki's casual-pre-loader (GPL-3.0), bundled unmodified. Prices from backpack.tf through pricedb.io. Mod feed from GameBanana. Barlow typeface by Jeremy Tribby (SIL Open Font License). Not affiliated with Valve." />
+            <Run Text="Mod preloading by cueki's casual-pre-loader (GPL-3.0), bundled unmodified. Prices from backpack.tf through pricedb.io. Mod feed from GameBanana. Audio through SoundFlow, miniaudio and FFmpeg (LGPL). Barlow typeface by Jeremy Tribby (SIL Open Font License). Not affiliated with Valve." />
           </TextBlock>
           <StackPanel Orientation="Horizontal" Spacing="14">
             <Button Classes="link" Content="Launcher on GitHub" Command="{Binding OpenRepoCommand}" />

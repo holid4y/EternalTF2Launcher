@@ -16,6 +16,14 @@ Drop a VPK, a folder or a ZIP, RAR or 7z download anywhere on the window. A mome
 
 When a download holds several versions of a mod (a 54 and a 70 FOV build, say, or a HUD with optional parts), you pick which ones to install; versions that change the same files are marked. Loose files such as a lightwarp or a hitsound with no folders around them are placed by matching their names against the game's own files.
 
+### Hit and kill sounds
+
+Config has a Hit & Kill Sounds page. Add any audio file (WAV, MP3, FLAC, OGG, Opus, M4A, or the audio track of a video) or a whole folder, and the launcher converts it to the 16-bit, 44.1 kHz WAV TF2 reads, cuts the silence at the start and packs it as a mod that loads in Casual. With more than one sound of a kind, TF2 picks one at random through a soundscript. The mod shows up in your list, but it's switched on and off from that page only.
+
+### Your existing files
+
+The first time it opens, the launcher lists what's already in `tf/custom` and `tf/cfg` (VPKs, mod folders, HUDs, hitsounds, mastercomfig, your `.cfg` files) and asks what to do with each. It writes nothing to the game until you've answered. You can run the same review later from the Launcher tab.
+
 ### GameBanana
 
 The Mods tab has a GameBanana browser for TF2 mods and sounds, with every category, search and sorting. Each mod's page shows its pictures, description and files, and you tick the files you want. Downloads are checked against GameBanana's size, MD5 checksum and virus scan before they're installed, and they only come from gamebanana.com. Mods installed from GameBanana show its picture in your library unless you set your own, and both the library and the browser switch between a list and a grid with a size slider.
@@ -26,7 +34,7 @@ Community servers in your region, with name, game mode, map, players, bots and p
 
 ### Screenshots
 
-The TF2 screenshots Steam keeps for your account. Crop, turn, flip, blur or pixelate parts, adjust brightness, contrast and saturation, and add text, arrows and boxes. Saving writes over the same file and thumbnail so Steam can still upload it, and the original is kept for Revert. Upload opens Steam's uploader, Copy link gives the steamcommunity.com page once it's uploaded, and Delete moves the file to the trash.
+The TF2 screenshots Steam keeps for your account. Crop, turn, flip, blur or pixelate parts, adjust brightness, contrast and saturation, and add text, arrows, boxes and pictures, each of which you can drag, resize and turn. Saving writes over the same file and thumbnail so Steam can still upload it, and the original is kept for Revert. Upload opens Steam's uploader, Copy link gives the steamcommunity.com page once it's uploaded, and Delete moves the file to the trash.
 
 ### Config
 
@@ -55,7 +63,7 @@ Download a release from the [Releases](../../releases) page. Release builds incl
 ### Linux
 
 ```sh
-tar xf EternalLauncher-2.2.6-linux-x64.tar.gz
+tar xf EternalLauncher-2.3.0-linux-x64.tar.gz
 cd EternalLauncher && ./install.sh
 ```
 
@@ -63,7 +71,7 @@ This installs for your user only (`~/.local/share/eternal-launcher`), adds a men
 
 ### Windows
 
-Run `EternalLauncher-2.2.6-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
+Run `EternalLauncher-2.3.0-win-x64-setup.exe` (per-user, no admin rights), or extract the portable zip anywhere and run `EternalLauncher.exe`. The portable build keeps settings and mods in a `userdata` folder next to the executable.
 
 Upgrading from 1.x keeps your settings, profiles, thumbnails and mod library; they are imported on first start.
 

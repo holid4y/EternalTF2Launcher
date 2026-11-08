@@ -11,6 +11,7 @@ launcher sets up its own virtual environment on first use.
 """
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -66,6 +67,8 @@ def main() -> None:
     shutil.copy2(ROOT / "LICENSE", stage / "LICENSE.txt")
     shutil.copy2(ENGINE / "vendor" / "casual-pre-loader" / "LICENSE", stage / "LICENSE-casual-pre-loader.txt")
     shutil.copy2(ROOT / "src" / "Eternal.App" / "Assets" / "Fonts" / "OFL.txt", stage / "LICENSE-fonts.txt")
+    packages = Path(os.environ.get("NUGET_PACKAGES", Path.home() / ".nuget" / "packages"))
+    shutil.copy2(packages / "soundflow.codecs.ffmpeg" / "1.4.2" / "SOUNDFLOW-THIRD-PARTY-NOTICES.txt", stage / "LICENSE-audio-libraries.txt")
 
     name = f"EternalLauncher-{version()}-{args.rid}"
     if args.rid == "linux-x64":

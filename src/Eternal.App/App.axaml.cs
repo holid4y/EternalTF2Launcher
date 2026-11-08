@@ -85,6 +85,7 @@ public partial class App : Application
         {
             Log.Error("Shutdown cleanup failed", ex);
         }
+        PreviewPlayer.Stop();
         _main.Updates.FinishOnExit();
         // Replacing the list disposes the tray now, while the UI thread still runs, so
         // its bus objects don't outlive it; Avalonia's own exit then has none left.

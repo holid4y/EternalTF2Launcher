@@ -71,7 +71,18 @@
                       <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
                         <TextBlock Classes="title" FontSize="16" Text="{Binding Title}" TextWrapping="Wrap" Foreground="{DynamicResource InkBrush}" />
                         <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxLines="3" TextTrimming="WordEllipsis" FontWeight="Normal" />
-                        <TextBlock Classes="meta" Text="{Binding When}" FontWeight="Normal" />
+                        <TextBlock Classes="meta" Text="{Binding When}" FontWeight="Normal" IsVisible="{Binding !IsGroup}" />
+                        <ItemsControl ItemsSource="{Binding Posts}" IsVisible="{Binding IsGroup}" Margin="0,2,0,0">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel ItemSpacing="12" LineSpacing="2" /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:NewsPostRow">
+                              <Button Classes="link" FontSize="12" Content="{Binding Date}" ToolTip.Tip="Open this update's notes"
+                                      Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenPostCommand}" CommandParameter="{Binding}" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                       </StackPanel>
                     </Grid>
                   </Border>

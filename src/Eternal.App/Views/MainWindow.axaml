@@ -200,6 +200,80 @@
           </Border>
         </Border>
 
+        <Border Background="#99000000" IsVisible="{Binding FolderReview, Converter={x:Static ObjectConverters.IsNotNull}}"
+                KeyboardNavigation.TabNavigation="Cycle">
+          <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="4" Padding="28,24" Width="680" MaxHeight="600"
+                  HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 16 48 0 #88000000">
+            <DockPanel DataContext="{Binding FolderReview}" x:DataType="vm:GameFolderReviewViewModel">
+              <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,14">
+                <TextBlock Classes="heading" FontSize="24" Text="Before anything changes" />
+                <TextBlock Classes="muted" Text="{Binding Message}" TextWrapping="Wrap" />
+              </StackPanel>
+              <StackPanel DockPanel.Dock="Bottom" Spacing="14" Margin="0,16,0,0">
+                <StackPanel Spacing="4">
+                  <CheckBox IsChecked="{Binding ManageAutoexec}" Content="Let Eternal add its own block to autoexec.cfg when I change a setting" />
+                  <CheckBox IsChecked="{Binding ReadAutoexec}" Content="Show the values from my autoexec.cfg in the Config tab" IsVisible="{Binding HasAutoexec}" />
+                  <TextBlock Classes="meta" TextWrapping="Wrap" Text="Move into Eternal adds a mod to your list so it loads in Casual too. Put aside moves it to a backup you can open from the Launcher tab. Nothing gets deleted." />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                  <Button Name="ReviewApply" Classes="ghost" Content="Apply my choices" Command="{Binding ApplyCommand}" IsEnabled="{Binding AnyChanged}" />
+                  <Button Name="ReviewKeep" Classes="primary" Content="Keep everything" Command="{Binding KeepEverythingCommand}" IsDefault="True" />
+                </StackPanel>
+              </StackPanel>
+              <ScrollViewer>
+                <StackPanel Spacing="14" Margin="0,0,12,0">
+                  <StackPanel Spacing="4" IsVisible="{Binding HasMods}">
+                    <TextBlock Classes="meta" Text="In tf/custom" Margin="0,0,0,2" />
+                    <ItemsControl ItemsSource="{Binding Mods}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:FoundRowViewModel">
+                          <Border Classes="raised" Padding="12,8" Margin="0,0,0,4">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                              <StackPanel Spacing="1" VerticalAlignment="Center">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                                <TextBlock Classes="meta" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                              <ComboBox Grid.Column="1" Width="170" ItemsSource="{Binding Choices}" SelectedItem="{Binding Choice}"
+                                        AutomationProperties.Name="{Binding Name}">
+                                <ComboBox.ItemTemplate>
+                                  <DataTemplate DataType="vm:FoundChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                </ComboBox.ItemTemplate>
+                              </ComboBox>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                  <StackPanel Spacing="4" IsVisible="{Binding HasConfigs}">
+                    <TextBlock Classes="meta" Text="In tf/cfg" Margin="0,0,0,2" />
+                    <ItemsControl ItemsSource="{Binding Configs}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:FoundRowViewModel">
+                          <Border Classes="raised" Padding="12,8" Margin="0,0,0,4">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                              <StackPanel Spacing="1" VerticalAlignment="Center">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                                <TextBlock Classes="meta" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                              <ComboBox Grid.Column="1" Width="170" ItemsSource="{Binding Choices}" SelectedItem="{Binding Choice}"
+                                        AutomationProperties.Name="{Binding Name}">
+                                <ComboBox.ItemTemplate>
+                                  <DataTemplate DataType="vm:FoundChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                </ComboBox.ItemTemplate>
+                              </ComboBox>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </StackPanel>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+        </Border>
+
         <Border Background="#99000000" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}"
                 KeyboardNavigation.TabNavigation="Cycle">
           <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="4" Padding="28,24" Width="480"

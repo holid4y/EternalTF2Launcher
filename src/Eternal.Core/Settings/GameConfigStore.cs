@@ -14,16 +14,18 @@ public sealed class GameConfigStore : IDisposable
 
     private readonly string _path;
     private readonly Func<string?> _tfPath;
+    private readonly Func<bool> _mayWriteGame;
     private readonly Timer _timer;
     private readonly object _gate = new();
     private readonly SemaphoreSlim _saveLock = new(1, 1);
     private string? _pendingUserContent;
     private bool _dirty;
 
-    public GameConfigStore(string path, Func<string?> tfPath)
+    public GameConfigStore(string path, Func<string?> tfPath, Func<bool>? mayWriteGame = null)
     {
         _path = path;
         _tfPath = tfPath;
+        _mayWriteGame = mayWriteGame ?? (() => true);
         var config = JsonFile.Load(path, CoreJson.Default.GameConfig, () => new GameConfig(), out var outcome);
         LoadOutcome = outcome;
         Settings = new GameSettings(config);
@@ -120,9 +122,10 @@ public sealed class GameConfigStore : IDisposable
         }
 
         var settings = new GameSettings(snapshot);
-        var autoexec = AutoexecFile.Write(_tfPath(), ManagedBlock.Build(settings), userContent);
-        var viewmodels = TransparentViewmodels.Sync(_tfPath(), settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId)));
-        if (autoexec.Applied && userContent is not null)
+        var mayWrite = _mayWriteGame();
+        var autoexec = mayWrite ? AutoexecFile.Write(_tfPath(), ManagedBlock.Build(settings), userContent) : new AutoexecResult(AutoexecStatus.LeftAlone);
+        var viewmodels = mayWrite ? TransparentViewmodels.Sync(_tfPath(), settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId))) : null;
+        if (autoexec.Applied && autoexec.Status != AutoexecStatus.LeftAlone && userContent is not null)
         {
             lock (_gate)
             {
