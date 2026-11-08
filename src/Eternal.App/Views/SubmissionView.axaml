@@ -23,6 +23,36 @@
       <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
       <Setter Property="ClipToBounds" Value="True" />
     </Style>
+    <Style Selector="Border.picture">
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.picture Image">
+      <Setter Property="Stretch" Value="Uniform" />
+    </Style>
+    <Style Selector="Border.picture.video">
+      <Setter Property="Width" Value="533" />
+    </Style>
+    <Style Selector="Border.picture.video Image">
+      <Setter Property="Stretch" Value="UniformToFill" />
+    </Style>
+    <Style Selector="Border.playmark">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="Button.play">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.play:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.play:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.play:pointerover Border.playmark">
+      <Setter Property="Opacity" Value="0.85" />
+    </Style>
   </UserControl.Styles>
 
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
@@ -69,34 +99,32 @@
         <StackPanel Spacing="12" Margin="0,0,10,12">
           <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="3" Height="300" ClipToBounds="True"
                   IsVisible="{Binding Shown, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <Image Stretch="Uniform" views:RemoteImage.DecodeWidth="1100" views:RemoteImage.Url="{Binding Shown}" />
+            <Panel>
+              <Border Classes="picture" Classes.video="{Binding Shown.IsVideo}">
+                <Image views:RemoteImage.DecodeWidth="1100" views:RemoteImage.Url="{Binding Shown.Picture}" />
+              </Border>
+              <Button Classes="play" IsVisible="{Binding Shown.IsVideo}" Command="{Binding OpenVideoCommand}" CommandParameter="{Binding Shown}"
+                      ToolTip.Tip="Opens in your browser" AutomationProperties.Name="Play video">
+                <Border Classes="playmark" Width="76" Height="52" CornerRadius="4">
+                  <PathIcon Data="{StaticResource IconPlay}" Width="22" Height="22" Margin="3,0,0,0" Foreground="{DynamicResource AccentInkBrush}" />
+                </Border>
+              </Button>
+            </Panel>
           </Border>
-          <ItemsControl ItemsSource="{Binding Screenshots}" IsVisible="{Binding HasScreenshots}">
+          <ItemsControl ItemsSource="{Binding Media}" IsVisible="{Binding HasMediaStrip}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate><WrapPanel ItemSpacing="6" LineSpacing="6" /></ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="x:String">
-                <Button Classes="shot" ToolTip.Tip="Show this picture" AutomationProperties.Name="Show this picture"
+              <DataTemplate x:DataType="vm:MediaSlot">
+                <Button Classes="shot" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding Tip}"
                         Command="{Binding $parent[UserControl].((vm:SubmissionViewModel)DataContext).ShowCommand}" CommandParameter="{Binding}">
-                  <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="200" views:RemoteImage.Url="{Binding}" />
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <ItemsControl ItemsSource="{Binding Videos}" IsVisible="{Binding HasVideos}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="x:String">
-                <Button Classes="link" ToolTip.Tip="Opens the video in your browser"
-                        Command="{Binding $parent[UserControl].((vm:SubmissionViewModel)DataContext).OpenVideoCommand}" CommandParameter="{Binding}">
-                  <StackPanel Orientation="Horizontal" Spacing="6">
-                    <PathIcon Data="{StaticResource IconPlay}" Width="12" Height="12" />
-                    <TextBlock Text="Video" />
-                  </StackPanel>
+                  <Panel>
+                    <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="200" views:RemoteImage.Url="{Binding Picture}" />
+                    <Border Classes="playmark" Width="26" Height="18" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsVideo}">
+                      <PathIcon Data="{StaticResource IconPlay}" Width="9" Height="9" Margin="1,0,0,0" Foreground="{DynamicResource AccentInkBrush}" />
+                    </Border>
+                  </Panel>
                 </Button>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

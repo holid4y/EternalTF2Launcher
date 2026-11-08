@@ -1,7 +1,9 @@
+using Eternal.Core;
 using Eternal.Core.Logging;
 using Eternal.Core.Sounds;
 using SoundFlow.Abstracts.Devices;
 using SoundFlow.Components;
+using SoundFlow.Enums;
 using SoundFlow.Interfaces;
 using SoundFlow.Metadata.Models;
 using SoundFlow.Providers;
@@ -20,6 +22,7 @@ public static class PreviewPlayer
     private static SoundPlayer? _player;
     private static ISoundDataProvider? _provider;
     private static long _generation;
+    private const int MaxDownloadBytes = 32 * 1024 * 1024;
 
     public static string? PlayingUrl { get; private set; }
 
@@ -42,7 +45,7 @@ public static class PreviewPlayer
             generation = ++_generation;
         }
         Changed?.Invoke();
-        _ = Task.Run(() => Start(source, generation));
+        _ = Task.Run(() => StartAsync(source, generation));
     }
 
     public static void Stop()
@@ -56,16 +59,32 @@ public static class PreviewPlayer
         Changed?.Invoke();
     }
 
-    private static void Start(string source, long generation)
+    /// <summary>SoundFlow mixes in 32-bit float whatever the source is, so that is what the device is opened with.</summary>
+    public static AudioFormat OutputFormat(int channels, int sampleRate) => new()
+    {
+        Format = SampleFormat.F32,
+        Channels = channels > 0 ? channels : 2,
+        SampleRate = sampleRate > 0 ? sampleRate : 44100,
+    };
+
+    private static async Task<byte[]> DownloadAsync(string url)
+    {
+        using var response = await Http.Client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return await Http.ReadCappedAsync(response.Content, MaxDownloadBytes, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    private static async Task StartAsync(string source, long generation)
     {
         ISoundDataProvider? provider = null;
         try
         {
             var engine = CustomSoundDecoder.Engine;
+            // Decoded before the device opens: an error inside the audio callback can't be caught and ends the process.
             provider = source.StartsWith("http", StringComparison.OrdinalIgnoreCase)
-                ? new NetworkDataProvider(engine, source, new ReadOptions())
+                ? new AssetDataProvider(engine, await DownloadAsync(source).ConfigureAwait(false), new ReadOptions())
                 : new AssetDataProvider(engine, source, new ReadOptions());
-            var format = new AudioFormat { Format = provider.SampleFormat, Channels = provider.FormatInfo?.ChannelCount ?? 2, SampleRate = provider.SampleRate };
+            var format = OutputFormat(provider.FormatInfo?.ChannelCount ?? 0, provider.SampleRate);
             lock (Gate)
             {
                 if (generation != _generation || PlayingUrl != source)

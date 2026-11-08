@@ -26,6 +26,14 @@ public sealed class FeedTests
     }
 
     [Fact]
+    public void A_post_with_no_picture_uses_the_game_art()
+    {
+        var entry = Assert.Single(FeedService.ParseNews(News(Item("Team Fortress 2 Update Released", "Product Update", 1793402368, "Fixed smoke.")), 10));
+        Assert.Null(entry.ImageUrl);
+        Assert.EndsWith("/apps/440/header.jpg", entry.Picture);
+    }
+
+    [Fact]
     public void The_copy_with_a_picture_wins()
     {
         var json = News(

@@ -323,6 +323,8 @@ public sealed partial class GameBananaViewModel : ObservableObject
 
     private async Task LoadCategoriesAsync()
     {
+        // A click lands here in the middle of the list's selection change; the rows can't be rebuilt until it ends.
+        await Task.Yield();
         var section = Section;
         var selected = SelectedCategory;
         try

@@ -292,7 +292,7 @@ public sealed partial class GameBananaClient(HttpClient http)
             ? list.EnumerateArray().Select(ParseFile).OfType<SubmissionFile>().ToArray()
             : [];
         return new SubmissionDetails(summary, PlainText(Text(root, "_sText")), screenshots, audio,
-            Int(root, "_nDownloadCount"), Text(root, "_sVersion") is { Length: > 0 } v ? Clip(v, 40) : null, files, videos.Distinct().ToArray());
+            Int(root, "_nDownloadCount"), Text(root, "_sVersion") is { Length: > 0 } v ? Clip(v, 40) : null, files, videos.Distinct().Take(MaxVideos).ToArray());
     }
 
     internal static IReadOnlyList<string> ExtractVideoLinks(string? html)
@@ -316,6 +316,15 @@ public sealed partial class GameBananaClient(HttpClient http)
 
     [GeneratedRegex(@"(?:https?://)?(?:www\.)?(?:youtube\.com/(?:watch\?[^""'\s<>]*v=|embed/|shorts/)|youtu\.be/)(?<id>[A-Za-z0-9_-]{6,})|https?://[^""'\s<>]+\.(?:mp4|webm)(?:\?[^""'\s<>]*)?", RegexOptions.IgnoreCase)]
     private static partial Regex VideoUrl();
+
+    private const int MaxVideos = 6;
+
+    /// <summary>The still YouTube keeps for a video. A video file has none.</summary>
+    public static string? VideoPoster(string url) =>
+        YouTubeWatch().Match(url) is { Success: true } m ? $"https://i.ytimg.com/vi/{m.Groups["id"].Value}/hqdefault.jpg" : null;
+
+    [GeneratedRegex(@"^https://www\.youtube\.com/watch\?v=(?<id>[A-Za-z0-9_-]{6,})$")]
+    private static partial Regex YouTubeWatch();
 
     private static Submission? ParseSubmission(JsonElement r, Section section)
     {

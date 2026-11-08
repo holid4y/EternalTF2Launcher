@@ -16,14 +16,15 @@
     </Style>
     <Style Selector="Slider.size">
       <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Margin" Value="0,-11,0,0" />
     </Style>
   </UserControl.Styles>
 
   <StackPanel Orientation="Horizontal" Spacing="10" Height="40">
-    <Slider Classes="size" Width="110" Height="40" VerticalAlignment="Center" IsVisible="{Binding IsGrid}"
+    <Slider Classes="size" Width="110" VerticalAlignment="Center" IsVisible="{Binding IsGrid}"
             Minimum="{Binding MinWidth}" Maximum="{Binding MaxWidth}" Value="{Binding CardWidth}"
             SmallChange="10" LargeChange="40" ToolTip.Tip="Card size" AutomationProperties.Name="Card size" />
-    <StackPanel Orientation="Horizontal" Spacing="2">
+    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
       <Button Classes="view" Classes.on="{Binding IsList}" Command="{Binding ShowListCommand}"
               ToolTip.Tip="List" AutomationProperties.Name="Show as a list">
         <PathIcon Data="{StaticResource IconList}" Width="15" Height="15" />

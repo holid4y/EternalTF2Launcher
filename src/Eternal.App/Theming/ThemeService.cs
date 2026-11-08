@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
@@ -25,6 +26,11 @@ public sealed partial class ThemeService : ObservableObject
     private Color _logoColor;
     private string? _screenshot;
     private int _backgroundVersion;
+    private List<(SolidColorBrush Brush, Func<Theme, Color> Color)>? _fluentBrushes;
+
+    private static readonly Theme Markers = new("", "",
+        Color.FromRgb(1, 2, 3), Color.FromRgb(4, 5, 6), Color.FromRgb(7, 8, 9), Color.FromRgb(10, 11, 12),
+        Color.FromRgb(13, 14, 15), Color.FromRgb(16, 17, 18), Color.FromRgb(19, 20, 21), default, default);
 
     [ObservableProperty] private Theme _current = Theme.All[0];
     [ObservableProperty] private Color _accent;
@@ -174,7 +180,69 @@ public sealed partial class ThemeService : ObservableObject
         var fluent = _app.Styles.OfType<FluentTheme>().FirstOrDefault();
         if (fluent is null)
             return;
-        var variant = theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
+        _fluentBrushes ??= FindFluentBrushes(fluent);
+        FillPalette(fluent, theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark, theme);
+        foreach (var (brush, color) in _fluentBrushes)
+            brush.Color = color(theme);
+    }
+
+    /// <summary>
+    /// Fluent copies most palette colours into its brushes once, the first time each is
+    /// read, so a later palette never reaches them. Reading them all while the palette
+    /// holds marker colours shows which theme colour each brush stands for.
+    /// </summary>
+    private List<(SolidColorBrush Brush, Func<Theme, Color> Color)> FindFluentBrushes(FluentTheme fluent)
+    {
+        FillPalette(fluent, ThemeVariant.Dark, Markers);
+        FillPalette(fluent, ThemeVariant.Light, Markers);
+        var roles = new Dictionary<Color, Func<Theme, Color>>
+        {
+            [Markers.Ground] = t => t.Ground,
+            [Markers.Surface] = t => t.Surface,
+            [Markers.Raised] = t => t.Raised,
+            [Markers.Line] = t => t.Line,
+            [Markers.Ink] = t => t.Ink,
+            [Markers.Muted] = t => t.Muted,
+            [Markers.Faint] = t => t.Faint,
+            [Mix(Markers.Ink, Markers.Muted, 0.5)] = t => Mix(t.Ink, t.Muted, 0.5),
+        };
+        var keys = new HashSet<object>();
+        foreach (var style in _app.Styles)
+            CollectKeys(style, keys);
+        var brushes = new List<(SolidColorBrush, Func<Theme, Color>)>();
+        foreach (var variant in new[] { ThemeVariant.Dark, ThemeVariant.Light })
+            foreach (var key in keys)
+                if (_app.TryFindResource(key, variant, out var value) && value is SolidColorBrush brush && roles.TryGetValue(brush.Color, out var role))
+                    brushes.Add((brush, role));
+        return brushes;
+    }
+
+    private static void CollectKeys(IStyle style, HashSet<object> keys)
+    {
+        if (style is StyleBase { Resources: IResourceDictionary own })
+            CollectKeys(own, keys);
+        if (style is Styles group)
+        {
+            CollectKeys(group.Resources, keys);
+            foreach (var child in group)
+                CollectKeys(child, keys);
+        }
+        if (style is StyleInclude { Loaded: { } loaded })
+            CollectKeys(loaded, keys);
+    }
+
+    private static void CollectKeys(IResourceDictionary dictionary, HashSet<object> keys)
+    {
+        foreach (var key in dictionary.Keys)
+            keys.Add(key);
+        foreach (var merged in dictionary.MergedDictionaries.OfType<IResourceDictionary>())
+            CollectKeys(merged, keys);
+        foreach (var themed in dictionary.ThemeDictionaries.Values.OfType<IResourceDictionary>())
+            CollectKeys(themed, keys);
+    }
+
+    private static void FillPalette(FluentTheme fluent, ThemeVariant variant, Theme theme)
+    {
         if (!fluent.Palettes.TryGetValue(variant, out var palette))
             fluent.Palettes[variant] = palette = new ColorPaletteResources();
 

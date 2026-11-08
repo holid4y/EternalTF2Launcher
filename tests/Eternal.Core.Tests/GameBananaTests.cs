@@ -98,6 +98,22 @@ public sealed class GameBananaTests : IDisposable
     }
 
     [Fact]
+    public void Youtube_links_get_a_poster_and_video_files_do_not()
+    {
+        Assert.Equal("https://i.ytimg.com/vi/innps2eqqto/hqdefault.jpg", GameBananaClient.VideoPoster("https://www.youtube.com/watch?v=innps2eqqto"));
+        Assert.Null(GameBananaClient.VideoPoster("https://files.gamebanana.com/preview/videos/a.mp4"));
+    }
+
+    [Fact]
+    public void The_audio_device_is_always_opened_in_a_real_format()
+    {
+        var format = Eternal.App.Services.PreviewPlayer.OutputFormat(0, 0);
+        Assert.Equal(SoundFlow.Enums.SampleFormat.F32, format.Format);
+        Assert.Equal(2, format.Channels);
+        Assert.Equal(44100, format.SampleRate);
+    }
+
+    [Fact]
     public void Video_files_join_the_base_url_without_doubling_a_slash()
     {
         const string profile = """

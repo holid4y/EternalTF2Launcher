@@ -221,7 +221,15 @@ public sealed class MasterServerSource
 
     internal static async Task<IReadOnlyList<ListedServer>> QueryAsync(int maxServers, CancellationToken cancellation)
     {
-        var addresses = await Dns.GetHostAddressesAsync(MasterHost, cancellation).ConfigureAwait(false);
+        IPAddress[] addresses;
+        try
+        {
+            addresses = await Dns.GetHostAddressesAsync(MasterHost, cancellation).ConfigureAwait(false);
+        }
+        catch (SocketException)
+        {
+            return [];
+        }
         var masterIp = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
         return masterIp is null ? [] : await QueryAsync(new IPEndPoint(masterIp, MasterPort), maxServers, Timeout, cancellation).ConfigureAwait(false);
     }

@@ -313,10 +313,12 @@
   </Style>
 
   <Style Selector="TextBox">
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="CornerRadius" Value="3" />
     <Setter Property="Padding" Value="10,6" />
   </Style>
   <Style Selector="ComboBox">
+    <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="CornerRadius" Value="3" />
     <Setter Property="MinWidth" Value="160" />
   </Style>

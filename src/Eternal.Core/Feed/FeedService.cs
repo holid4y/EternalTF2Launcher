@@ -10,7 +10,12 @@ public sealed record NewsPost(DateTimeOffset Date, string Url);
 /// <summary>One entry in the feed. Several posts in a row with the same title share an entry, newest first.</summary>
 public sealed record NewsItem(string Title, string Summary, string Url, string? ImageUrl, DateTimeOffset Date, string Source)
 {
+    private const string GameArt = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/header.jpg";
+
     public IReadOnlyList<NewsPost> Posts { get; init; } = [new(Date, Url)];
+
+    /// <summary>The post's own picture, or the game's store art. Patch notes never carry one.</summary>
+    public string Picture => ImageUrl ?? GameArt;
 }
 
 public static partial class FeedService

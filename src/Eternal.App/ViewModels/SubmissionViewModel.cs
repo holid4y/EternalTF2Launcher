@@ -54,6 +54,13 @@ public sealed partial class FileRow(SubmissionFile file, bool installed) : Obser
     }
 }
 
+/// <summary>One entry in a submission's media slot: a picture, or a video shown by its poster.</summary>
+public sealed record MediaSlot(string? Picture, string? Video)
+{
+    public bool IsVideo => Video is not null;
+    public string Tip => IsVideo ? "Show this video" : "Show this picture";
+}
+
 public sealed partial class SubmissionViewModel : ObservableObject
 {
     private readonly AppServices _services;
@@ -81,19 +88,19 @@ public sealed partial class SubmissionViewModel : ObservableObject
     public bool CasualReady => Summary.CasualReady;
     public bool Obsolete => Summary.Obsolete;
 
-    public ObservableCollection<string> Screenshots { get; } = [];
+    public ObservableCollection<MediaSlot> Media { get; } = [];
     public ObservableCollection<FileRow> Files { get; } = [];
 
     [ObservableProperty] private bool _loading = true;
     [ObservableProperty] private string? _error;
     [ObservableProperty] private string _text = "";
-    [ObservableProperty] private string? _shown;
+    [ObservableProperty] private MediaSlot? _shown;
     [ObservableProperty] private string _downloads = "";
     [ObservableProperty] private string? _version;
     [ObservableProperty] private string? _audioPreview;
     [ObservableProperty] private bool _installing;
 
-    public bool HasScreenshots => Screenshots.Count > 1;
+    public bool HasMediaStrip => Media.Count > 1;
     public bool HasText => Text.Length > 0;
     public bool HasFiles => Files.Count > 0;
     public bool NoFiles => !Loading && Error is null && Files.Count == 0;
@@ -128,12 +135,12 @@ public sealed partial class SubmissionViewModel : ObservableObject
             Downloads = details.Downloads > 0 ? Format.Count(details.Downloads) : "";
             Version = details.Version;
             AudioPreview = details.AudioPreview;
-            foreach (var shot in details.Screenshots)
-                Screenshots.Add(shot);
+            var cover = details.Screenshots.FirstOrDefault() ?? Summary.Thumbnail;
             foreach (var video in details.Videos)
-                Videos.Add(video);
-            OnPropertyChanged(nameof(HasVideos));
-            Shown = Screenshots.FirstOrDefault() ?? Summary.Thumbnail;
+                Media.Add(new MediaSlot(GameBananaClient.VideoPoster(video) ?? cover, video));
+            foreach (var shot in details.Screenshots)
+                Media.Add(new MediaSlot(shot, null));
+            Shown = Media.FirstOrDefault() ?? (cover is null ? null : new MediaSlot(cover, null));
 
             var installed = _mods.InstalledSources();
             var newest = details.Files.Where(f => f.CanInstall).MaxBy(f => f.Added);
@@ -158,7 +165,7 @@ public sealed partial class SubmissionViewModel : ObservableObject
         finally
         {
             Loading = false;
-            OnPropertyChanged(nameof(HasScreenshots));
+            OnPropertyChanged(nameof(HasMediaStrip));
             OnPropertyChanged(nameof(HasText));
             OnPropertyChanged(nameof(HasFiles));
             OnPropertyChanged(nameof(NoFiles));
@@ -187,18 +194,14 @@ public sealed partial class SubmissionViewModel : ObservableObject
     internal void Close() => _closed.Cancel();
 
     [RelayCommand]
-    private void Show(string? screenshot)
+    private void Show(MediaSlot? slot)
     {
-        if (screenshot is not null && Screenshots.Contains(screenshot))
-            Shown = screenshot;
+        if (slot is not null && Media.Contains(slot))
+            Shown = slot;
     }
 
     [RelayCommand]
     private void OpenPage() => Shell.OpenUrl(Summary.Url);
-
-    public ObservableCollection<string> Videos { get; } = [];
-
-    public bool HasVideos => Videos.Count > 0;
 
     public bool PreviewPlaying => PreviewPlayer.PlayingUrl is not null && AudioPreview == PreviewPlayer.PlayingUrl;
 
@@ -212,9 +215,9 @@ public sealed partial class SubmissionViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private static void OpenVideo(string? url)
+    private static void OpenVideo(MediaSlot? slot)
     {
-        if (url is not null)
+        if (slot?.Video is { } url)
             Shell.OpenUrl(url);
     }
 

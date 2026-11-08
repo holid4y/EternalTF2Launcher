@@ -65,7 +65,7 @@
                         Command="{Binding $parent[UserControl].((vm:HomeViewModel)DataContext).OpenNewsCommand}" CommandParameter="{Binding}">
                   <Border Classes="card" Padding="16">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-                      <Border Width="176" Height="99" Background="{DynamicResource RaisedBrush}" ClipToBounds="True" IsVisible="{Binding HasImage}" CornerRadius="2">
+                      <Border Width="176" Height="99" Background="{DynamicResource RaisedBrush}" ClipToBounds="True" CornerRadius="2">
                         <Image Stretch="UniformToFill" views:RemoteImage.DecodeWidth="360" views:RemoteImage.Url="{Binding ImageUrl}" />
                       </Border>
                       <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">

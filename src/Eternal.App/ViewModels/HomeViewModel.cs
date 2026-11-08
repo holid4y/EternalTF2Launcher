@@ -17,8 +17,7 @@ public sealed record NewsRow(NewsItem Item)
 {
     public string Title => Item.Posts.Count > 1 ? $"{Item.Posts.Count} Team Fortress 2 updates" : Item.Title;
     public string Summary => Item.Summary;
-    public string? ImageUrl => Item.ImageUrl;
-    public bool HasImage => Item.ImageUrl is not null;
+    public string ImageUrl => Item.Picture;
     public bool IsGroup => Item.Posts.Count > 1;
     public string When => $"{Item.Date.LocalDateTime:d MMM yyyy} · {Item.Source}";
     public IReadOnlyList<NewsPostRow> Posts { get; } =

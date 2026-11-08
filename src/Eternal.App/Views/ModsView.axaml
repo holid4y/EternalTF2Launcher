@@ -112,12 +112,12 @@
       <Grid ColumnDefinitions="*,340" ColumnSpacing="24" IsVisible="{Binding EngineReady}">
         <DockPanel>
           <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,10">
-            <TextBox Watermark="Search mods" Text="{Binding Search}" AutomationProperties.Name="Search mods">
+            <TextBox Watermark="Search mods" Text="{Binding Search}" VerticalAlignment="Center" AutomationProperties.Name="Search mods">
               <TextBox.InnerLeftContent>
                 <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
               </TextBox.InnerLeftContent>
             </TextBox>
-            <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" AutomationProperties.Name="Show" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Filters}" SelectedItem="{Binding Filter}" VerticalAlignment="Center" AutomationProperties.Name="Show" />
             <views:ViewSwitch Grid.Column="2" DataContext="{Binding View}" VerticalAlignment="Center" Margin="6,0,0,0" />
           </Grid>
           <TextBlock DockPanel.Dock="Top" Classes="meta" Margin="2,0,0,8" TextWrapping="Wrap"
