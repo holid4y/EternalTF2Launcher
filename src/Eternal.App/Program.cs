@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Logging;
+using Eternal.App.Services;
 using Eternal.Core;
 using Eternal.Core.Logging;
 using Eternal.Core.Platform;
@@ -80,7 +82,7 @@ internal static class Program
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .With(new X11PlatformOptions { WmClass = "eternal-launcher" })
-            .LogToTrace();
+            .AfterSetup(_ => Logger.Sink = new AvaloniaLog());
 }
 
 internal static class CrashReport

@@ -275,6 +275,7 @@ public sealed class MasterServerSource
         }
         catch (Exception ex) when (ex is SocketException or OperationCanceledException or InvalidDataException or IOException)
         {
+            Log.Debug($"Steam master list stopped early: {ex.Message}");
         }
         return result;
     }

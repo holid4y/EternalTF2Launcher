@@ -603,6 +603,7 @@ public sealed partial class ModsViewModel : PageViewModel
             return;
         if (!await _dialogs.ConfirmAsync("Remove mod", $"Delete {r.DisplayName} from your library? The original file you imported is not touched.", "Remove", danger: true))
             return;
+        Log.Info($"Removing mod {r.Item.Name}");
         var result = await _services.Mods.RemoveAsync([r.Item]);
         if (!result.Success)
             await _dialogs.AlertAsync("Couldn't remove", result.ErrorSummary);
@@ -645,6 +646,7 @@ public sealed partial class ModsViewModel : PageViewModel
                 "Turn every mod off, your hit and kill sounds included, and remove the preload from the game folder? Your library stays as it is, so you can switch mods back on later.",
                 "Restore vanilla"))
             return;
+        Log.Info("Restoring vanilla");
         _main.Config.Sounds.Enabled = false;
         _services.Mods.SetAllEnabled(false, includeManaged: true);
         _services.Preload.BuildNow();

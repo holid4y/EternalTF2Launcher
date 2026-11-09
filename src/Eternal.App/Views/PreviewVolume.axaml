@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Eternal.App.ViewModels"
+             x:Class="Eternal.App.Views.PreviewVolume"
+             x:DataType="vm:GameBananaViewModel">
+  <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" ToolTip.Tip="Volume of the sound previews">
+    <PathIcon Data="{StaticResource IconSound}" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" VerticalAlignment="Center" />
+    <Slider Width="110" Minimum="0" Maximum="100" Value="{Binding PreviewVolume}" VerticalAlignment="Center"
+            AutomationProperties.Name="Preview volume" />
+    <TextBlock Classes="meta figure" Text="{Binding PreviewVolumeText}" MinWidth="32" TextAlignment="Right" VerticalAlignment="Center" />
+  </StackPanel>
+</UserControl>

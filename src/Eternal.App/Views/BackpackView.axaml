@@ -37,7 +37,7 @@
 
     <StackPanel Grid.Row="1" Spacing="8">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding HasItems}">
-        <TextBox Watermark="Search items, effects, types" Text="{Binding Search}">
+        <TextBox Watermark="Search items, effects, types" Text="{Binding Search}" MaxLength="80">
           <TextBox.InnerLeftContent>
             <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
           </TextBox.InnerLeftContent>
@@ -80,8 +80,9 @@
     </StackPanel>
 
     <Grid Grid.Row="2" ColumnDefinitions="*,320" ColumnSpacing="24" IsVisible="{Binding HasItems}">
+      <TextBlock Classes="muted" Text="No items match these filters." VerticalAlignment="Top" IsVisible="{Binding NoMatches}" />
       <ScrollViewer>
-        <ItemsRepeater ItemsSource="{Binding Visible}" Name="Items">
+        <ItemsRepeater Margin="0,0,12,12" ItemsSource="{Binding Visible}" Name="Items">
           <ItemsRepeater.Layout>
             <UniformGridLayout MinItemWidth="118" MinItemHeight="164" MinRowSpacing="8" MinColumnSpacing="8" ItemsStretch="Fill" />
           </ItemsRepeater.Layout>
@@ -123,7 +124,7 @@
       </ScrollViewer>
 
       <ScrollViewer Grid.Column="1">
-        <StackPanel Spacing="12">
+        <StackPanel Margin="0,0,12,12" Spacing="12">
           <Border Classes="card" IsVisible="{Binding !HasSelection}">
             <StackPanel Spacing="10">
               <TextBlock Classes="heading" Text="PRICES" />

@@ -311,6 +311,35 @@ public class ServerTests
     }
 }
 
+public class MapPictureTests
+{
+    [Theory]
+    [InlineData("ctf_2fort", "ctf_2fort")]
+    [InlineData("CP_Process_Final", "cp_process_final")]
+    [InlineData("workshop/koth_lakeside_event.ugc1234567", "koth_lakeside_event")]
+    public void Plain_map_names_get_a_picture_address(string map, string expected) =>
+        Assert.Equal($"https://image.gametracker.com/images/maps/160x120/tf2/{expected}.jpg", WorkshopMaps.CommunityPicture(map));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("../../evil")]
+    [InlineData("map name")]
+    [InlineData("a?b=c")]
+    public void Anything_else_a_server_reports_gets_none(string? map) => Assert.Null(WorkshopMaps.CommunityPicture(map));
+}
+
+public class ServerNameTests
+{
+    [Fact]
+    public void Block_padding_and_private_glyphs_are_dropped_from_names() =>
+        Assert.Equal("BLW.TF US | 2FORT", SourceQuery.Clean("\u259f\u2588\u2599 BLW.TF US | 2FORT \ue123\ufffd"));
+
+    [Fact]
+    public void Real_symbols_and_other_scripts_stay() =>
+        Assert.Equal("wonderland \u2605 \u0418\u0433\u0440\u0430", SourceQuery.Clean("wonderland \u2605 \u0418\u0433\u0440\u0430"));
+}
+
 public class ServerJoinTests
 {
     [Theory]

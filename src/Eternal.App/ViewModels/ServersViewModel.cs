@@ -349,6 +349,7 @@ public sealed partial class ServersViewModel : PageViewModel
         foreach (var favorite in _services.Servers.Favorites())
             await writer.WriteAsync(OnUi(() => RowFor(favorite.Address, favorite.Address.Port)), cancellation).ConfigureAwait(false);
         await Task.WhenAll(sources).ConfigureAwait(false);
+        Log.Info($"Server list: {_rows.Count} known servers, {errors.Count} source(s) failed");
         if (!errors.IsEmpty)
             _updates.Enqueue(() => Error = string.Join(" ", errors.Distinct()));
     }
@@ -533,7 +534,7 @@ public sealed partial class ServersViewModel : PageViewModel
     {
         var url = await WorkshopMaps.Shared.PreviewAsync(row.Map, cancellation);
         if (!cancellation.IsCancellationRequested && Selected == row)
-            MapPicture = url;
+            MapPicture = url ?? WorkshopMaps.CommunityPicture(row.Map);
     }
 
     private async Task RefreshSelectedAsync(bool players)
@@ -594,6 +595,7 @@ public sealed partial class ServersViewModel : PageViewModel
         string? password = null;
         if (target.Password && (password = await AskPasswordAsync(target)) is null)
             return;
+        Log.Info($"Joining server {target.Address} on {target.Map}");
         if (await _main.JoinServerAsync(target.Address, target.Name, password))
             _main.Notify($"Joining {target.Name}.");
     }

@@ -95,6 +95,8 @@ public sealed class LauncherSettings : IJsonOnDeserialized
 
     public bool ManageAutoexec { get; set; } = true;
 
+    public double PreviewVolume { get; set; } = 0.7;
+
     void IJsonOnDeserialized.OnDeserialized()
     {
         JsonChecks.NoEmptyEntries(Tabs, "tabs");
@@ -108,6 +110,7 @@ public sealed class LauncherSettings : IJsonOnDeserialized
         if (!Enum.IsDefined(Background))
             Background = BackgroundMode.Screenshots;
         BackgroundRotateMinutes = Math.Clamp(BackgroundRotateMinutes, 1, 120);
+        PreviewVolume = double.IsFinite(PreviewVolume) ? Math.Clamp(PreviewVolume, 0, 1) : 0.7;
         if (BackgroundScreenshot is { Length: > 4096 })
             BackgroundScreenshot = null;
     }

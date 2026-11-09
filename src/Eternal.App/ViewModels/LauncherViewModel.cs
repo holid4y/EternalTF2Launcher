@@ -373,6 +373,7 @@ public sealed partial class LauncherViewModel : PageViewModel
 
     private async Task SetTf2Async(string folder)
     {
+        Log.Info($"TF2 folder set to {folder}");
         _services.Launcher.Update(s => s.TfPath = folder);
         _services.RefreshObserved();
         OnPropertyChanged(nameof(TfPath));

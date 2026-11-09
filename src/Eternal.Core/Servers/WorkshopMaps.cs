@@ -10,7 +10,7 @@ public sealed partial class WorkshopMaps(HttpClient http)
 {
     private const string Details = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/";
     private const int MaxBytes = 256 * 1024;
-    private static readonly string[] ImageHosts = ["steamuserimages-a.akamaihd.net", "images.steamusercontent.com"];
+    private static readonly string[] ImageHosts = ["steamuserimages-a.akamaihd.net", "steamusercontent-a.akamaihd.net", "images.steamusercontent.com"];
 
     private readonly ConcurrentDictionary<ulong, Task<string?>> _previews = new();
 
@@ -18,6 +18,16 @@ public sealed partial class WorkshopMaps(HttpClient http)
 
     [GeneratedRegex(@"^workshop/(?:[A-Za-z0-9_\-]{1,64}\.ugc)?(\d{1,20})$")]
     private static partial Regex WorkshopMap();
+
+    [GeneratedRegex(@"^[a-z0-9_\-]{1,64}$")]
+    private static partial Regex PlainMapName();
+
+    /// <summary>GameTracker's picture of a map. Official maps and popular community ones have one; the rest answer 404 and keep the name panel.</summary>
+    public static string? CommunityPicture(string? map)
+    {
+        var name = map is null ? "" : DisplayName(map).ToLowerInvariant();
+        return PlainMapName().IsMatch(name) ? $"https://image.gametracker.com/images/maps/160x120/tf2/{name}.jpg" : null;
+    }
 
     public static ulong? WorkshopId(string? map) =>
         map is not null && WorkshopMap().Match(map) is { Success: true } m

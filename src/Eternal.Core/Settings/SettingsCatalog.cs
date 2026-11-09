@@ -493,7 +493,7 @@ public static class SettingsCatalog
             new TextSetting
             {
                 Id = "DemoDir", Title = "Folder", Cvar = "ds_dir", Default = "Demos",
-                Summary = "Folder inside tf/ that receives the recordings.", DependsOn = "DemoSupport", MaxLength = 48,
+                Summary = "Folder inside tf/ that receives the recordings.", DependsOn = "DemoSupport", MaxLength = 24,
             },
             new ToggleSetting
             {
@@ -504,7 +504,7 @@ public static class SettingsCatalog
             {
                 Id = "DemoNotify", Title = "Recording messages", Cvar = "ds_notify", DependsOn = "DemoSupport",
                 Summary = "Where recording messages appear.",
-                Options = [new("Console only", "0"), new("Chat", "1"), new("HUD", "2")], Default = "0",
+                Options = [new("Console only", "0"), new("Console and chat", "1"), new("Console and HUD", "2")], Default = "0",
             },
             new ToggleSetting
             {

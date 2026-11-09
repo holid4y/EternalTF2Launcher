@@ -14,6 +14,7 @@ import argparse
 import importlib
 import json
 import logging
+import logging.handlers
 import os
 import sys
 import time
@@ -118,7 +119,7 @@ def setup_logging(log_file: Path | None, verbose: bool) -> None:
     if log_file:
         try:
             log_file.parent.mkdir(parents=True, exist_ok=True)
-            handler = logging.FileHandler(log_file, encoding="utf-8")
+            handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=2 * 1024 * 1024, backupCount=2, encoding="utf-8")
             handler.setFormatter(JsonLogFormatter())
             handlers.append(handler)
         except OSError as exc:

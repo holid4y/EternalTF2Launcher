@@ -190,7 +190,7 @@
                         IsEnabled="{Binding CanInstall}" IsDefault="True" />
               </Grid>
               <ScrollViewer>
-                <ItemsControl ItemsSource="{Binding Parts}">
+                <ItemsControl Margin="0,0,12,12" ItemsSource="{Binding Parts}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="vm:PartChoice">
                       <Border Background="{DynamicResource RaisedBrush}" CornerRadius="3" Padding="12,9" Margin="0,0,0,4">

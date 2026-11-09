@@ -3,6 +3,27 @@ using Eternal.Core.Inventory;
 
 namespace Eternal.Core.Tests;
 
+public sealed class ItemQualityTests
+{
+    [Fact]
+    public void The_filter_offers_every_quality_even_with_none_in_the_backpack()
+    {
+        var list = ItemQualities.WithFound([]);
+        Assert.Contains("Strange", list);
+        Assert.Contains("Collector's", list);
+        Assert.Contains("Decorated Weapon", list);
+        Assert.Equal(12, list.Count);
+    }
+
+    [Fact]
+    public void A_quality_Steam_adds_later_still_shows_up_once()
+    {
+        var list = ItemQualities.WithFound(["Unique", "Brand New", "Brand New"]);
+        Assert.Equal(13, list.Count);
+        Assert.Equal("Brand New", list[^1]);
+    }
+}
+
 public sealed class InventoryTests : IDisposable
 {
     private const string AccountA = "76561198000000001";

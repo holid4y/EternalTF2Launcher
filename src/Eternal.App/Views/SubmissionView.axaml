@@ -65,6 +65,9 @@
         </StackPanel>
       </Button>
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+        <Panel IsVisible="{Binding CanListen}" Margin="0,0,8,0">
+          <views:PreviewVolume DataContext="{Binding $parent[views:GameBananaView].DataContext}" />
+        </Panel>
         <Button Classes="ghost" Command="{Binding ListenCommand}" IsVisible="{Binding CanListen}" ToolTip.Tip="Plays GameBanana's preview right here">
           <StackPanel Orientation="Horizontal" Spacing="6">
             <PathIcon Data="{StaticResource IconSound}" Width="14" Height="14" />

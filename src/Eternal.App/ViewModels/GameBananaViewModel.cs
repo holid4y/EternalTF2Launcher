@@ -67,6 +67,8 @@ public sealed partial class GameBananaViewModel : ObservableObject
         _mods = mods;
         _sort = Sorts[0];
         _showAdult = services.Launcher.Settings.GameBanana.ShowAdult;
+        _previewVolume = Math.Round(services.Launcher.Settings.PreviewVolume * 100);
+        PreviewPlayer.Volume = services.Launcher.Settings.PreviewVolume;
         View = new ViewOptions(services.Launcher, s => s.GameBanana, textHeight: 114, thumbRatio: 140.0 / 216);
         services.Mods.Changed += () => Dispatcher.UIThread.Post(RefreshInstalled);
         PreviewPlayer.Changed += () => Dispatcher.UIThread.Post(RefreshPlaying);
@@ -184,6 +186,17 @@ public sealed partial class GameBananaViewModel : ObservableObject
 
     partial void OnSortChanged(SortChoice value) => Reload(firstPage: true);
 
+    [ObservableProperty] private double _previewVolume;
+
+    public string PreviewVolumeText => $"{PreviewVolume:0}%";
+
+    partial void OnPreviewVolumeChanged(double value)
+    {
+        PreviewPlayer.Volume = value / 100;
+        _services.Launcher.Update(s => s.PreviewVolume = value / 100);
+        OnPropertyChanged(nameof(PreviewVolumeText));
+    }
+
     partial void OnShowAdultChanged(bool value)
     {
         _services.Launcher.Update(s => s.GameBanana.ShowAdult = value);
@@ -239,10 +252,15 @@ public sealed partial class GameBananaViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Back()
+    private void Back() => Open = null;
+
+    partial void OnOpenChanged(SubmissionViewModel? oldValue, SubmissionViewModel? newValue)
     {
-        Open?.Close();
-        Open = null;
+        if (oldValue is null)
+            return;
+        oldValue.Close();
+        if (oldValue.PreviewPlaying)
+            PreviewPlayer.Stop();
     }
 
     private void Reload(bool firstPage)

@@ -22,9 +22,24 @@ public static class PreviewPlayer
     private static SoundPlayer? _player;
     private static ISoundDataProvider? _provider;
     private static long _generation;
+    private static float _volume = 0.7f;
     private const int MaxDownloadBytes = 32 * 1024 * 1024;
 
     public static string? PlayingUrl { get; private set; }
+
+    /// <summary>From 0 to 1. Applies straight away to whatever is playing.</summary>
+    public static double Volume
+    {
+        get => _volume;
+        set
+        {
+            lock (Gate)
+            {
+                _volume = (float)Math.Clamp(value, 0, 1);
+                _player?.Volume = _volume;
+            }
+        }
+    }
 
     public static event Action? Changed;
 
@@ -96,6 +111,7 @@ public static class PreviewPlayer
                 var player = _player = new SoundPlayer(engine, format, provider);
                 _provider = provider;
                 player.PlaybackEnded += (_, _) => ThreadPool.QueueUserWorkItem(_ => Finished(generation));
+                player.Volume = _volume;
                 device.MasterMixer.AddComponent(player);
                 device.Start();
                 player.Play();

@@ -137,7 +137,7 @@
         </Panel>
 
         <ScrollViewer Grid.Column="1">
-          <StackPanel Spacing="16">
+          <StackPanel Margin="0,0,12,12" Spacing="16">
             <Border Classes="card" IsVisible="{Binding !HasSelection}">
               <TextBlock Classes="muted" TextWrapping="Wrap" Text="Pick a screenshot to edit it, copy it or put it on your Steam profile." />
             </Border>
@@ -238,7 +238,7 @@
         </DockPanel>
 
         <ScrollViewer Grid.Column="1">
-          <StackPanel Spacing="16">
+          <StackPanel Margin="0,0,12,12" Spacing="16">
             <Border Classes="card" Padding="14">
               <StackPanel Spacing="4">
                 <TextBlock Classes="meta" Text="Tools" Margin="0,0,0,4" />

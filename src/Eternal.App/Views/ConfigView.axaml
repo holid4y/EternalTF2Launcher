@@ -107,7 +107,7 @@
       </StackPanel>
       <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowAdvanced}" OnContent="Show advanced" OffContent="Show advanced"
                     VerticalAlignment="Bottom" ToolTip.Tip="Settings most players never need to change" />
-      <TextBox Grid.Column="2" Width="280" Watermark="Search settings or cvars" Text="{Binding Search}" VerticalAlignment="Bottom">
+      <TextBox Grid.Column="2" Width="280" Watermark="Search settings or cvars" Text="{Binding Search}" MaxLength="80" VerticalAlignment="Bottom">
         <TextBox.InnerLeftContent>
           <PathIcon Data="{StaticResource IconSearch}" Margin="10,0,0,0" Width="14" Height="14" Foreground="{DynamicResource FaintBrush}" />
         </TextBox.InnerLeftContent>
@@ -177,14 +177,14 @@
 
       <Panel Grid.Column="1">
         <ScrollViewer IsVisible="{Binding IsSearching}">
-          <StackPanel Spacing="10">
+          <StackPanel Margin="0,0,12,12" Spacing="10">
             <TextBlock Classes="heading" Text="{Binding SearchResults.Count, StringFormat='{}{0} MATCHES'}" />
             <ItemsControl ItemsSource="{Binding SearchResults}" />
           </StackPanel>
         </ScrollViewer>
 
         <ScrollViewer IsVisible="{Binding ShowsSettings}">
-          <StackPanel Spacing="12" DataContext="{Binding SelectedCategory}" x:DataType="vm:SettingCategoryViewModel">
+          <StackPanel Margin="0,0,12,12" Spacing="12" DataContext="{Binding SelectedCategory}" x:DataType="vm:SettingCategoryViewModel">
             <StackPanel Spacing="2">
               <TextBlock Classes="heading" FontSize="22" Text="{Binding Title}" />
               <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
@@ -280,7 +280,7 @@
         </ScrollViewer>
 
         <ScrollViewer IsVisible="{Binding ShowsBinds}">
-          <StackPanel Spacing="12">
+          <StackPanel Margin="0,0,12,12" Spacing="12">
             <StackPanel Spacing="2">
               <TextBlock Classes="heading" FontSize="22" Text="Binds" />
               <TextBlock Classes="muted" TextWrapping="Wrap" Text="Click the key button, then press a key, mouse button or scroll. Commands can't contain double quotes; use an alias in your own autoexec for anything that needs them." />
@@ -316,7 +316,7 @@
         </ScrollViewer>
 
         <ScrollViewer IsVisible="{Binding ShowsLaunch}">
-          <StackPanel Spacing="16">
+          <StackPanel Margin="0,0,12,12" Spacing="16">
             <StackPanel Spacing="2">
               <TextBlock Classes="heading" FontSize="22" Text="Launch Options" />
               <TextBlock Classes="muted" TextWrapping="Wrap" Text="Anything extra you want TF2 to start with, such as -console. Resolution, window mode and the other launch settings live in their own sections." />

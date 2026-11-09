@@ -1,17 +1,25 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Eternal.Core.Logging;
 
 public enum LogLevel { Debug, Info, Warning, Error }
 
 /// <summary>File logger with size-based rotation. Never throws, so a broken log folder can't crash the launcher.</summary>
-public static class Log
+public static partial class Log
 {
     private const long MaxBytes = 2 * 1024 * 1024;
+    private static readonly TimeSpan RetryAfter = TimeSpan.FromSeconds(30);
     private static readonly object Gate = new();
     private static StreamWriter? _writer;
     private static string? _path;
+    private static DateTime _nextAttempt;
+
+    [GeneratedRegex(@"([?&](?:key|access_token|token)=)[^&\s""']+", RegexOptions.IgnoreCase)]
+    private static partial Regex Secrets();
+
+    internal static string Redact(string text) => Secrets().Replace(text, "$1***");
 
     public static LogLevel MinimumLevel { get; set; } = LogLevel.Info;
 
@@ -66,17 +74,20 @@ public static class Log
 
         lock (Gate)
         {
-            if (_writer is null)
-                return;
             try
             {
-                _writer.WriteLine(line.ToString());
-                if (_writer.BaseStream.Length > MaxBytes)
+                if (_writer is null && _path is not null && DateTime.UtcNow >= _nextAttempt)
+                    OpenWriter();
+                if (_writer is null)
+                    return;
+                _writer.WriteLine(Redact(line.ToString()));
+                if (_writer.BaseStream.Length > MaxBytes && DateTime.UtcNow >= _nextAttempt)
                     Rotate();
             }
-            catch (Exception e) when (e is IOException or ObjectDisposedException)
+            catch (Exception e) when (e is IOException or ObjectDisposedException or UnauthorizedAccessException)
             {
                 _writer = null;
+                _nextAttempt = DateTime.UtcNow + RetryAfter;
             }
         }
     }
@@ -92,11 +103,18 @@ public static class Log
     {
         _writer?.Dispose();
         _writer = null;
-        for (var i = 2; i >= 1; i--)
+        try
         {
-            var from = i == 1 ? _path! : $"{_path}.{i - 1}";
-            if (File.Exists(from))
-                File.Move(from, $"{_path}.{i}", overwrite: true);
+            for (var i = 2; i >= 1; i--)
+            {
+                var from = i == 1 ? _path! : $"{_path}.{i - 1}";
+                if (File.Exists(from))
+                    File.Move(from, $"{_path}.{i}", overwrite: true);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            _nextAttempt = DateTime.UtcNow + RetryAfter;
         }
         OpenWriter();
     }

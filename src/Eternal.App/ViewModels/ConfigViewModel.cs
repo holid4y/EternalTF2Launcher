@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eternal.App.Services;
 using Eternal.Core.Engine;
+using Eternal.Core.Logging;
 using Eternal.Core.Mods;
 using Eternal.Core.Persistence;
 using Eternal.Core.Platform;
@@ -325,6 +326,7 @@ public sealed partial class ConfigViewModel : PageViewModel
         if (!await _main.ConfirmAsync("Apply profile", message, "Apply"))
             return;
 
+        Log.Info($"Applying profile {profile.Name}");
         ProfileStore.Apply(profile, _services.Game.Settings);
         if (profile.UserAutoexec is { } text && await _main.ConfirmAsync("Autoexec lines",
                 "This profile carries its own autoexec.cfg lines (outside the launcher's block). Replace yours with them?",

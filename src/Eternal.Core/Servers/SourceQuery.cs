@@ -310,6 +310,9 @@ public static class SourceQuery
         }
     }
 
+    /// <summary>Block characters server names pad themselves with, private-use glyphs no font has, and bytes that weren't valid text.</summary>
+    private static bool IsDecoration(char c) => c is >= '\u2580' and <= '\u259f' or >= '\ue000' and <= '\uf8ff' or '\ufffd';
+
     internal static string Clean(string text)
     {
         var sb = new StringBuilder(Math.Min(text.Length, MaxString));
@@ -317,9 +320,11 @@ public static class SourceQuery
         {
             if (sb.Length >= MaxString)
                 break;
-            if (!char.IsControl(c) && c is not ('​' or '‮' or '‭' or '⁦' or '⁧' or '⁨' or '⁩' or '﻿'))
+            if (!char.IsControl(c) && !IsDecoration(c) && c is not ('​' or '‮' or '‭' or '⁦' or '⁧' or '⁨' or '⁩' or '﻿'))
                 sb.Append(c);
         }
+        if (sb.Length > 0 && char.IsHighSurrogate(sb[^1]))
+            sb.Length--;
         return sb.ToString().Trim();
     }
 }

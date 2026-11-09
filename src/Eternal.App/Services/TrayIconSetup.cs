@@ -9,7 +9,7 @@ using Eternal.Core.Logging;
 namespace Eternal.App.Services;
 
 /// <summary>
-/// Optional tray icon. Linux desktops without a status-notifier host simply
+/// Optional tray icon. Linux desktops without a status-notifier host
 /// show nothing; starting the launcher again always brings the window back.
 /// </summary>
 internal static class TrayIconSetup

@@ -104,6 +104,7 @@ public sealed partial class BackpackViewModel : PageViewModel
     [ObservableProperty] private string? _steamId;
 
     public bool HasItems => _all.Count > 0;
+    public bool NoMatches => HasItems && !Visible.Any();
     public bool HasSelection => Selected is not null;
     public bool NoAccount => SteamId is null && !Loading;
 
@@ -327,16 +328,17 @@ public sealed partial class BackpackViewModel : PageViewModel
 
     private void RebuildFacets()
     {
+        var (quality, itemClass) = (Quality, Class);
         Qualities.Clear();
         Qualities.Add("All qualities");
-        foreach (var q in _all.Select(i => i.Quality).Distinct().Order())
+        foreach (var q in ItemQualities.WithFound(_all.Select(i => i.Quality)))
             Qualities.Add(q);
         Classes.Clear();
         Classes.Add("All classes");
         foreach (var c in _all.SelectMany(i => i.Item.Classes).Distinct().Order())
             Classes.Add(c);
-        Quality = "All qualities";
-        Class = "All classes";
+        Quality = Qualities.Contains(quality) ? quality : "All qualities";
+        Class = Classes.Contains(itemClass) ? itemClass : "All classes";
     }
 
     private void ApplyFilter()
@@ -358,6 +360,7 @@ public sealed partial class BackpackViewModel : PageViewModel
             _ => items.OrderByDescending(i => i.ValueRef).ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase),
         };
         Visible = items.ToArray();
+        OnPropertyChanged(nameof(NoMatches));
     }
 
     private async Task LoadMarketPriceAsync(ItemViewModel item)

@@ -111,6 +111,8 @@ public sealed class EngineRuntime
         foreach (var arg in new[] { "--json", "--data-dir", _paths.EngineDataDir, "--cache-dir", _paths.EngineCacheDir,
                                     "--log-file", Path.Combine(_paths.LogsDir, "engine.log") })
             psi.ArgumentList.Add(arg);
+        if (Log.MinimumLevel == LogLevel.Debug)
+            psi.ArgumentList.Add("--verbose");
         foreach (var arg in engineArgs)
             psi.ArgumentList.Add(arg);
         return psi;
