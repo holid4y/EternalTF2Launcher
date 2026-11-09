@@ -5,15 +5,9 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      release_name:
-        description: Title for the test post
+      tag:
+        description: Release to announce, for example v2.3.2
         required: true
-      release_body:
-        description: Text for the test post
-        required: false
-      release_html_url:
-        description: Link for the test post
-        required: false
 
 permissions:
   contents: read
@@ -23,18 +17,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Post release to Discord
-        uses: SethCohen/github-releases-to-discord@24d166886aee4646d448c8a389ff9e1ebcab3682 # v1.20.0
-        with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          color: "15120384"
-          username: Eternal Releases
-          avatar_url: https://avatars.githubusercontent.com/u/345346030?v=4
-          content: "<@&1569388147379535984>"
-          release_name: ${{ inputs.release_name }}
-          release_body: ${{ inputs.release_body }}
-          release_html_url: ${{ inputs.release_html_url }}
-          footer_title: holid4y/EternalTF2Launcher
-          footer_icon_url: https://avatars.githubusercontent.com/u/345346030?v=4
-          footer_timestamp: true
-          reduce_headings: true
-          max_description: 4000
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ROLE: "1569388147379535984"
+          AVATAR: https://avatars.githubusercontent.com/u/345346030?v=4
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" |
+            jq --arg role "$ROLE" --arg avatar "$AVATAR" --arg repo "$GITHUB_REPOSITORY" '
+              def skip_blank: if length > 0 and .[0] == "" then .[1:] | skip_blank else . end;
+
+              def notes:
+                gsub("\r"; "") | split("\n")
+                | if (.[0] // "") | startswith("## ") then .[1:] else . end
+                | skip_blank
+                | map(if startswith("## ") then "**" + .[3:] + "**"
+                      elif startswith("- ") then "• " + .[2:]
+                      else . end)
+                | join("\n") | gsub("\\*\\*\n\n"; "**\n")
+                | if length > 3800 then .[0:3800] + "…" else . end;
+
+              def downloads($assets):
+                [ ["Windows (installer)", "-win-x64-setup.exe"],
+                  ["Windows (portable)", "-win-x64-portable.zip"],
+                  ["Windows (zip)", "-win-x64.zip"],
+                  ["Linux", "-linux-x64.tar.gz"] ]
+                | map(. as [$label, $suffix]
+                      | ($assets[] | select(.name | endswith($suffix))) as $file
+                      | { name: $label,
+                          value: "[\($file.name)](\($file.browser_download_url)) (\($file.size / 1048576 | round) MB)" });
+
+              {
+                username: "Eternal Releases",
+                avatar_url: $avatar,
+                content: "<@&\($role)> New release out: **\(.name)**",
+                allowed_mentions: { roles: [$role] },
+                embeds: [{
+                  author: { name: .author.login, icon_url: .author.avatar_url },
+                  title: .name,
+                  url: .html_url,
+                  color: 15120384,
+                  description: ((.body // "") | notes),
+                  fields: downloads(.assets),
+                  footer: { text: "\($repo) · released \(.published_at[0:10])" },
+                  timestamp: .published_at
+                }]
+              }' > payload.json
+          curl --fail-with-body -sS -H "Content-Type: application/json" --data-binary @payload.json "$WEBHOOK"
