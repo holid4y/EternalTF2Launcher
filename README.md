@@ -4,7 +4,7 @@
 
 A Team Fortress 2 launcher for Windows and Linux. It manages your mods, loads them in Casual, explains TF2's settings and shows your backpack with community prices.
 
-[Download](../../releases/latest) · [Website](https://holid4y.github.io/EternalTF2Launcher/) · [Discord](https://discord.gg/7gadERntqX)
+[Download](../../releases/latest) · [Website](https://holid4y.github.io/EternalTF2Launcher/) · [Discord](https://discord.gg/CD8mUDDuHr)
 
 Mods are loaded by [casual-pre-loader](https://github.com/cueki/casual-pre-loader), made by cueki and its contributors and bundled here without changes. If the preloader is all you need, use the original project.
 
@@ -59,7 +59,7 @@ The portable build keeps everything in a `userdata` folder next to the executabl
 
 ## Support
 
-Questions and help are on [Discord](https://discord.gg/7gadERntqX). To report a bug, open an [issue](../../issues) and attach `logs/launcher.log`.
+Questions and help are on [Discord](https://discord.gg/CD8mUDDuHr). To report a bug, open an [issue](../../issues) and attach `logs/launcher.log`.
 
 ## Building from source
 

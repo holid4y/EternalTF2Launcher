@@ -239,8 +239,6 @@
             <Run Text="Mod preloading by cueki's casual-pre-loader (GPL-3.0), bundled unmodified. Prices from backpack.tf through pricedb.io. Mod feed from GameBanana. Audio through SoundFlow, miniaudio and FFmpeg (LGPL). Barlow typeface by Jeremy Tribby (SIL Open Font License). Not affiliated with Valve." />
           </TextBlock>
           <StackPanel Orientation="Horizontal" Spacing="14">
-            <Button Classes="link" Content="Discord server" Command="{Binding OpenDiscordCommand}" />
-            <Button Classes="link" Content="Launcher on GitHub" Command="{Binding OpenRepoCommand}" />
             <Button Classes="link" Content="casual-pre-loader" Command="{Binding OpenPreloaderCommand}" />
           </StackPanel>
         </StackPanel>

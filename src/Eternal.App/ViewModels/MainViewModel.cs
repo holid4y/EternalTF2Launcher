@@ -102,7 +102,9 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
     public ObservableCollection<NoticeViewModel> Notices { get; } = [];
-    public const string DiscordInvite = "https://discord.gg/7gadERntqX";
+    private const string DiscordInvite = "https://discord.gg/CD8mUDDuHr";
+    private const string Website = "https://holid4y.github.io/EternalTF2Launcher/";
+    private const string GitHubPage = "https://github.com/holid4y/EternalTF2Launcher";
 
     public UpdateViewModel Updates { get; }
 
@@ -290,6 +292,15 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     public event Action? QuitRequested;
 
     public void RequestQuit() => QuitRequested?.Invoke();
+
+    [RelayCommand]
+    private static void OpenDiscord() => Shell.OpenUrl(DiscordInvite);
+
+    [RelayCommand]
+    private static void OpenWebsite() => Shell.OpenUrl(Website);
+
+    [RelayCommand]
+    private static void OpenGitHub() => Shell.OpenUrl(GitHubPage);
 
     public void Notify(string message, bool isError = false)
     {

@@ -48,6 +48,17 @@
                   <TextBlock Classes="accent" FontWeight="SemiBold" Text="{Binding Updates.SidebarText}" />
                 </StackPanel>
               </Button>
+              <StackPanel Orientation="Horizontal" Spacing="2" Margin="-6,0,0,0">
+                <Button Classes="social" Command="{Binding OpenDiscordCommand}" ToolTip.Tip="Discord" AutomationProperties.Name="Discord">
+                  <PathIcon Data="{StaticResource IconDiscord}" Width="18" Height="18" />
+                </Button>
+                <Button Classes="social" Command="{Binding OpenWebsiteCommand}" ToolTip.Tip="Website" AutomationProperties.Name="Website">
+                  <PathIcon Data="{StaticResource IconWebsite}" Width="18" Height="18" />
+                </Button>
+                <Button Classes="social" Command="{Binding OpenGitHubCommand}" ToolTip.Tip="GitHub" AutomationProperties.Name="GitHub">
+                  <PathIcon Data="{StaticResource IconGitHub}" Width="18" Height="18" />
+                </Button>
+              </StackPanel>
               <TextBlock Classes="meta" Text="{Binding Version, StringFormat='v{0}'}" />
             </StackPanel>
 

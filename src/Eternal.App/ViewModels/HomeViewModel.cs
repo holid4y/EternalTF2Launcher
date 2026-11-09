@@ -107,9 +107,6 @@ public sealed partial class HomeViewModel : PageViewModel
     private static void OpenNews(NewsRow? row) => Shell.OpenUrl(row?.Item.Url);
 
     [RelayCommand]
-    private static void OpenDiscord() => Shell.OpenUrl(MainViewModel.DiscordInvite);
-
-    [RelayCommand]
     private static void OpenPost(NewsPostRow? post) => Shell.OpenUrl(post?.Url);
 
     [RelayCommand]
