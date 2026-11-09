@@ -22,6 +22,7 @@ public partial class App : Application
 
     private AppServices? _services;
     private MainViewModel? _main;
+    private static readonly TimeSpan CleanupLimit = TimeSpan.FromSeconds(10);
     private bool _shuttingDown;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -43,11 +44,11 @@ public partial class App : Application
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 desktop.ShutdownRequested += OnShutdownRequested;
                 window.Opened += (_, _) => _ = _main.StartAsync();
-                window.ExitRequested += () => desktop.Shutdown();
-                _main.QuitRequested += () => desktop.Shutdown();
+                window.ExitRequested += () => Quit(desktop);
+                _main.QuitRequested += () => Quit(desktop);
                 if (Instance is not null)
                     Instance.ActivationRequested += () => Dispatcher.UIThread.Post(window.Reveal);
-                TrayIconSetup.Setup(this, window, _services, theme, () => desktop.Shutdown());
+                TrayIconSetup.Setup(this, window, _services, theme, () => Quit(desktop));
             }
             catch (Exception ex)
             {
@@ -68,24 +69,33 @@ public partial class App : Application
         e.Handled = true;
     }
 
+    /// <summary>Shutdown() skips ShutdownRequested, and saving and the update installer both run from that event.</summary>
+    private void Quit(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        if (!_shuttingDown)
+            desktop.TryShutdown();
+    }
+
     private async void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
     {
-        if (_shuttingDown || _services is null || _main is null)
+        if (_services is null || _main is null)
             return;
         e.Cancel = true;
+        if (_shuttingDown)
+            return;
         _shuttingDown = true;
         Quitting = true;
         Log.Info("Quitting");
         try
         {
+            PreviewPlayer.Stop();
             await _main.PrepareForExitAsync();
-            await _services.DisposeAsync();
+            await _services.DisposeAsync().AsTask().WaitAsync(CleanupLimit);
         }
         catch (Exception ex)
         {
             Log.Error("Shutdown cleanup failed", ex);
         }
-        PreviewPlayer.Stop();
         _main.Updates.FinishOnExit();
         // Replacing the list disposes the tray now, while the UI thread still runs, so
         // its bus objects don't outlive it; Avalonia's own exit then has none left.
