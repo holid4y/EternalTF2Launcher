@@ -437,6 +437,9 @@ public sealed partial class LauncherViewModel : PageViewModel
     private void OpenData() => Shell.OpenFolder(_services.Paths.DataDir);
 
     [RelayCommand]
+    private static void OpenDiscord() => Shell.OpenUrl(MainViewModel.DiscordInvite);
+
+    [RelayCommand]
     private static void OpenRepo() => Shell.OpenUrl("https://github.com/holid4y/EternalTF2Launcher");
 
     [RelayCommand]

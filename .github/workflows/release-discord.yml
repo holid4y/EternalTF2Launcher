@@ -1,0 +1,40 @@
+name: Release to Discord
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: Title for the test post
+        required: true
+      release_body:
+        description: Text for the test post
+        required: false
+      release_html_url:
+        description: Link for the test post
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post release to Discord
+        uses: SethCohen/github-releases-to-discord@24d166886aee4646d448c8a389ff9e1ebcab3682 # v1.20.0
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          color: "15120384"
+          username: Eternal Releases
+          avatar_url: https://avatars.githubusercontent.com/u/345346030?v=4
+          content: "<@&1569388147379535984>"
+          release_name: ${{ inputs.release_name }}
+          release_body: ${{ inputs.release_body }}
+          release_html_url: ${{ inputs.release_html_url }}
+          footer_title: holid4y/EternalTF2Launcher
+          footer_icon_url: https://avatars.githubusercontent.com/u/345346030?v=4
+          footer_timestamp: true
+          reduce_headings: true
+          max_description: 4000

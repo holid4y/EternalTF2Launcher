@@ -145,7 +145,7 @@ public sealed partial class ConfigViewModel : PageViewModel
         get
         {
             var tokens = LaunchOptions.Build(_services.Game.Settings, _services.Preload.Record.Installed);
-            return tokens.Count == 0 ? "(no options — TF2 starts with its own settings)" : LaunchOptions.Join(tokens);
+            return tokens.Count == 0 ? "(no options, TF2 starts with its own settings)" : LaunchOptions.Join(tokens);
         }
     }
 

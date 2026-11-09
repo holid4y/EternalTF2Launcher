@@ -102,6 +102,8 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
     public ObservableCollection<NoticeViewModel> Notices { get; } = [];
+    public const string DiscordInvite = "https://discord.gg/7gadERntqX";
+
     public UpdateViewModel Updates { get; }
 
     [ObservableProperty] private TabViewModel? _selectedTab;

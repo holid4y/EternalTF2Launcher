@@ -1,4 +1,4 @@
-; Eternal TF2 Launcher — Windows installer (Inno Setup 6)
+; Eternal TF2 Launcher: Windows installer (Inno Setup 6)
 ;
 ; Build the payload first, then compile this script:
 ;   python scripts/package.py --rid win-x64 --freeze-engine

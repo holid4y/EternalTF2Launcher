@@ -142,6 +142,14 @@
           </StackPanel>
         </StackPanel>
       </Border>
+
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="heading" Text="DISCORD" />
+          <TextBlock Classes="meta" Text="Get help, suggest features and hear about new versions." TextWrapping="Wrap" />
+          <Button Content="Join the server" Command="{Binding OpenDiscordCommand}" />
+        </StackPanel>
+      </Border>
     </StackPanel>
     </ScrollViewer>
   </Grid>

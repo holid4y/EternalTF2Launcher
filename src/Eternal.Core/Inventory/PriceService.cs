@@ -255,7 +255,7 @@ public sealed class PriceService
         return double.TryParse(digits, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : 0;
     }
 
-    /// <summary>"2 keys 14.33 ref" — the way TF2 traders write prices.</summary>
+    /// <summary>"2 keys 14.33 ref", the way TF2 traders write prices.</summary>
     public static string Format(double refValue, double keyRef)
     {
         if (refValue <= 0)
