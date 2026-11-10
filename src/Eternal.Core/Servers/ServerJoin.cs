@@ -27,6 +27,6 @@ public static class ServerJoin
         if (password is not null && !IsSafePassword(password))
             throw new ArgumentException(PasswordRules, nameof(password));
         var url = $"steam://connect/{address}";
-        return Shell.OpenUrl(password is null ? url : $"{url}/{password}", logAs: url);
+        return Shell.OpenSteam(password is null ? url : $"{url}/{password}", logAs: url);
     }
 }

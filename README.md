@@ -75,7 +75,7 @@ python -m unittest discover -s engine/tests
 To build release packages:
 
 ```sh
-python -m pip install pyinstaller
+python -m pip install -r scripts/requirements-build.txt
 python scripts/package.py --rid linux-x64 --freeze-engine
 python scripts/package.py --rid win-x64 --freeze-engine --portable   # on Windows
 iscc installer/installer.iss                                         # Windows installer

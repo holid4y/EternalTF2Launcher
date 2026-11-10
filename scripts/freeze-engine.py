@@ -6,7 +6,7 @@ need neither Python nor pip. Run it with the Python that has the engine's
 requirements and PyInstaller installed:
 
     python -m pip install -r engine/requirements.txt
-    python -m pip install pyinstaller
+    python -m pip install -r scripts/requirements-build.txt
     python scripts/freeze-engine.py --out build/engine
 """
 

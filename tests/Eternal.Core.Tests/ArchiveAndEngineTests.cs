@@ -144,6 +144,15 @@ public sealed class ArchiveAndEngineTests : IDisposable
         Assert.Equal("/tf", result.Data.GetProperty("tf_path").GetString());
     }
 
+    [Theory]
+    [InlineData("42")]
+    [InlineData("true")]
+    [InlineData("\"a quoted line\"")]
+    [InlineData("[1, 2]")]
+    [InlineData("""{"event": 5}""")]
+    public void Engine_output_that_is_json_but_not_an_event_is_ignored(string line) =>
+        Assert.Null(EngineClient.Parse(line, null));
+
     private sealed class SyncProgress<T>(Action<T> report) : IProgress<T>
     {
         public void Report(T value) => report(value);

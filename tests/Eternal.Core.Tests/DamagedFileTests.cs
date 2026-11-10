@@ -37,6 +37,18 @@ public sealed class DamagedFileTests : IDisposable
         Assert.Equal("x", settings.BackgroundScreenshot);
     }
 
+    [Fact]
+    public void Look_settings_outside_what_the_sliders_allow_are_clamped_on_load()
+    {
+        var settings = System.Text.Json.JsonSerializer.Deserialize<Eternal.Core.LauncherSettings>(
+            """{"BackgroundBlur": 1e9, "BackgroundDim": 7, "UiScale": 0, "Density": 42}""")!;
+
+        Assert.Equal(40, settings.BackgroundBlur);
+        Assert.Equal(0.95, settings.BackgroundDim);
+        Assert.Equal(0.8, settings.UiScale);
+        Assert.Equal(Eternal.Core.UiDensity.Comfortable, settings.Density);
+    }
+
     [Theory]
     [InlineData("""{"order": [null]}""")]
     [InlineData("""{"order": [{"name": "Hitsound", "kind": "Addon", "enabled": true}, null]}""")]

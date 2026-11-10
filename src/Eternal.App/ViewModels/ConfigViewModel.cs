@@ -328,9 +328,7 @@ public sealed partial class ConfigViewModel : PageViewModel
 
         Log.Info($"Applying profile {profile.Name}");
         ProfileStore.Apply(profile, _services.Game.Settings);
-        if (profile.UserAutoexec is { } text && await _main.ConfirmAsync("Autoexec lines",
-                "This profile carries its own autoexec.cfg lines (outside the launcher's block). Replace yours with them?",
-                "Replace", "Keep mine"))
+        if (profile.UserAutoexec is { } text && await ConfirmAutoexecAsync(text))
             _services.Game.SetPendingUserContent(text);
         var missing = profile.Mods is { } mods ? _services.Mods.ApplySelection(mods) : [];
         _main.Notify(missing.Count == 0
@@ -393,7 +391,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     {
         if (await NameSetupAsync() is not { } name)
             return;
-        var profile = ProfileStore.Capture(_services.Game.Settings, name, null, ReadUserAutoexec(), _services.Mods.Loaded ? CurrentMods() : null);
+        var profile = ProfileStore.Capture(_services.Game.Settings, name, null, await AutoexecToShareAsync(), _services.Mods.Loaded ? CurrentMods() : null);
         var code = ShareCode.Encode(profile);
         await Pickers.CopyAsync(code);
         var handMade = HandMadeMods().Count;
@@ -409,7 +407,7 @@ public sealed partial class ConfigViewModel : PageViewModel
             return;
         if (await Pickers.SaveFileAsync("Save setup", $"{name}.{ProfileBundle.Extension}", ProfileBundle.Extension) is not { } path)
             return;
-        var profile = ProfileStore.Capture(_services.Game.Settings, name, null, ReadUserAutoexec(), _services.Mods.Loaded ? CurrentMods() : null);
+        var profile = ProfileStore.Capture(_services.Game.Settings, name, null, await AutoexecToShareAsync(), _services.Mods.Loaded ? CurrentMods() : null);
         var mods = HandMadeMods();
         try
         {
@@ -425,7 +423,37 @@ public sealed partial class ConfigViewModel : PageViewModel
     }
 
     private Task<string?> NameSetupAsync() =>
-        _main.PromptAsync("Share your setup", "Give it a name the other person will see.", "My setup", "Continue");
+        _main.PromptAsync("Share your setup", "Give it a name the other person will see. It carries your settings, binds and launch options.", "My setup", "Continue");
+
+    /// <summary>The player's own autoexec lines, only if they agree to hand them over: people keep passwords in there.</summary>
+    private async Task<string?> AutoexecToShareAsync()
+    {
+        if (ReadUserAutoexec() is not { } text || string.IsNullOrWhiteSpace(text))
+            return null;
+        return await _main.ConfirmAsync("Share your autoexec lines?",
+            "Your autoexec.cfg has lines you wrote yourself. Whoever gets this setup can read them, so leave them out if they hold a password (rcon_password, a server password) or anything else private.",
+            "Share them", "Leave them out")
+            ? text
+            : null;
+    }
+
+    private Task<bool> ConfirmAutoexecAsync(string text) => _main.ConfirmAsync("Autoexec lines",
+        "This setup carries its own autoexec.cfg lines. TF2 runs them as console commands every time it starts, so only take them from someone you trust.\n\n"
+        + Shown(text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList(), 12, "\n")
+        + "\n\nReplace the lines you wrote with these?",
+        "Replace mine", "Keep mine");
+
+    /// <summary>The first few entries of text that came from someone else, without the characters that could hide or reorder what is shown.</summary>
+    private static string Shown(IReadOnlyList<string> entries, int most, string separator)
+    {
+        static string Plain(string text)
+        {
+            var plain = new string(text.Where(c => !char.IsControl(c) && char.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.Format).ToArray());
+            return plain.Length > 100 ? plain[..100] + "…" : plain;
+        }
+        var shown = string.Join(separator, entries.Take(most).Select(Plain));
+        return entries.Count > most ? $"{shown}{separator}… and {entries.Count - most} more" : shown;
+    }
 
     [RelayCommand]
     private async Task PasteSetupCodeAsync()
@@ -496,7 +524,7 @@ public sealed partial class ConfigViewModel : PageViewModel
             RefreshProfiles();
             SelectedProfile = Profiles.FirstOrDefault(p => p.Id == profile.Id);
             ProfileStore.Apply(profile, _services.Game.Settings);
-            if (profile.UserAutoexec is { } text)
+            if (profile.UserAutoexec is { } text && await ConfirmAutoexecAsync(text))
                 _services.Game.SetPendingUserContent(text);
 
             var problems = await _main.Mods.InstallSharedAsync(plan, CancellationToken.None);
@@ -518,8 +546,12 @@ public sealed partial class ConfigViewModel : PageViewModel
     {
         var p = import.Profile;
         var lines = new List<string> { $"Replaces your settings with its {p.Values.Count} settings" + (p.Binds is { Count: > 0 } b ? $", {b.Count} binds" : "") + (string.IsNullOrWhiteSpace(p.ExtraLaunchArgs) ? "." : " and its launch options.") };
+        if (!string.IsNullOrWhiteSpace(p.ExtraLaunchArgs))
+            lines.Add($"Launch options: {Shown([p.ExtraLaunchArgs], 1, "")}");
+        if (p.Binds is { Count: > 0 } binds)
+            lines.Add($"Binds: {Shown(binds.Select(k => $"{k.Key} = {k.Command}").ToList(), 8, "; ")}");
         if (p.UserAutoexec is not null)
-            lines.Add("Replaces the lines you wrote in autoexec.cfg with its own.");
+            lines.Add("It also carries autoexec.cfg lines. You're shown those next and can keep your own.");
         if (import.UnknownSettings > 0)
             lines.Add($"{import.UnknownSettings} setting(s) from another version are skipped.");
         if (p.Mods is not null)

@@ -28,7 +28,7 @@ public static class GameLauncher
         if (arguments.Count > 0)
             url += "//" + Uri.EscapeDataString(LaunchOptions.Join(arguments));
         Log.Info($"Launching TF2 via steam://rungameid/{SteamLocator.Tf2AppId} {string.Join(' ', Redacted(arguments))}");
-        if (!Shell.OpenUrl(url))
+        if (!Shell.OpenSteam(url))
             throw new InvalidOperationException("Steam could not be started. Make sure Steam is installed.");
     }
 

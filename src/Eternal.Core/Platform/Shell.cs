@@ -5,11 +5,15 @@ namespace Eternal.Core.Platform;
 
 public static class Shell
 {
-    private static readonly string[] AllowedSchemes = ["http", "https", "steam"];
+    /// <summary>Opens a web page. Links from feeds and mod pages come through here, so nothing but http and https gets past.</summary>
+    public static bool OpenUrl(string? url, string? logAs = null) => Open(url, logAs, Uri.UriSchemeHttp, Uri.UriSchemeHttps);
 
-    public static bool OpenUrl(string? url, string? logAs = null)
+    /// <summary>Hands a steam:// link the launcher built itself to the Steam client.</summary>
+    public static bool OpenSteam(string url, string? logAs = null) => Open(url, logAs, "steam");
+
+    private static bool Open(string? url, string? logAs, params string[] schemes)
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !AllowedSchemes.Contains(uri.Scheme, StringComparer.OrdinalIgnoreCase))
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !schemes.Contains(uri.Scheme, StringComparer.OrdinalIgnoreCase))
         {
             Log.Warn($"Refused to open link: {logAs ?? url}");
             return false;

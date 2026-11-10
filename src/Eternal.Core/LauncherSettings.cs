@@ -109,7 +109,12 @@ public sealed class LauncherSettings : IJsonOnDeserialized
             SteamApiKey = null;
         if (!Enum.IsDefined(Background))
             Background = BackgroundMode.Screenshots;
+        if (!Enum.IsDefined(Density))
+            Density = UiDensity.Comfortable;
         BackgroundRotateMinutes = Math.Clamp(BackgroundRotateMinutes, 1, 120);
+        BackgroundDim = double.IsFinite(BackgroundDim) ? Math.Clamp(BackgroundDim, 0, 0.95) : 0.72;
+        BackgroundBlur = double.IsFinite(BackgroundBlur) ? Math.Clamp(BackgroundBlur, 0, 40) : 12;
+        UiScale = double.IsFinite(UiScale) ? Math.Clamp(UiScale, 0.8, 1.4) : 1.0;
         PreviewVolume = double.IsFinite(PreviewVolume) ? Math.Clamp(PreviewVolume, 0, 1) : 0.7;
         if (BackgroundScreenshot is { Length: > 4096 })
             BackgroundScreenshot = null;

@@ -121,6 +121,8 @@ public sealed partial class ProfileStore
         profile.Description = profile.Description is { Length: > 500 } d ? d[..500] : profile.Description;
         if (profile.ExtraLaunchArgs is { Length: > 1024 })
             profile.ExtraLaunchArgs = null;
+        else if (profile.ExtraLaunchArgs is { } args)
+            profile.ExtraLaunchArgs = new string(args.Select(c => char.IsControl(c) ? ' ' : c).ToArray()).Trim();
         return new ProfileImport(profile, unknown, !string.IsNullOrWhiteSpace(profile.UserAutoexec));
     }
 

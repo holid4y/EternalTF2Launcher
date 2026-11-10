@@ -196,6 +196,19 @@ class SafeImportTest(unittest.TestCase):
         self.assertEqual([p.name for p in addons.iterdir() if p.name.startswith(".")], [])
         shutil.rmtree(addons / "Fresh")
 
+    def test_a_mod_named_like_a_set_aside_copy_cannot_take_over_another_mod(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            run_cli("import", str(make_mod(Path(tmp) / "v1", "Victim", {"sound/ui/hit.wav": b"mine"})))
+            impostor = make_mod(Path(tmp) / "v2", f"{library.SET_ASIDE}Victim", {"sound/ui/hit.wav": b"theirs"})
+            result = run_cli("import", str(impostor))
+            run_cli("library")
+
+        self.assertFalse(result["data"]["results"][0]["ok"])
+        self.assertEqual((addons / "Victim" / "sound" / "ui" / "hit.wav").read_bytes(), b"mine")
+        self.assertEqual([p.name for p in addons.iterdir() if p.name.startswith(".")], [])
+        shutil.rmtree(addons / "Victim")
+
     def test_a_cut_off_vpk_does_not_replace_the_mod_it_updates(self):
         addons, _ = library_dirs()
         with tempfile.TemporaryDirectory() as tmp:

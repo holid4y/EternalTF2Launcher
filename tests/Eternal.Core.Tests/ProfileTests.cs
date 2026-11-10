@@ -71,6 +71,16 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void Launch_options_from_someone_else_lose_their_control_characters()
+    {
+        var import = ProfileStore.FromText("""
+            {"format":"eternal-profile","version":2,"name":"Shared","values":{},"extraLaunchArgs":"-console\n+connect\u0000 1.2.3.4\t"}
+            """, "Shared setup");
+
+        Assert.Equal("-console +connect  1.2.3.4", import.Profile.ExtraLaunchArgs);
+    }
+
+    [Fact]
     public void A_saved_profile_restores_everything_it_captured()
     {
         var settings = new GameSettings(new GameConfig());

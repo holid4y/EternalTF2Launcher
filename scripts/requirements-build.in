@@ -1,0 +1,6 @@
+# What scripts/freeze-engine.py needs on top of engine/requirements.txt to build the
+# frozen engine that ships in release packages.
+#
+# requirements-build.txt is generated from this file:
+#   uv pip compile --universal --generate-hashes --python-version 3.12 requirements-build.in -o requirements-build.txt
+pyinstaller~=6.22

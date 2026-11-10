@@ -381,7 +381,7 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
             _main.Notify("Start Steam first: its uploader puts the screenshot on your profile.", isError: true);
             return;
         }
-        Shell.OpenUrl($"steam://open/screenshots/{SteamLocator.Tf2AppId}");
+        Shell.OpenSteam($"steam://open/screenshots/{SteamLocator.Tf2AppId}");
         _main.Notify("Steam's screenshot window is open. Pick the screenshot there and press Upload. Its link shows up here once Steam has it.");
     }
 

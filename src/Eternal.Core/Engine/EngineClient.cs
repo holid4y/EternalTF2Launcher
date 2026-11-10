@@ -180,7 +180,9 @@ public sealed class EngineClient
         {
             using var doc = JsonDocument.Parse(line);
             var root = doc.RootElement;
-            switch (root.TryGetProperty("event", out var ev) ? ev.GetString() : null)
+            if (root.ValueKind != JsonValueKind.Object)
+                return null;
+            switch (Str(root, "event"))
             {
                 case "progress":
                     progress?.Report(new EngineProgress(

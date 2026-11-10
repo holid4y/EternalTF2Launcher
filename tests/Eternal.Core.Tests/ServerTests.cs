@@ -368,3 +368,22 @@ public class ServerJoinTests
         Assert.Equal(["-novid", "+password", "***", "+connect", "1.2.3.4:27015"],
             Eternal.Core.Steam.GameLauncher.Redacted(["-novid", "+password", "secret", "+connect", "1.2.3.4:27015"]));
 }
+
+public class LinkTests
+{
+    [Theory]
+    [InlineData("steam://connect/1.2.3.4:27015")]
+    [InlineData("steam://rungameid/440//+exec%20evil")]
+    [InlineData("file:///etc/passwd")]
+    [InlineData("/usr/bin/true")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData(null)]
+    public void A_link_from_a_feed_or_a_mod_page_only_opens_as_a_web_page(string? link) =>
+        Assert.False(Eternal.Core.Platform.Shell.OpenUrl(link));
+
+    [Theory]
+    [InlineData("https://example.com/")]
+    [InlineData("file:///etc/passwd")]
+    public void Only_steam_links_go_to_the_steam_client(string link) =>
+        Assert.False(Eternal.Core.Platform.Shell.OpenSteam(link));
+}

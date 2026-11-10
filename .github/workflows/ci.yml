@@ -58,7 +58,7 @@ jobs:
       - name: Package
         run: |
           python -m pip install -r engine/requirements.txt
-          python -m pip install pyinstaller
+          python -m pip install -r scripts/requirements-build.txt
           python scripts/package.py --rid ${{ matrix.rid }} --freeze-engine --portable
       - name: Installer
         if: matrix.rid == 'win-x64'

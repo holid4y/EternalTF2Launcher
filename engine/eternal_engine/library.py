@@ -40,7 +40,9 @@ def _config():
 
 
 def check_name(name: str) -> str:
-    if not name or name in (".", "..") or Path(name).name != name or "/" in name or "\\" in name:
+    # A mod named like a set-aside copy would be "restored" over the mod it names.
+    if (not name or name in (".", "..") or Path(name).name != name or "/" in name or "\\" in name
+            or name.startswith(SET_ASIDE)):
         raise LibraryError(f"Invalid mod name: {name!r}")
     return name
 
@@ -307,7 +309,7 @@ def tidy_library(names: Iterable[str]) -> None:
 
 
 def _import_folder(importer, folder: Path, progress: Progress, override: str | None = None) -> tuple[bool, str]:
-    name = override or folder.name
+    name = check_name(override or folder.name)
 
     def run() -> tuple[bool, str]:
         ok, message = importer.process_folder(folder, override_name=override, progress_callback=progress)

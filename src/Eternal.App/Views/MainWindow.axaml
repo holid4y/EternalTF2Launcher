@@ -291,7 +291,9 @@
                   HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 16 48 0 #88000000">
             <StackPanel Spacing="16" DataContext="{Binding Dialog}" x:DataType="vm:DialogViewModel">
               <TextBlock Classes="heading" FontSize="24" Text="{Binding Title}" />
-              <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" />
+              <ScrollViewer MaxHeight="340" HorizontalScrollBarVisibility="Disabled">
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" Margin="0,0,14,0" />
+              </ScrollViewer>
               <TextBox Text="{Binding Input}" IsVisible="{Binding HasInput}" Name="DialogInput" PasswordChar="{Binding InputMask}" />
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10"
                           IsVisible="{Binding ConfirmText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
