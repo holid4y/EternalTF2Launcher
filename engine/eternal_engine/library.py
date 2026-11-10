@@ -313,11 +313,33 @@ def _import_folder(importer, folder: Path, progress: Progress, override: str | N
 
     def run() -> tuple[bool, str]:
         ok, message = importer.process_folder(folder, override_name=override, progress_callback=progress)
+        if ok and _holds_more_than_particles(folder):
+            ok, message = _import_without_particles(importer, folder, name, progress)
         if ok:
             _tidy(_config().addons_dir / name)
         return ok, message
 
     return _replacing([name], run)
+
+
+def _holds_more_than_particles(folder: Path) -> bool:
+    """Upstream files a folder with any particle in it as a particle mod, and a build
+    takes only the particles and the materials they name from one. Its models, sounds
+    and scripts would never reach the game, so they have to go in as an addon too."""
+    from core.constants import VALID_MOD_ROOT_FOLDERS
+
+    if not any((folder / "particles").glob("*.pcf")):
+        return False
+    others = {name.lower() for name in VALID_MOD_ROOT_FOLDERS} - {"particles", "materials"}
+    return any(child.is_dir() and child.name.lower() in others and any(p.is_file() for p in child.rglob("*"))
+               for child in folder.iterdir())
+
+
+def _import_without_particles(importer, folder: Path, name: str, progress: Progress) -> tuple[bool, str]:
+    with tempfile.TemporaryDirectory(dir=_config().temp_dir) as tmp:
+        staging = Path(tmp) / name
+        shutil.copytree(folder, staging, ignore=lambda directory, _: ["particles"] if Path(directory) == folder else [])
+        return importer.process_folder(staging, override_name=name, progress_callback=progress)
 
 
 def _child(folder: Path, name: str) -> Path | None:

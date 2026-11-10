@@ -41,6 +41,8 @@ Your mods are packed into VPKs in `tf/custom` and the preloader sets them up bef
 
 Casual still enforces Valve's whitelist. Most visual content gets through, including particles, skins, war paints, lightwarps, map textures, props and HUDs. Full player model replacements often revert to the default model.
 
+A mod that brings particles along with models, sounds or scripts appears twice in the list, once as a particle mod and once for everything else, because the preloader installs the two in different ways.
+
 If you start TF2 from Steam instead of the launcher, copy the line from Config, Launch Options into TF2's launch options. Restore vanilla takes every mod out of the game and keeps your library.
 
 ## Your files and settings
@@ -48,6 +50,8 @@ If you start TF2 from Steam instead of the launcher, copy the line from Config, 
 The first time it opens, the launcher lists what's already in `tf/custom` and `tf/cfg` and asks what to do with each item. It writes nothing to the game until you've answered.
 
 Settings you change are written to one marked block at the end of `autoexec.cfg`, and the rest of the file is left alone. The previous version is kept as `autoexec.cfg.eternal-backup`. With mastercomfig installed, the block goes to `cfg/overrides/autoexec.cfg`.
+
+A setup someone shares with you shows its launch options, binds and autoexec lines before it's applied, and its autoexec lines only replace yours if you agree. When you share your own, the lines you wrote in `autoexec.cfg` only go along if you say so.
 
 | | Windows | Linux |
 |---|---|---|

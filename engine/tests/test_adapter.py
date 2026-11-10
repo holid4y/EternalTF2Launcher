@@ -411,6 +411,44 @@ class SafeImportTest(unittest.TestCase):
         self.assertTrue((particles / "Halloween Unusuals").is_dir())
         shutil.rmtree(particles / "Halloween Unusuals")
 
+    def test_a_mod_with_particles_keeps_its_models_and_sounds(self):
+        addons, particles = library_dirs()
+        vanilla = ENGINE_DIR / "vendor" / "casual-pre-loader" / "backup" / "particles" / "item_fx.pcf"
+        with tempfile.TemporaryDirectory() as tmp:
+            mod = make_mod(Path(tmp), "Whole Pack", {
+                "models/weapons/c_models/c_bat.mdl": b"m",
+                "sound/weapons/bat_hit.wav": b"s",
+                "materials/models/weapons/c_bat.vmt": b"v",
+            })
+            (mod / "particles").mkdir()
+            shutil.copy2(vanilla, mod / "particles" / "item_fx.pcf")
+
+            result = run_cli("import", str(mod))["data"]["results"][0]
+
+        self.assertTrue(result["ok"], result["message"])
+        self.assertEqual(sorted((m["kind"], m["name"]) for m in result["mods"]), [("addon", "Whole Pack"), ("particle", "Whole Pack")])
+        self.assertTrue((addons / "Whole Pack" / "models" / "weapons" / "c_models" / "c_bat.mdl").is_file())
+        self.assertTrue((addons / "Whole Pack" / "sound" / "weapons" / "bat_hit.wav").is_file())
+        self.assertTrue((addons / "Whole Pack" / "materials" / "models" / "weapons" / "c_bat.vmt").is_file())
+        self.assertFalse((addons / "Whole Pack" / "particles").exists())
+        self.assertTrue((particles / "Whole Pack" / "actual_particles").is_dir())
+        shutil.rmtree(addons / "Whole Pack")
+        shutil.rmtree(particles / "Whole Pack")
+
+    def test_a_pack_of_only_particles_and_their_materials_stays_one_mod(self):
+        addons, particles = library_dirs()
+        vanilla = ENGINE_DIR / "vendor" / "casual-pre-loader" / "backup" / "particles" / "item_fx.pcf"
+        with tempfile.TemporaryDirectory() as tmp:
+            mod = make_mod(Path(tmp), "Just Effects", {"materials/effects/spark.vmt": b"v"})
+            (mod / "particles").mkdir()
+            shutil.copy2(vanilla, mod / "particles" / "item_fx.pcf")
+
+            result = run_cli("import", str(mod))["data"]["results"][0]
+
+        self.assertEqual([(m["kind"], m["name"]) for m in result["mods"]], [("particle", "Just Effects")])
+        self.assertFalse((addons / "Just Effects").exists())
+        shutil.rmtree(particles / "Just Effects")
+
 
 class PartsTest(unittest.TestCase):
     def fake_tf(self, root: Path) -> Path:
