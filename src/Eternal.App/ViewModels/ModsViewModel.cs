@@ -541,6 +541,8 @@ public sealed partial class ModsViewModel : PageViewModel
         var parts = mod.Source!.Split(':');
         var section = parts[0] == "gamebanana-sound" ? Eternal.Core.GameBanana.Section.Sounds : Eternal.Core.GameBanana.Section.Mods;
         var details = await Eternal.Core.GameBanana.GameBananaClient.Shared.DetailsAsync(section, long.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture), cancellation);
+        if (details.Summary.Adult && !_services.Launcher.Settings.GameBanana.ShowAdult)
+            return ImportResult.Failed("GameBanana marks it 18+, and those are hidden in your GameBanana tab");
         var file = details.Files.FirstOrDefault(f => f.Id == long.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture));
         if (file is null)
             return ImportResult.Failed("that file is no longer on GameBanana");
