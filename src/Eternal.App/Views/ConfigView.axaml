@@ -39,7 +39,7 @@
         <Grid Classes="setting" ColumnDefinitions="*,Auto,36" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
           <views:SettingInfo />
           <ToggleSwitch Classes="control" IsChecked="{Binding Value}" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" />
-          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to the game's default">
             <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
           </Button>
         </Grid>
@@ -58,7 +58,7 @@
               <TextBlock Classes="figure" Width="84" Text="{Binding Display}" VerticalAlignment="Center" TextAlignment="Right" />
             </StackPanel>
           </Panel>
-          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to the game's default">
             <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
           </Button>
         </Grid>
@@ -79,7 +79,7 @@
             <TextBlock Classes="meta" Width="230" TextWrapping="Wrap" Text="{Binding Hint}"
                        IsVisible="{Binding Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           </StackPanel>
-          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to the game's default">
             <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
           </Button>
         </Grid>
@@ -90,7 +90,7 @@
         <Grid Classes="setting" ColumnDefinitions="*,Auto,36" RowDefinitions="Auto,Auto" ColumnSpacing="16" IsEnabled="{Binding IsEnabled}">
           <views:SettingInfo />
           <TextBox Classes="control" Width="230" Text="{Binding Value}" VerticalAlignment="Center" />
-          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to TF2's default">
+          <Button Grid.Column="2" Classes="reset" Command="{Binding ResetCommand}" IsVisible="{Binding IsTouched}" ToolTip.Tip="Back to the game's default">
             <PathIcon Data="{StaticResource IconReset}" Width="14" Height="14" />
           </Button>
         </Grid>
@@ -319,7 +319,7 @@
           <StackPanel Margin="0,0,12,12" Spacing="16">
             <StackPanel Spacing="2">
               <TextBlock Classes="heading" FontSize="22" Text="Launch Options" />
-              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Anything extra you want TF2 to start with, such as -console. Resolution, window mode and the other launch settings live in their own sections." />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Anything extra you want the game to start with, such as -console. Resolution, window mode and the other launch settings live in their own sections." />
             </StackPanel>
             <StackPanel Spacing="6">
               <TextBox Text="{Binding ExtraArgs}" Watermark="-console +map cp_badlands" />
@@ -329,14 +329,14 @@
             <Border Classes="card">
               <StackPanel Spacing="10">
                 <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Classes="title" Text="TF2 starts with" VerticalAlignment="Center" />
+                  <TextBlock Classes="title" Text="{Binding LaunchTitle}" VerticalAlignment="Center" />
                   <Button Grid.Column="1" Classes="ghost" Command="{Binding CopyLaunchLineCommand}" ToolTip.Tip="Copy">
                     <PathIcon Data="{StaticResource IconCopy}" Width="14" Height="14" />
                   </Button>
                 </Grid>
                 <SelectableTextBlock FontFamily="monospace" FontSize="13" Text="{Binding LaunchLine}" TextWrapping="Wrap" />
                 <TextBlock Classes="meta" TextWrapping="Wrap"
-                           Text="+exec w/config.cfg is added while mods are applied; it runs the preloader's setup when TF2 boots. If you start TF2 from Steam instead of here, copy this line into TF2's launch options in Steam." />
+                           Text="{Binding LaunchNote}" />
               </StackPanel>
             </Border>
             <StackPanel Spacing="8">

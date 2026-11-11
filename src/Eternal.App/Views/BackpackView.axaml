@@ -52,14 +52,14 @@
         <Run Text="  " />
         <Run Text="{Binding KeyPrice}" />
       </TextBlock>
-      <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding PricingRunning}" />
+      <ProgressBar Classes="thin" IsIndeterminate="{Binding PricingRunning}" IsVisible="{Binding PricingRunning}" />
       <Border Classes="notice" IsVisible="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" />
       </Border>
     </StackPanel>
 
     <StackPanel Grid.Row="2" Spacing="12" VerticalAlignment="Top">
-      <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" />
+      <ProgressBar Classes="thin" IsIndeterminate="{Binding Loading}" IsVisible="{Binding Loading}" />
       <Border Classes="card" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
         <StackPanel Spacing="10">
           <TextBlock Classes="title" Text="The backpack couldn't be loaded" />
@@ -186,7 +186,7 @@
                 <TextBlock Grid.Row="1" Grid.Column="1" Classes="figure" Text="{Binding BuyPrice}" HorizontalAlignment="Right" />
                 <TextBlock Grid.Row="2" Classes="meta" Text="Steam Market" VerticalAlignment="Center" />
                 <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
-                  <ProgressBar Classes="thin" Width="40" IsIndeterminate="True" IsVisible="{Binding CheckingMarket}" VerticalAlignment="Center" />
+                  <ProgressBar Classes="thin" Width="40" IsIndeterminate="{Binding CheckingMarket}" IsVisible="{Binding CheckingMarket}" VerticalAlignment="Center" />
                   <TextBlock Classes="figure" Text="{Binding MarketPrice}" />
                 </StackPanel>
               </Grid>

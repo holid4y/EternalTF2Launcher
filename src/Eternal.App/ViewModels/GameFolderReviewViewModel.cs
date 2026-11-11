@@ -14,10 +14,10 @@ public sealed partial class FoundRowViewModel : ObservableObject
     private static readonly FoundChoice Import = new(FoundAction.Import, "Move into Eternal");
     private static readonly FoundChoice Aside = new(FoundAction.SetAside, "Put aside");
 
-    public FoundRowViewModel(FoundItem item, Action changed)
+    public FoundRowViewModel(FoundItem item, bool canImport, Action changed)
     {
         Item = item;
-        Choices = item.CanImport ? [Keep, Import, Aside] : [Keep, Aside];
+        Choices = canImport && item.CanImport ? [Keep, Import, Aside] : [Keep, Aside];
         _choice = Keep;
         PropertyChanged += (_, _) => changed();
     }
@@ -42,13 +42,23 @@ public sealed partial class FoundRowViewModel : ObservableObject
 
 public sealed record GameFolderChoices(IReadOnlyList<FoundRowViewModel> Rows, bool ManageAutoexec, bool ReadAutoexec);
 
-/// <summary>Shows what is already in tf/custom and tf/cfg and asks what to do with it before the launcher writes anything.</summary>
+/// <summary>Shows what is already in the game's custom and cfg folders and asks what to do with it before the launcher writes anything.</summary>
 public sealed partial class GameFolderReviewViewModel : ObservableObject
 {
     private readonly TaskCompletionSource<GameFolderChoices> _result = new();
 
-    public GameFolderReviewViewModel(string tfPath, IReadOnlyList<FoundItem> found, bool manageAutoexec)
+    private readonly bool _canImport;
+
+    public GameFolderReviewViewModel(string tfPath, IReadOnlyList<FoundItem> found, bool manageAutoexec, Eternal.Core.Games.GameDefinition game)
     {
+        _canImport = game.Has(Eternal.Core.Games.GameFeatures.Mods);
+        CustomLabel = $"In {game.ModDir}/custom";
+        ConfigLabel = $"In {game.ModDir}/cfg";
+        Help = (_canImport ? game == Eternal.Core.Games.GameCatalog.Tf2
+                ? "Move into Eternal adds a mod to your list so it loads in Casual too. "
+                : "Move into Eternal adds a mod to your list. "
+            : "")
+            + "Put aside moves it to a backup you can open from the Launcher tab. Nothing gets deleted.";
         Message = $"These are already in {tfPath}. Nothing has been touched, and only what you change here will be.";
         Mods = found.Where(f => f.Area == "custom").OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).Select(Row).ToArray();
         Configs = found.Where(f => f.Area == "cfg").OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).Select(Row).ToArray();
@@ -56,9 +66,12 @@ public sealed partial class GameFolderReviewViewModel : ObservableObject
         _manageAutoexec = manageAutoexec;
     }
 
-    private FoundRowViewModel Row(FoundItem item) => new(item, () => OnPropertyChanged(nameof(AnyChanged)));
+    private FoundRowViewModel Row(FoundItem item) => new(item, _canImport, () => OnPropertyChanged(nameof(AnyChanged)));
 
     public string Message { get; }
+    public string CustomLabel { get; }
+    public string ConfigLabel { get; }
+    public string Help { get; }
     public IReadOnlyList<FoundRowViewModel> Mods { get; }
     public IReadOnlyList<FoundRowViewModel> Configs { get; }
     public bool HasMods => Mods.Count > 0;

@@ -27,6 +27,8 @@ from . import ADAPTER_VERSION
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE, EXIT_GAME_DIR, EXIT_ENVIRONMENT = 0, 1, 2, 3, 4
 
+GAMES = ("TF2", "TF2C", "TF2GR")
+
 DEPENDENCIES = ("valve_parsers", "cappa", "packaging", "more_itertools", "platformdirs")
 
 STAGES = (
@@ -134,6 +136,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--data-dir", type=Path, required=True, help="writable folder for the mod library")
     parser.add_argument("--cache-dir", type=Path, help="scratch space (default: <data-dir>/temp)")
+    parser.add_argument("--game", choices=GAMES, default="TF2",
+                        help="the game the preload is built for, by its casual-pre-loader name")
 
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("version")
@@ -278,7 +282,7 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
         )
         unpacked = library.unpack_vpk_folders(args.addons, progress)
         library.tidy_library(args.addons)
-        data, warnings = build.install(args.tf_path, args.addons, args.particles, options, progress)
+        data, warnings = build.install(args.tf_path, args.addons, args.particles, options, progress, args.game)
         warnings[:0] = unpacked
         try:
             for issue in compat.scan(Path(build._config().addons_dir), args.addons):
@@ -288,7 +292,7 @@ def run(args, progress) -> tuple[bool, dict, list[str], list[str], int]:
         return True, data, warnings, [], EXIT_OK
 
     if command == "uninstall":
-        return True, build.uninstall(args.tf_path, progress), [], [], EXIT_OK
+        return True, build.uninstall(args.tf_path, progress, args.game), [], [], EXIT_OK
 
     if command == "recover":
         return True, build.recover(progress), [], [], EXIT_OK

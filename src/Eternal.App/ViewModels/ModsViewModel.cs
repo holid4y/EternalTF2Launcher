@@ -154,6 +154,12 @@ public sealed partial class ModsViewModel : PageViewModel
     }
 
     public GameBananaViewModel GameBanana { get; }
+
+    /// <summary>The preloader applies these options in TF2's build only.</summary>
+    public bool HasBuildOptions => _services.GameInfo == Eternal.Core.Games.GameCatalog.Tf2;
+    public string CustomFolderLabel => $"{_services.GameInfo.ModDir}/custom";
+
+    public override void Close() => GameBanana.Close();
     public ViewOptions View { get; }
 
     [ObservableProperty] private bool _browsing;
@@ -271,7 +277,7 @@ public sealed partial class ModsViewModel : PageViewModel
         EngineNeedsSetup = status.State is EngineState.NeedsSetup;
         EngineBroken = status.State is EngineState.NoPython or EngineState.Broken or EngineState.Missing;
         EngineMessage = status.Message;
-        WineMissing = status.WineAvailable == false;
+        WineMissing = HasBuildOptions && status.WineAvailable == false;
         UpstreamVersion = status.UpstreamVersion is null ? "" : $"casual-pre-loader {status.UpstreamVersion}";
         OnPropertyChanged(nameof(IsEmpty));
     }

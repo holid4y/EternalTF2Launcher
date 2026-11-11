@@ -1,5 +1,6 @@
 using Eternal.Core;
 using Eternal.Core.Engine;
+using Eternal.Core.Games;
 using Eternal.Core.Inventory;
 using Eternal.Core.Logging;
 using Eternal.Core.Mods;
@@ -20,29 +21,35 @@ public sealed class AppServices : IAsyncDisposable
     private string? _userDir;
     private DateTime _userDirAt = DateTime.MinValue;
 
-    public AppServices(AppPaths paths, Func<string?>? steamUser = null)
+    /// <summary>Everything the launcher keeps and does for one game. Switching games throws this away and builds another.</summary>
+    public AppServices(AppPaths launcherPaths, GameDefinition game, Func<string?>? steamUser = null)
     {
-        Paths = paths;
+        GameInfo = game;
+        var paths = Paths = launcherPaths.ForGame(game);
+        if (paths != launcherPaths)
+            paths.EnsureCreated();
         _findSteamUser = steamUser ?? (() => SteamLocator.UserDataDir());
         ArchiveIngest.TryDelete(paths.ImportStagingDir);
         Launcher = new LauncherSettingsStore(paths);
-        if (!SteamLocator.IsTf2Folder(Launcher.Settings.TfPath) && SteamLocator.FindTf2() is { } detected)
-            Launcher.Update(s => s.TfPath = detected);
+        Launcher.Settings.SelectedGame = game.Id;
+        if (!SteamLocator.IsTf2Folder(Launcher.Settings.Game.Path) && SteamLocator.FindGame(game) is { } detected)
+            Launcher.Update(s => s.Game.Path = detected);
 
-        Game = new GameConfigStore(paths.GameConfigFile, () => TfPath, () => Launcher.Settings.ManageAutoexec && !GameFolderReviewPending);
+        Game = new GameConfigStore(paths.GameConfigFile, () => TfPath,
+            () => game.Has(GameFeatures.Settings) && Launcher.Settings.Game.ManageAutoexec && !GameFolderReviewPending, game);
         if (!Game.IsNew)
-            Launcher.Settings.ReviewedGameFolder = true;
+            Launcher.Settings.Game.ReviewedGameFolder = true;
         Profiles = new ProfileStore(paths.ProfilesDir);
         Profiles.Load();
         FirstRunImport();
         RefreshObserved();
 
-        Runtime = new EngineRuntime(paths, () => Launcher.Settings.PythonOverride);
+        Runtime = new EngineRuntime(paths, () => Launcher.Settings.PythonOverride, game: game.EngineName);
         EngineClient = new EngineClient(Runtime);
         Engine = new PreloaderEngine(EngineClient);
         Mods = new ModLibrary(Engine, paths, new ThumbnailStore(paths.ThumbnailsDir), () => TfPath);
         CustomSounds = new CustomSoundStore(paths);
-        Preload = new PreloadCoordinator(new EnginePreloadBuilder(Engine), Mods.Desired, () => TfPath, GameProcess.IsRunning, paths.PreloadStateFile);
+        Preload = new PreloadCoordinator(new EnginePreloadBuilder(Engine), Mods.Desired, () => TfPath, () => GameProcess.IsRunning(game), paths.PreloadStateFile, game: game.ShortName);
         Mods.DesiredChanged += Preload.RequestBuild;
         Preload.Recovered += result => Notice?.Invoke(result.Success
             ? "The last mod build was interrupted, so the game files were restored and your mods will be applied again."
@@ -51,13 +58,13 @@ public sealed class AppServices : IAsyncDisposable
         Inventory = new InventoryService(Path.Combine(paths.CacheDir, "inventory"));
         Prices = new PriceService(Path.Combine(paths.CacheDir, "pricing"));
         Images = new ImageCache(paths.ImageCacheDir);
-        Pictures = new SourcePictures(Mods, Images, Eternal.Core.GameBanana.GameBananaClient.Shared);
+        Pictures = new SourcePictures(Mods, Images, Eternal.Core.GameBanana.GameBananaClient.For(game));
         Mods.Changed += Pictures.Refresh;
 
         SteamWrites = new SteamWriteQueue(paths.SteamWritesFile, paths.SteamBackupsDir);
-        Servers = new ServerBook(paths.ServersFile, SteamWrites, () => SteamUserDir);
+        Servers = new ServerBook(paths.ServersFile, SteamWrites, () => game == GameCatalog.Tf2 ? SteamUserDir : null);
 
-        foreach (var (store, name) in new (LoadOutcome Outcome, string Name)[] { (Game.LoadOutcome, "TF2 settings"), (Launcher.LoadOutcome, "Launcher settings") })
+        foreach (var (store, name) in new (LoadOutcome Outcome, string Name)[] { (Game.LoadOutcome, $"{game.ShortName} settings"), (Launcher.LoadOutcome, "Launcher settings") })
         {
             if (store.State == LoadState.RestoredFromBackup)
                 _notices.Add($"{name} were damaged and the previous version was restored.");
@@ -68,6 +75,7 @@ public sealed class AppServices : IAsyncDisposable
         }
     }
 
+    public GameDefinition GameInfo { get; }
     public AppPaths Paths { get; }
     public LauncherSettingsStore Launcher { get; }
     public GameConfigStore Game { get; }
@@ -99,21 +107,25 @@ public sealed class AppServices : IAsyncDisposable
     }
 
     public IReadOnlyList<string> Notices => _notices;
-    public string? TfPath => Launcher.Settings.TfPath;
+    public string? TfPath => Launcher.Settings.Game.Path;
+
+    public bool GameRunning => GameProcess.IsRunning(GameInfo);
 
     /// <summary>Until the player has seen what is already in the game folder, nothing gets written there.</summary>
-    public bool GameFolderReviewPending => !Launcher.Settings.ReviewedGameFolder && SteamLocator.IsTf2Folder(TfPath);
+    public bool GameFolderReviewPending =>
+        (GameInfo.Has(GameFeatures.Mods) || GameInfo.Has(GameFeatures.Settings))
+        && !Launcher.Settings.Game.ReviewedGameFolder && SteamLocator.IsTf2Folder(TfPath);
 
     public event Action<string>? Notice;
 
     private void FirstRunImport()
     {
-        if (!Game.IsNew)
+        if (!Game.IsNew || GameInfo != GameCatalog.Tf2)
             return;
         var legacy = LegacyImporter.Run(Paths, Game, Launcher.Settings, Profiles);
         _notices.AddRange(legacy.Notes);
         if (legacy.Imported)
-            Launcher.Settings.ReviewedGameFolder = true;
+            Launcher.Settings.Game.ReviewedGameFolder = true;
         Launcher.Save();
     }
 
@@ -140,6 +152,8 @@ public sealed class AppServices : IAsyncDisposable
 
     public async Task StartAsync()
     {
+        if (!GameInfo.Has(GameFeatures.Mods))
+            return;
         try
         {
             var status = await Runtime.CheckAsync(EngineClient, TfPath).ConfigureAwait(false);
@@ -186,7 +200,7 @@ public sealed class AppServices : IAsyncDisposable
 
     private async Task MigrateLegacyLibraryAsync()
     {
-        if (Launcher.Settings.LegacyLibraryChecked)
+        if (GameInfo != GameCatalog.Tf2 || Launcher.Settings.LegacyLibraryChecked)
             return;
         Launcher.Update(s => s.LegacyLibraryChecked = true);
 

@@ -17,6 +17,9 @@ public sealed record PreloadStatus(PreloadPhase Phase, string Message)
 
 public sealed record LaunchAdmission(bool Allowed, bool PreloadInstalled, string? Problem = null)
 {
+    /// <summary>Another launch already holds the game folder, so this one has nothing to report.</summary>
+    public bool AlreadyStarting { get; init; }
+
     public static LaunchAdmission Refused(string problem) => new(false, false, problem);
 }
 
@@ -52,6 +55,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
     private readonly Func<string?> _tfPath;
     private readonly Func<bool> _gameRunning;
     private readonly string _recordPath;
+    private readonly string _game;
     private readonly TimeSpan _debounce;
     private readonly TimeSpan _gamePoll;
 
@@ -74,8 +78,9 @@ public sealed class PreloadCoordinator : IAsyncDisposable
     private PreloadStatus _status = new(PreloadPhase.Idle, "");
 
     public PreloadCoordinator(IPreloadBuilder builder, Func<DesiredPreload?> desired, Func<string?> tfPath,
-        Func<bool> gameRunning, string recordPath, TimeSpan? debounce = null, TimeSpan? gamePoll = null)
+        Func<bool> gameRunning, string recordPath, TimeSpan? debounce = null, TimeSpan? gamePoll = null, string game = "TF2")
     {
+        _game = game;
         _builder = builder;
         _desired = desired;
         _tfPath = tfPath;
@@ -176,7 +181,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
             lock (_gate)
             {
                 if (_launchHold)
-                    return LaunchAdmission.Refused("TF2 is already starting.");
+                    return LaunchAdmission.Refused($"{_game} is already starting.") with { AlreadyStarting = true };
             }
 
             while (true)
@@ -202,7 +207,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
                     if (phase == PreloadPhase.Failed && _lastError is not null)
                         return LaunchAdmission.Refused(_lastError);
                     if (string.IsNullOrWhiteSpace(_tfPath()))
-                        return LaunchAdmission.Refused("Set your TF2 folder first.");
+                        return LaunchAdmission.Refused($"Set your {_game} folder first.");
 
                     BuildNow();
                     await pass.WaitAsync(cancellation).ConfigureAwait(false);
@@ -219,7 +224,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
                         continue;
                     _launchHold = true;
                 }
-                SetStatus(PreloadPhase.Launching, "Starting TF2…");
+                SetStatus(PreloadPhase.Launching, $"Starting {_game}…");
                 return new LaunchAdmission(true, Record.Installed);
             }
         }
@@ -357,7 +362,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
         {
             if (_gameRunning())
             {
-                SetStatus(PreloadPhase.Blocked, "Close TF2 so the launcher can restore the game files.");
+                SetStatus(PreloadPhase.Blocked, $"Close {_game} so the launcher can restore the game files.");
                 WatchForGameExit();
                 return;
             }
@@ -375,7 +380,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
         }
         if (string.IsNullOrWhiteSpace(tf))
         {
-            SetStatus(PreloadPhase.Blocked, "Set your TF2 folder in the Launcher tab to apply mods.");
+            SetStatus(PreloadPhase.Blocked, $"Set your {_game} folder in the Launcher tab to apply mods.");
             return;
         }
         if (!NeedsBuild(desired, tf))
@@ -385,7 +390,7 @@ public sealed class PreloadCoordinator : IAsyncDisposable
         }
         if (_gameRunning())
         {
-            SetStatus(PreloadPhase.Blocked, "Close TF2 to apply your mod changes.");
+            SetStatus(PreloadPhase.Blocked, $"Close {_game} to apply your mod changes.");
             WatchForGameExit();
             return;
         }

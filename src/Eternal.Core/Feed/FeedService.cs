@@ -10,9 +10,9 @@ public sealed record NewsPost(DateTimeOffset Date, string Url);
 /// <summary>One entry in the feed. Several posts in a row with the same title share an entry, newest first.</summary>
 public sealed record NewsItem(string Title, string Summary, string Url, string? ImageUrl, DateTimeOffset Date, string Source)
 {
-    private const string GameArt = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/header.jpg";
-
     public IReadOnlyList<NewsPost> Posts { get; init; } = [new(Date, Url)];
+
+    public string GameArt { get; init; } = Games.GameCatalog.Tf2.HeaderArt;
 
     /// <summary>The post's own picture, or the game's store art. Patch notes never carry one.</summary>
     public string Picture => ImageUrl ?? GameArt;
@@ -20,7 +20,7 @@ public sealed record NewsItem(string Title, string Summary, string Url, string? 
 
 public static partial class FeedService
 {
-    [GeneratedRegex(@"\[/?[a-zA-Z0-9*]+(?:=[^\]]*)?\]|<[^>]+>")]
+    [GeneratedRegex(@"\[/?[a-zA-Z0-9*]+(?:[= ][^\]]*)?\]|<[^>]+>")]
     private static partial Regex Markup();
 
     [GeneratedRegex(@"\{STEAM_CLAN(?:_LOC)?_IMAGE\}(?<path>/[^\s\[\]""<>]+\.(?:png|jpe?g|gif|webp))", RegexOptions.IgnoreCase)]
@@ -35,11 +35,12 @@ public static partial class FeedService
     [GeneratedRegex(@"^An update to Team Fortress 2 has been released\..*?The major changes include:\s*", RegexOptions.IgnoreCase)]
     private static partial Regex UpdatePreamble();
 
-    public static async Task<IReadOnlyList<NewsItem>> SteamNewsAsync(int count = 10, CancellationToken cancellation = default)
+    public static async Task<IReadOnlyList<NewsItem>> SteamNewsAsync(Games.GameDefinition game, int count = 10, CancellationToken cancellation = default)
     {
         // Each post shows up in up to three feeds and updates in a row share an entry, so ask for more than will be shown.
-        var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=440&count={count * 8}&maxlength=0&format=json";
-        return ParseNews(await Http.Client.GetStringAsync(url, cancellation).ConfigureAwait(false), count);
+        var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid={game.AppId.ToString(System.Globalization.CultureInfo.InvariantCulture)}&count={count * 8}&maxlength=0&format=json";
+        return ParseNews(await Http.Client.GetStringAsync(url, cancellation).ConfigureAwait(false), count)
+            .Select(item => item with { GameArt = game.HeaderArt }).ToArray();
     }
 
     internal static IReadOnlyList<NewsItem> ParseNews(string json, int count)

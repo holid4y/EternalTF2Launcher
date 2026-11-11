@@ -138,6 +138,24 @@ public sealed class GameFolderTests : IDisposable
         Assert.All(found, f => Assert.Equal(FoundKind.Config, f.Kind));
     }
 
+    [Theory]
+    [InlineData("360controller.cfg")]
+    [InlineData("chapter2.cfg")]
+    [InlineData("mtp.cfg")]
+    [InlineData("replay_example.cfg")]
+    [InlineData("server_casual_max_rounds_win_conditions.cfg")]
+    [InlineData("sourcevr_tf.cfg")]
+    [InlineData("default.cfg")]
+    [InlineData("randomizer_default.cfg")]
+    [InlineData("vplugins_default.cfg")]
+    public void Configs_the_games_ship_are_not_listed_as_the_players(string shipped)
+    {
+        Write($"cfg/{shipped}", "sv_maxupdaterate 66\n");
+        Write("cfg/mine.cfg", "fov_desired 90\n");
+
+        Assert.Equal(["mine.cfg"], GameFolderScan.Run(Tf).Select(f => f.Name));
+    }
+
     [Fact]
     public void A_config_folder_is_listed()
     {

@@ -31,10 +31,14 @@ public sealed class EngineRuntime
     private readonly Func<string?> _pythonOverride;
     private EngineStatus _status = new(EngineState.Checking, "Checking the mod engine…");
 
-    public EngineRuntime(AppPaths paths, Func<string?> pythonOverride, string? searchFrom = null)
+    private readonly string _game;
+
+    /// <param name="game">The casual-pre-loader name of the game builds are made for.</param>
+    public EngineRuntime(AppPaths paths, Func<string?> pythonOverride, string? searchFrom = null, string game = "TF2")
     {
         _paths = paths;
         _pythonOverride = pythonOverride;
+        _game = game;
         (FrozenExecutable, SourceDir) = Discover(searchFrom ?? AppContext.BaseDirectory);
     }
 
@@ -109,7 +113,7 @@ public sealed class EngineRuntime
         psi.Environment["WINEDEBUG"] = "-all";
 
         foreach (var arg in new[] { "--json", "--data-dir", _paths.EngineDataDir, "--cache-dir", _paths.EngineCacheDir,
-                                    "--log-file", Path.Combine(_paths.LogsDir, "engine.log") })
+                                    "--log-file", Path.Combine(_paths.LogsDir, "engine.log"), "--game", _game })
             psi.ArgumentList.Add(arg);
         if (Log.MinimumLevel == LogLevel.Debug)
             psi.ArgumentList.Add("--verbose");

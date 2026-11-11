@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eternal.App.Services;
 using Eternal.Core;
+using Eternal.Core.Games;
 using Eternal.Core.Logging;
 using Eternal.Core.Servers;
 
@@ -64,6 +65,7 @@ public sealed partial class ServersViewModel : PageViewModel
         services.Launcher.Changed += () => Dispatcher.UIThread.Post(() =>
         {
             OnPropertyChanged(nameof(HasTeamworkKey));
+            OnPropertyChanged(nameof(OffersTeamwork));
             OnPropertyChanged(nameof(SourcesNote));
         });
     }
@@ -102,7 +104,7 @@ public sealed partial class ServersViewModel : PageViewModel
     public string MapHeader => Header("Map", ServerSort.Map);
     public string PingHeader => Header("Ping", ServerSort.Ping);
     public string LastPlayedHeader => Header("Played", ServerSort.LastPlayed);
-    public string SourcesNote => HasTeamworkKey ? "Lists from GameMonitoring and teamwork.tf. Everything else comes live from each server." : "List from GameMonitoring. Everything else comes live from each server.";
+    public string SourcesNote => HasTeamworkKey && _services.GameInfo == GameCatalog.Tf2 ? "Lists from GameMonitoring and teamwork.tf. Everything else comes live from each server." : "List from GameMonitoring. Everything else comes live from each server.";
 
     private string Header(string label, ServerSort column) => Sort == column ? $"{label} {(Descending ? "\u25BE" : "\u25B4")}" : label;
 
@@ -112,6 +114,7 @@ public sealed partial class ServersViewModel : PageViewModel
     public bool HasSelection => Selected is not null;
     public bool NoPlayersListed => !LoadingPlayers && SelectedPlayers.Count == 0;
     public bool HasTeamworkKey => _services.Launcher.Settings.TeamworkKey is not null;
+    public bool OffersTeamwork => _services.GameInfo == GameCatalog.Tf2 && !HasTeamworkKey;
     public bool Watching => _watch is not null;
     public bool IsEmpty => !Loading && Visible.Count == 0;
     public string EmptyText => Tab switch
@@ -128,6 +131,15 @@ public sealed partial class ServersViewModel : PageViewModel
     public bool SelectedFavorite => Selected?.Favorite == true;
     public string FavoriteLabel => SelectedFavorite ? "Unfavorite" : "Favorite";
     public bool CanWatch => Selected is { Full: true, Answered: true } && !Watching;
+
+    public override void Close()
+    {
+        _flush.Stop();
+        _selectedTimer.Stop();
+        _refresh?.Cancel();
+        _watch?.Cancel();
+        _details?.Cancel();
+    }
 
     protected override void OnFirstActivation()
     {
@@ -339,12 +351,14 @@ public sealed partial class ServersViewModel : PageViewModel
     {
         var country = UserCountry();
         var errors = new ConcurrentBag<string>();
+        var game = _services.GameInfo;
         var sources = new List<Task>
         {
-            ReadAsync(new GameMonitoringSource(Http.NoRedirects).ListAsync(country, 8, cancellation), writer, errors, cancellation),
-            ReadAsync(new MasterServerSource().ListAsync(250, cancellation), writer, errors, cancellation),
+            ReadAsync(new GameMonitoringSource(Http.NoRedirects, game.AppId).ListAsync(country, 8, cancellation), writer, errors, cancellation),
         };
-        if (_services.Launcher.Settings.TeamworkKey is { } key)
+        if (game == GameCatalog.Tf2)
+            sources.Add(ReadAsync(new MasterServerSource().ListAsync(250, cancellation), writer, errors, cancellation));
+        if (game == GameCatalog.Tf2 && _services.Launcher.Settings.TeamworkKey is { } key)
             sources.Add(ReadAsync(new TeamworkSource(Http.NoRedirects, key).ListAsync(cancellation), writer, errors, cancellation));
         foreach (var favorite in _services.Servers.Favorites())
             await writer.WriteAsync(OnUi(() => RowFor(favorite.Address, favorite.Address.Port)), cancellation).ConfigureAwait(false);
@@ -638,14 +652,14 @@ public sealed partial class ServersViewModel : PageViewModel
         var address = await ResolveAsync(text);
         if (address is not { } target)
         {
-            await _main.AlertAsync("Couldn't add that server", "That isn't a server address the launcher can use. TF2 servers have an IPv4 address and a port, like 203.0.113.7:27015.");
+            await _main.AlertAsync("Couldn't add that server", $"That isn't a server address the launcher can use. {_services.GameInfo.ShortName} servers have an IPv4 address and a port, like 203.0.113.7:27015.");
             return;
         }
         var row = RowFor(target, target.Port);
         var answer = await SourceQuery.InfoAsync(target.EndPoint, TimeSpan.FromSeconds(4));
         if (answer is { } a)
             row.Apply(a.Info, a.Ping);
-        else if (!await _main.ConfirmAsync("No answer", $"{target} didn't answer. It may be offline or not a TF2 server. Add it anyway?", "Add anyway"))
+        else if (!await _main.ConfirmAsync("No answer", $"{target} didn't answer. It may be offline or not a {_services.GameInfo.ShortName} server. Add it anyway?", "Add anyway"))
             return;
         _services.Servers.AddFavorite(target, row.Name);
         Tab = ServerTab.Favorites;

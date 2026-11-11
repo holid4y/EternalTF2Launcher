@@ -41,13 +41,13 @@
   <section class="hero" aria-labelledby="title">
     <h1 id="title">A launcher <br class="phone-break">for TF2 mods</h1>
     <div class="hero-text">
-      <p class="lead">Eternal is a free Team Fortress 2 launcher for Windows and Linux. It keeps your mods in one list and loads them in Casual with cueki's casual-pre-loader.</p>
+      <p class="lead">Eternal is a free Team Fortress 2 launcher for Windows and Linux. It keeps your mods in one list and loads them in Casual with cueki's casual-pre-loader. Team Fortress 2 Classified and Team Fortress 2: Gold Rush get their own mods and settings too.</p>
       <div class="hero-actions">
         <a class="button button-ink" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
         <a class="link" href="https://github.com/holid4y/EternalTF2Launcher">Source on GitHub</a>
         <a class="link" href="https://discord.gg/CD8mUDDuHr">Join the Discord</a>
       </div>
-      <p class="facts">Version 2.3.6 · Windows and Linux · Free and open source</p>
+      <p class="facts">Version 2.4.0 · Windows and Linux · Free and open source</p>
     </div>
     <figure class="hero-shot">
       <a href="assets/screens/themes/mann-co-2x.webp" aria-label="Open the screenshot at full size"><img data-shot src="assets/screens/themes/mann-co-1x.webp" srcset="assets/screens/themes/mann-co-1x.webp 1366w, assets/screens/themes/mann-co-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Mods tab on the GameBanana browser: categories on the left, search and sort on top, and a grid of popular TF2 mods with their pictures, likes, views and update dates"></a>
@@ -80,7 +80,7 @@
         <li class="step" data-step="applying">
           <a class="shot" href="assets/screens/applying-2x.webp"><img src="assets/screens/applying-1x.webp" srcset="assets/screens/applying-1x.webp 1366w, assets/screens/applying-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The launcher applying mods, with a progress bar over the Play button" loading="lazy"></a>
           <h3>Press Play</h3>
-          <p>Your mods are applied a moment after each change. Nothing is written while TF2 is running, and Play waits until they're done.</p>
+          <p>Your mods are applied a moment after each change. Nothing is written while the game is running, and Play waits until they're done.</p>
         </li>
         <li class="step" data-step="restore">
           <a class="shot" href="assets/screens/restore-2x.webp"><img src="assets/screens/restore-1x.webp" srcset="assets/screens/restore-1x.webp 1366w, assets/screens/restore-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The Restore vanilla question, asking to turn every mod off while keeping the library" loading="lazy"></a>
@@ -94,7 +94,7 @@
   <section id="gamebanana" class="gamebanana" aria-labelledby="gamebanana-title">
     <div class="section-head">
       <h2 id="gamebanana-title" data-reveal>GameBanana in the Mods tab</h2>
-      <p class="statement" data-reveal>Browse GameBanana's TF2 mods and sounds by category, search and sort them, and install what you like without leaving the launcher.</p>
+      <p class="statement" data-reveal>Browse GameBanana's mods and sounds for the game you picked — TF2, Classified or Gold Rush each get their own section — by category, search and sort, and install what you like without leaving the launcher.</p>
     </div>
     <div class="gb-browse">
       <figure class="gb-shot" data-reveal>
@@ -137,6 +137,7 @@
         <div data-reveal><dt>Fake players stay out</dt><dd>Some servers claim a crowd their own player list doesn't have. Those are marked and hidden until you ask for them.</dd></div>
         <div data-reveal><dt>Honest pings</dt><dd>When a server answers through a relay near you, its ping is shown as what the distance allows, not the number the relay sends back.</dd></div>
         <div data-reveal><dt>Your favorites, everywhere</dt><dd>Favorites and history are the game's own, so a server you star in TF2 shows up here and the other way round.</dd></div>
+        <div data-reveal><dt>Classified and Gold Rush too</dt><dd>Switch games from the bottom left and the list shows that game's servers.</dd></div>
         <div data-reveal><dt>Join when free</dt><dd>On a full server it keeps checking for ten minutes and joins as soon as a slot opens.</dd></div>
         <div data-reveal><dt>Region or everywhere</dt><dd>"Near me" keeps it local. "Everywhere" searches the whole list, not just your region.</dd></div>
       </dl>
@@ -281,17 +282,17 @@ bind "f" "voicemenu 0 0"
       <p data-reveal>Both downloads include everything they need, so there's no .NET or Python to install first.</p>
       <p data-reveal>Coming from 1.x? Your settings, profiles and mods carry over on the first start.</p>
       <p data-reveal>From 2.1.1 on it updates itself: new versions download in the background and install when you quit, or right away with Restart to update. You can turn that off in its settings.</p>
-      <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" data-reveal>Download 2.3.6</a>
+      <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" data-reveal>Download 2.4.0</a>
     </div>
     <div class="slip slip-steps" data-reveal>
       <h3>Windows</h3>
       <ul>
-        <li><span>Run EternalLauncher-2.3.6-win-x64-setup.exe</span><span>no admin rights</span></li>
+        <li><span>Run EternalLauncher-2.4.0-win-x64-setup.exe</span><span>no admin rights</span></li>
         <li><span>Or unzip the portable build anywhere</span><span>keeps its data next to it</span></li>
       </ul>
       <h3>Linux</h3>
       <ul>
-        <li><code>tar xf EternalLauncher-2.3.6-linux-x64.tar.gz</code></li>
+        <li><code>tar xf EternalLauncher-2.4.0-linux-x64.tar.gz</code></li>
         <li><code>cd EternalLauncher &amp;&amp; ./install.sh</code><span>adds a menu entry</span></li>
         <li><span>Install wine too, for custom props and robots</span><span>optional</span></li>
         <li><span>Changed your mind? <code>./install.sh --remove</code></span><span>keeps your settings</span></li>
@@ -335,7 +336,7 @@ bind "f" "voicemenu 0 0"
       <li><a href="https://discord.gg/CD8mUDDuHr">Discord</a></li>
       <li><a href="https://github.com/holid4y/EternalTF2Launcher/issues">Report a problem</a></li>
     </ul>
-    <p>Eternal TF2 Launcher 2.3.6 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
+    <p>Eternal TF2 Launcher 2.4.0 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
   </div>
   <div class="foot-legal">
     <p>Not affiliated with Valve. Team Fortress 2 is a trademark of Valve Corporation.</p>

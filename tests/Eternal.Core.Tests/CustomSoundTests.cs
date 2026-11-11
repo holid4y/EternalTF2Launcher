@@ -198,31 +198,63 @@ public sealed class CustomSoundStoreTests : IDisposable
         Assert.False(Directory.Exists(Addon));
     }
 
+    private static double Rms(short[] pcm) => Math.Sqrt(pcm.Sum(s => (double)s * s) / pcm.Length) / 32768;
+
+    private short[] BuiltHit() => WaveFile.Read(Path.Combine(Addon, "sound", "ui", "hitsound.wav")).Pcm;
+
     [Fact]
     public void The_volume_is_applied_to_the_built_file_only()
     {
         var store = Store();
         var a = store.Add(SoundKind.Hit, "a.wav", Sound());
+        Build(store);
+        var full = BuiltHit()[0];
+
         store.Update(a.Id, s => s.Volume = 0.5);
+        Build(store);
+
+        Assert.InRange(BuiltHit()[0], full / 2 - 1, full / 2 + 1);
+        Assert.Equal(8000, WaveFile.Read(store.WavPath(a)).Pcm[0]);
+    }
+
+    [Theory]
+    [InlineData(800)]
+    [InlineData(25000)]
+    public void A_quiet_or_loud_sound_is_brought_to_the_loudness_of_tf2s_own(short level)
+    {
+        var store = Store();
+        store.Add(SoundKind.Hit, "a.wav", new ConvertedSound(Enumerable.Repeat(level, 4410).ToArray(), 1, 100, false));
 
         Build(store);
 
-        var built = WaveFile.Read(Path.Combine(Addon, "sound", "ui", "hitsound.wav")).Pcm;
-        var kept = WaveFile.Read(store.WavPath(a)).Pcm;
-        Assert.Equal(4000, built[0]);
-        Assert.Equal(8000, kept[0]);
+        Assert.InRange(20 * Math.Log10(Rms(BuiltHit())), -17.2, -16.6);
+    }
+
+    [Fact]
+    public void A_spiky_sound_is_only_raised_until_its_peak_reaches_full_scale()
+    {
+        var store = Store();
+        var spiky = Enumerable.Repeat((short)300, 4410).ToArray();
+        spiky[100] = 16000;
+        store.Add(SoundKind.Hit, "a.wav", new ConvertedSound(spiky, 1, 100, false));
+
+        Build(store);
+
+        Assert.InRange(BuiltHit().Max(s => Math.Abs((int)s)), 31500, 31700);
     }
 
     [Fact]
     public void A_loud_volume_clips_instead_of_wrapping_around()
     {
         var store = Store();
-        var a = store.Add(SoundKind.Hit, "a.wav", new ConvertedSound(Enumerable.Repeat((short)30000, 10).ToArray(), 1, 1, false));
+        var spiky = Enumerable.Repeat((short)300, 4410).ToArray();
+        spiky[100] = 16000;
+        var a = store.Add(SoundKind.Hit, "a.wav", new ConvertedSound(spiky, 1, 100, false));
         store.Update(a.Id, s => s.Volume = 2);
 
         Build(store);
 
-        Assert.Equal(short.MaxValue, WaveFile.Read(Path.Combine(Addon, "sound", "ui", "hitsound.wav")).Pcm[0]);
+        Assert.Equal(short.MaxValue, BuiltHit()[100]);
     }
 
     [Fact]

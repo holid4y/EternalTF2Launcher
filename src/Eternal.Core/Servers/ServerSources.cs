@@ -22,10 +22,10 @@ public sealed record ListedServer(
 
 public sealed class ServerListException(string message, Exception? inner = null) : Exception(message, inner);
 
-public sealed class GameMonitoringSource(HttpClient http)
+public sealed class GameMonitoringSource(HttpClient http, int appId = 440)
 {
     public const string Name = "GameMonitoring";
-    private const string Api = "https://api.gamemonitoring.net/servers?game=440&limit=100&sort=numplayers";
+    private string Api => $"https://api.gamemonitoring.net/servers?game={appId.ToString(CultureInfo.InvariantCulture)}&limit=100&sort=numplayers";
     private const int PageSize = 100;
     private const int MaxBytes = 2 * 1024 * 1024;
 

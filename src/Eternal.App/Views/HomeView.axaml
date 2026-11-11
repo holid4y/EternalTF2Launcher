@@ -14,7 +14,7 @@
           <TextBlock Classes="muted" Text="{Binding Greeting}" />
         </StackPanel>
 
-        <StackPanel Spacing="12">
+        <StackPanel Spacing="12" IsVisible="{Binding ShowsMods}">
           <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
             <TextBlock Classes="heading" Text="FRESH ON GAMEBANANA" VerticalAlignment="Center" />
             <Button Grid.Column="1" Classes="link" Content="Browse all" Command="{Binding BrowseAllCommand}" VerticalAlignment="Center" />
@@ -23,7 +23,7 @@
             </Button>
           </Grid>
           <TextBlock Classes="muted" Text="{Binding ModsError}" IsVisible="{Binding ModsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingMods}" />
+          <ProgressBar Classes="thin" IsIndeterminate="{Binding LoadingMods}" IsVisible="{Binding LoadingMods}" />
           <ItemsRepeater ItemsSource="{Binding FreshMods}">
             <ItemsRepeater.Layout>
               <UniformGridLayout MinItemWidth="168" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
@@ -54,10 +54,10 @@
           </ItemsRepeater>
         </StackPanel>
 
-        <StackPanel Spacing="12">
-          <TextBlock Classes="heading" Text="TF2 NEWS" />
+        <StackPanel Spacing="12" IsVisible="{Binding ShowsNews}">
+          <TextBlock Classes="heading" Text="{Binding NewsHeading}" />
           <TextBlock Classes="muted" Text="{Binding NewsError}" IsVisible="{Binding NewsError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingNews}" />
+          <ProgressBar Classes="thin" IsIndeterminate="{Binding LoadingNews}" IsVisible="{Binding LoadingNews}" />
           <ItemsControl ItemsSource="{Binding News}">
             <ItemsControl.ItemTemplate>
               <DataTemplate DataType="vm:NewsRow">
@@ -103,18 +103,18 @@
             <TextBlock Classes="title" Text="{Binding Main.DockTitle}" />
             <TextBlock Classes="meta" Text="{Binding Main.DockDetail}" TextWrapping="Wrap" />
           </StackPanel>
-          <StackPanel Spacing="2">
+          <StackPanel Spacing="2" IsVisible="{Binding ShowsConfig}">
             <TextBlock Classes="meta" Text="Config" />
             <TextBlock Text="{Binding Main.Config.ProfileMatch}" />
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Manage mods" Command="{Binding GoCommand}" CommandParameter="mods" />
-            <Button Classes="ghost" Content="Config" Command="{Binding GoCommand}" CommandParameter="config" />
+            <Button Content="Manage mods" Command="{Binding GoCommand}" CommandParameter="mods" IsVisible="{Binding ShowsManageMods}" />
+            <Button Classes="ghost" Content="Config" Command="{Binding GoCommand}" CommandParameter="config" IsVisible="{Binding ShowsConfig}" />
           </StackPanel>
         </StackPanel>
       </Border>
 
-      <Border Classes="card">
+      <Border Classes="card" IsVisible="{Binding ShowsBackpack}">
         <StackPanel Spacing="10">
           <TextBlock Classes="heading" Text="BACKPACK" />
           <StackPanel Spacing="2">
@@ -132,9 +132,9 @@
         <StackPanel Spacing="8">
           <TextBlock Classes="heading" Text="GAME" />
           <StackPanel Spacing="2">
-            <TextBlock Classes="meta" Text="TF2 folder" />
+            <TextBlock Classes="meta" Text="{Binding FolderLabel}" />
             <TextBlock Text="{Binding Tf2Folder}" TextWrapping="Wrap" FontSize="13" />
-            <TextBlock Classes="danger" FontSize="12" Text="Not a TF2 folder. Fix it in the Launcher tab." IsVisible="{Binding !Tf2Found}" />
+            <TextBlock Classes="danger" FontSize="12" Text="{Binding FolderProblem}" IsVisible="{Binding !Tf2Found}" />
           </StackPanel>
           <StackPanel Spacing="2" IsVisible="{Binding Account, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <TextBlock Classes="meta" Text="Steam account" />

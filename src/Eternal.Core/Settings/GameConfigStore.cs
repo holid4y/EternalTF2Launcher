@@ -13,6 +13,7 @@ public sealed class GameConfigStore : IDisposable
     private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(500);
 
     private readonly string _path;
+    private readonly Games.GameDefinition _game;
     private readonly Func<string?> _tfPath;
     private readonly Func<bool> _mayWriteGame;
     private readonly Timer _timer;
@@ -21,14 +22,15 @@ public sealed class GameConfigStore : IDisposable
     private string? _pendingUserContent;
     private bool _dirty;
 
-    public GameConfigStore(string path, Func<string?> tfPath, Func<bool>? mayWriteGame = null)
+    public GameConfigStore(string path, Func<string?> tfPath, Func<bool>? mayWriteGame = null, Games.GameDefinition? game = null)
     {
         _path = path;
+        _game = game ?? Games.GameCatalog.Tf2;
         _tfPath = tfPath;
         _mayWriteGame = mayWriteGame ?? (() => true);
         var config = JsonFile.Load(path, CoreJson.Default.GameConfig, () => new GameConfig(), out var outcome);
         LoadOutcome = outcome;
-        Settings = new GameSettings(config);
+        Settings = new GameSettings(config, game: _game);
         Settings.Changed += _ => ScheduleSave();
         _timer = new Timer(_ => _ = SaveAsync(), null, Timeout.Infinite, Timeout.Infinite);
     }
@@ -121,10 +123,12 @@ public sealed class GameConfigStore : IDisposable
             }
         }
 
-        var settings = new GameSettings(snapshot);
+        var settings = new GameSettings(snapshot, game: _game);
         var mayWrite = _mayWriteGame();
         var autoexec = mayWrite ? AutoexecFile.Write(_tfPath(), ManagedBlock.Build(settings), userContent) : new AutoexecResult(AutoexecStatus.LeftAlone);
-        var viewmodels = mayWrite ? TransparentViewmodels.Sync(_tfPath(), settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId))) : null;
+        var viewmodels = mayWrite && _game.Has(Games.GameFeatures.SeeThroughWeapons)
+            ? TransparentViewmodels.Sync(_tfPath(), settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId)))
+            : null;
         if (autoexec.Applied && autoexec.Status != AutoexecStatus.LeftAlone && userContent is not null)
         {
             lock (_gate)

@@ -56,9 +56,9 @@ public sealed partial class LauncherViewModel : PageViewModel
         var s = services.Launcher.Settings;
 
         Themes = Theme.All.Select(t => new ThemeChoice(t)).ToArray();
-        _selectedTheme = Themes.FirstOrDefault(t => t.Theme.Id == Theme.Find(s.ThemeId).Id) ?? Themes[0];
-        _accent = s.AccentOverride is { } hex && Color.TryParse(hex, out var c) ? c : _selectedTheme.Theme.Accent;
-        _hasCustomAccent = s.AccentOverride is not null;
+        _selectedTheme = Themes.FirstOrDefault(t => t.Theme.Id == Theme.Find(s.Game.ThemeId).Id) ?? Themes[0];
+        _accent = s.Game.AccentOverride is { } hex && Color.TryParse(hex, out var c) ? c : _selectedTheme.Theme.Accent;
+        _hasCustomAccent = s.Game.AccentOverride is not null;
         _backgroundImage = s.BackgroundImage;
         _backgroundMode = s.Background;
         _rotateMinutes = s.BackgroundRotateMinutes;
@@ -71,7 +71,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         _closeToTray = s.CloseToTray;
         _checkForUpdates = s.CheckForUpdates;
         _autoUpdate = s.AutoUpdate;
-        _manageAutoexec = s.ManageAutoexec;
+        _manageAutoexec = s.Game.ManageAutoexec;
         _currency = s.Currency;
         _logLevel = s.LogLevel;
         _clearLogsOnStart = s.ClearLogsOnStart;
@@ -209,7 +209,11 @@ public sealed partial class LauncherViewModel : PageViewModel
 
     public string TfPath => _services.TfPath ?? "Not set";
     public bool TfValid => SteamLocator.IsTf2Folder(_services.TfPath);
-    public string TfStatus => TfValid ? "TF2 found." : "This doesn't look like TF2's tf folder (gameinfo.txt is missing).";
+    private Eternal.Core.Games.GameDefinition Game => _services.GameInfo;
+    public string TfStatus => TfValid ? $"{Game.ShortName} found." : $"This doesn't look like {Game.ShortName}'s {Game.ModDir} folder (gameinfo.txt is missing).";
+    public string FolderLabel => $"{Game.ShortName} folder (the {Game.ModDir} folder inside {Game.InstallDir})";
+    public string ReviewLabel => $"Go through what's in my {Game.ShortName} folder";
+    public bool ManagesGameFiles => Game.Has(Eternal.Core.Games.GameFeatures.Mods) || Game.Has(Eternal.Core.Games.GameFeatures.Settings);
     public string Account => SteamLocator.ActiveAccount() is { } a ? $"{a.PersonaName ?? "Steam account"} ({a.SteamId64})" : "No Steam account found";
     public string ScaleText => $"{UiScale * 100:0}%";
     public bool TraySupported => OperatingSystem.IsWindows();
@@ -245,7 +249,7 @@ public sealed partial class LauncherViewModel : PageViewModel
     {
         if (!HasCustomAccent)
             Accent = value.Theme.Accent;
-        Save(s => s.ThemeId = value.Theme.Id, restyle: true);
+        Save(s => s.Game.ThemeId = value.Theme.Id, restyle: true);
     }
 
     partial void OnAccentChanged(Color value)
@@ -253,7 +257,7 @@ public sealed partial class LauncherViewModel : PageViewModel
         if (_loading || value == SelectedTheme.Theme.Accent && !HasCustomAccent)
             return;
         HasCustomAccent = value != SelectedTheme.Theme.Accent;
-        Save(s => s.AccentOverride = HasCustomAccent ? value.ToString() : null, restyle: true);
+        Save(s => s.Game.AccentOverride = HasCustomAccent ? value.ToString() : null, restyle: true);
     }
 
     [RelayCommand]
@@ -261,7 +265,7 @@ public sealed partial class LauncherViewModel : PageViewModel
     {
         HasCustomAccent = false;
         Accent = SelectedTheme.Theme.Accent;
-        Save(s => s.AccentOverride = null, restyle: true);
+        Save(s => s.Game.AccentOverride = null, restyle: true);
     }
 
     partial void OnBackgroundModeChanged(BackgroundMode value)
@@ -323,7 +327,7 @@ public sealed partial class LauncherViewModel : PageViewModel
     }
     partial void OnManageAutoexecChanged(bool value)
     {
-        Save(s => s.ManageAutoexec = value);
+        Save(s => s.Game.ManageAutoexec = value);
         if (!_loading && value)
             _ = _services.Game.ReapplyAsync();
     }
@@ -354,27 +358,27 @@ public sealed partial class LauncherViewModel : PageViewModel
     [RelayCommand]
     private async Task BrowseTf2Async()
     {
-        var folder = await Pickers.OpenFolderAsync("Select TF2's tf folder", _services.TfPath);
+        var folder = await Pickers.OpenFolderAsync($"Select {Game.ShortName}'s {Game.ModDir} folder", _services.TfPath);
         if (folder is null)
             return;
-        if (!SteamLocator.IsTf2Folder(folder) && SteamLocator.IsTf2Folder(Path.Combine(folder, "tf")))
-            folder = Path.Combine(folder, "tf");
+        if (!SteamLocator.IsTf2Folder(folder) && SteamLocator.IsTf2Folder(Path.Combine(folder, Game.ModDir)))
+            folder = Path.Combine(folder, Game.ModDir);
         await SetTf2Async(folder);
     }
 
     [RelayCommand]
     private async Task DetectTf2Async()
     {
-        if (SteamLocator.FindTf2() is { } found)
+        if (SteamLocator.FindGame(Game) is { } found)
             await SetTf2Async(found);
         else
-            await _main.AlertAsync("TF2 not found", "Steam's libraries don't contain Team Fortress 2. Pick the tf folder by hand.");
+            await _main.AlertAsync($"{Game.ShortName} not found", $"Steam's libraries don't contain {Game.Name}. Pick the {Game.ModDir} folder by hand.");
     }
 
     private async Task SetTf2Async(string folder)
     {
-        Log.Info($"TF2 folder set to {folder}");
-        _services.Launcher.Update(s => s.TfPath = folder);
+        Log.Info($"{Game.ShortName} folder set to {folder}");
+        _services.Launcher.Update(s => s.Game.Path = folder);
         _services.RefreshObserved();
         OnPropertyChanged(nameof(TfPath));
         OnPropertyChanged(nameof(TfValid));

@@ -119,6 +119,7 @@ public sealed partial class ProfileStore
         profile.BuiltIn = false;
         profile.Name = CleanName(string.IsNullOrWhiteSpace(profile.Name) ? fallbackName : profile.Name);
         profile.Description = profile.Description is { Length: > 500 } d ? d[..500] : profile.Description;
+        profile.Game = profile.MadeFor == Games.GameCatalog.Tf2 ? null : profile.MadeFor.Id;
         if (profile.ExtraLaunchArgs is { Length: > 1024 })
             profile.ExtraLaunchArgs = null;
         else if (profile.ExtraLaunchArgs is { } args)
@@ -138,6 +139,7 @@ public sealed partial class ProfileStore
         ExtraLaunchArgs = settings.ExtraLaunchArgs,
         UserAutoexec = string.IsNullOrWhiteSpace(userAutoexec) ? null : userAutoexec,
         Mods = mods,
+        Game = settings.Game == Games.GameCatalog.Tf2 ? null : settings.Game.Id,
     };
 
     public static void Apply(Profile profile, GameSettings settings)
@@ -155,7 +157,7 @@ public sealed partial class ProfileStore
             return false;
         foreach (var (id, value) in profile.Values)
         {
-            if (SettingsCatalog.Find(id) is not { } setting)
+            if (SettingsCatalog.Find(id) is not { } setting || !settings.Supports(setting))
                 continue;
             if (!setting.ValueEquals(settings.Get(setting), value))
                 return false;

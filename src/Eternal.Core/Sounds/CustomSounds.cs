@@ -170,17 +170,36 @@ public sealed class CustomSoundStore
         }
     }
 
+    /// <summary>TF2's own hit and kill sounds average about -17 dBFS with peaks at full scale.</summary>
+    private const double TargetRms = 0.1429;
+    private const double PeakCeiling = 0.966;
+
     private static void WriteAtVolume(string source, string destination, double volume)
     {
-        if (Math.Abs(volume - 1) < 0.001)
-        {
-            File.Copy(source, destination, overwrite: true);
-            return;
-        }
         var (pcm, channels) = WaveFile.Read(source);
+        var gain = MatchedGain(pcm) * volume;
         for (var i = 0; i < pcm.Length; i++)
-            pcm[i] = (short)Math.Clamp(Math.Round(pcm[i] * volume), short.MinValue, short.MaxValue);
+            pcm[i] = (short)Math.Clamp(Math.Round(pcm[i] * gain), short.MinValue, short.MaxValue);
         WaveFile.Write(destination, pcm, channels);
+    }
+
+    /// <summary>
+    /// The gain that brings a sound to the loudness of TF2's own hit and kill sounds, as far as its
+    /// peak allows. The sound's volume slider applies on top, so 100% means as loud as TF2's.
+    /// </summary>
+    public static double MatchedGain(short[] pcm)
+    {
+        double sum = 0;
+        var peak = 0;
+        foreach (var sample in pcm)
+        {
+            sum += (double)sample * sample;
+            peak = Math.Max(peak, Math.Abs((int)sample));
+        }
+        if (peak == 0)
+            return 1;
+        var rms = Math.Sqrt(sum / pcm.Length) / 32768;
+        return Math.Min(TargetRms / rms, PeakCeiling * 32768 / peak);
     }
 
     private long LibraryBytes()

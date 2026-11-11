@@ -133,7 +133,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
-          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" />
+          <ProgressBar Classes="thin" IsIndeterminate="{Binding Loading}" IsVisible="{Binding Loading}" />
           <Border Classes="card" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <StackPanel Spacing="6">
               <TextBlock Classes="title" Text="This page couldn't be loaded" />

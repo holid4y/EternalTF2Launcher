@@ -18,7 +18,7 @@ public sealed class GameBananaException(string message, Exception? inner = null)
 /// gamebanana.com over https, descriptions are reduced to plain text and every
 /// download is held to its announced size and MD5 before it is kept.
 /// </summary>
-public sealed partial class GameBananaClient(HttpClient http)
+public sealed partial class GameBananaClient(HttpClient http, int gameId = GameBananaClient.Tf2, HttpClient? downloads = null)
 {
     public const int Tf2 = 297;
     public const int PageSize = 24;
@@ -30,18 +30,28 @@ public sealed partial class GameBananaClient(HttpClient http)
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan StallLimit = TimeSpan.FromSeconds(60);
     private const int MaxRedirects = 5;
+    private const int MaxAttempts = 3;
+    private readonly HttpClient _downloads = downloads ?? http;
+
+    /// <summary>Wait before trying a failed download again, longer each time.</summary>
+    internal TimeSpan RetryAfter { get; init; } = TimeSpan.FromSeconds(3);
 
     private readonly ConcurrentDictionary<string, (DateTimeOffset At, string Json)> _cache = new();
 
-    public static GameBananaClient Shared { get; } = new(Http.NoRedirects);
+    private static readonly ConcurrentDictionary<int, GameBananaClient> ByGame = new();
+
+    public static GameBananaClient Shared { get; } = For(Games.GameCatalog.Tf2);
+
+    /// <summary>Browses the game's own section of GameBanana. Downloads and pages don't depend on the game.</summary>
+    public static GameBananaClient For(Games.GameDefinition game) => ByGame.GetOrAdd(game.GameBananaId, id => new(Http.NoRedirects, id, Http.Downloads));
 
     public Task<IReadOnlyList<Category>> CategoriesAsync(Section section, long? parent = null, CancellationToken cancellation = default) =>
         FetchAsync(parent is > 0
             ? $"{Api}/{Model(section)}/Categories?_idCategoryRow={parent}&_sSort=a_to_z"
-            : $"{Api}/{Model(section)}/Categories?_idGameRow={Tf2}&_sSort=a_to_z", ParseCategories, cancellation);
+            : $"{Api}/{Model(section)}/Categories?_idGameRow={gameId}&_sSort=a_to_z", ParseCategories, cancellation);
 
     public Task<BrowsePage> BrowseAsync(BrowseQuery query, CancellationToken cancellation = default) =>
-        FetchAsync(IndexUrl(query), json => ParsePage(json, query.Section, query.Page), cancellation);
+        FetchAsync(IndexUrl(query, gameId), json => ParsePage(json, query.Section, query.Page), cancellation);
 
     public Task<SubmissionDetails> DetailsAsync(Section section, long id, CancellationToken cancellation = default) =>
         FetchAsync($"{Api}/{Model(section)}/{id}/ProfilePage", json => ParseDetails(json, section), cancellation);
@@ -61,13 +71,41 @@ public sealed partial class GameBananaClient(HttpClient http)
         var directory = Path.Combine(folder, file.Id.ToString(CultureInfo.InvariantCulture));
         Directory.CreateDirectory(directory);
         var target = Path.Combine(directory, SafeFileName(file.Name));
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await DownloadOnceAsync(file, target, progress, cancellation).ConfigureAwait(false);
+            }
+            catch (Interrupted ex) when (attempt < MaxAttempts)
+            {
+                Log.Warn($"Downloading {file.Name} failed on try {attempt} of {MaxAttempts}, trying again: {ex.Message}", ex.InnerException);
+                await Task.Delay(RetryAfter * attempt, cancellation).ConfigureAwait(false);
+            }
+            catch (Interrupted ex)
+            {
+                Log.Warn($"Downloading {file.Name} failed {MaxAttempts} times: {ex.Message}", ex.InnerException);
+                throw new GameBananaException($"{ex.Message} It failed {MaxAttempts} times, so check your connection or try again later.", ex.InnerException);
+            }
+        }
+    }
+
+    /// <summary>A download that broke on the way, which another try may get past.</summary>
+    private sealed class Interrupted(string message, Exception? inner) : Exception(message, inner);
+
+    private async Task<string> DownloadOnceAsync(SubmissionFile file, string target, IProgress<double>? progress, CancellationToken cancellation)
+    {
         var partial = target + ".part";
         var limit = file.Size > 0 ? file.Size : MaxDownloadBytes;
+        var at = new Uri(file.DownloadUrl);
+        var answered = false;
+        long read = 0;
         using var stall = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         try
         {
             stall.CancelAfter(StallLimit);
-            using var response = await GetAsync(file.DownloadUrl, stall.Token).ConfigureAwait(false);
+            using var response = await GetAsync(_downloads, at, stall.Token, uri => at = uri).ConfigureAwait(false);
+            answered = true;
             Check(response);
             if (response.RequestMessage?.RequestUri is not { } final || !IsGameBananaUrl(final.AbsoluteUri))
                 throw new GameBananaException($"The download of {file.Name} was sent somewhere other than GameBanana, so it was stopped.");
@@ -76,7 +114,6 @@ public sealed partial class GameBananaClient(HttpClient http)
 
             using var md5 = IncrementalHash.CreateHash(HashAlgorithmName.MD5);
             var buffer = ArrayPool<byte>.Shared.Rent(81920);
-            long read = 0;
             try
             {
                 await using var input = await response.Content.ReadAsStreamAsync(stall.Token).ConfigureAwait(false);
@@ -99,7 +136,7 @@ public sealed partial class GameBananaClient(HttpClient http)
             }
 
             if (file.Size > 0 && read != file.Size)
-                throw new GameBananaException($"{file.Name} arrived incomplete. Try again.");
+                throw new Interrupted($"{file.Name} arrived incomplete ({read} of {file.Size} bytes).", null);
             if (file.Md5 is { } expected && !Convert.ToHexString(md5.GetHashAndReset()).Equals(expected, StringComparison.OrdinalIgnoreCase))
                 throw new GameBananaException($"{file.Name} arrived damaged: its checksum doesn't match GameBanana's. Try again.");
             File.Move(partial, target, overwrite: true);
@@ -108,11 +145,17 @@ public sealed partial class GameBananaClient(HttpClient http)
         }
         catch (OperationCanceledException ex) when (!cancellation.IsCancellationRequested)
         {
-            throw new GameBananaException($"The download of {file.Name} stalled. Try again.", ex);
+            throw new Interrupted(answered
+                ? $"The download of {file.Name} stopped moving for a minute after {read} bytes."
+                : $"GameBanana's file server ({at.Host}) didn't answer.", ex);
         }
         catch (HttpRequestException ex)
         {
-            throw new GameBananaException($"{file.Name} couldn't be downloaded: {ex.Message}", ex);
+            throw new Interrupted($"{file.Name} couldn't be downloaded from {at.Host}: {ex.Message}", ex);
+        }
+        catch (HttpIOException ex)
+        {
+            throw new Interrupted($"The connection to {at.Host} broke while downloading {file.Name}.", ex);
         }
         catch (IOException ex)
         {
@@ -141,12 +184,12 @@ public sealed partial class GameBananaClient(HttpClient http)
         return Encoding.UTF8.GetString(json.GetBuffer(), 0, (int)json.Length);
     }
 
-    private async Task<HttpResponseMessage> GetAsync(string url, CancellationToken cancellation)
+    private static async Task<HttpResponseMessage> GetAsync(HttpClient client, Uri uri, CancellationToken cancellation, Action<Uri>? visiting = null)
     {
-        var uri = new Uri(url);
         for (var hop = 0; ; hop++)
         {
-            var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellation).ConfigureAwait(false);
+            visiting?.Invoke(uri);
+            var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellation).ConfigureAwait(false);
             if ((int)response.StatusCode is < 300 or > 399 || response.Headers.Location is not { } location)
                 return response;
             response.Dispose();
@@ -169,7 +212,7 @@ public sealed partial class GameBananaClient(HttpClient http)
         {
             try
             {
-                using var response = await GetAsync(url, cancellation).ConfigureAwait(false);
+                using var response = await GetAsync(http, new Uri(url), cancellation).ConfigureAwait(false);
                 Check(response);
                 json = await ReadJsonAsync(response.Content, cancellation).ConfigureAwait(false);
             }
@@ -211,10 +254,10 @@ public sealed partial class GameBananaClient(HttpClient http)
             throw new GameBananaException($"GameBanana answered with an error ({(int)response.StatusCode}). Try again later.");
     }
 
-    internal static string IndexUrl(BrowseQuery query)
+    internal static string IndexUrl(BrowseQuery query, int gameId = Tf2)
     {
         var url = new StringBuilder($"{Api}/{Model(query.Section)}/Index?_nPage={Math.Max(1, query.Page)}&_nPerpage={PageSize}")
-            .Append(CultureInfo.InvariantCulture, $"&_aFilters%5BGeneric_Game%5D={Tf2}");
+            .Append(CultureInfo.InvariantCulture, $"&_aFilters%5BGeneric_Game%5D={gameId}");
         if (query.CategoryId is > 0)
             url.Append(CultureInfo.InvariantCulture, $"&_aFilters%5BGeneric_Category%5D={query.CategoryId}");
         var search = SearchText(query.Search);

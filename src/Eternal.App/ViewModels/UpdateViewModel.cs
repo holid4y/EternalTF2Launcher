@@ -20,8 +20,10 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
 {
     private static readonly TimeSpan CheckEvery = TimeSpan.FromHours(6);
     private static readonly TimeSpan CardFor = TimeSpan.FromSeconds(12);
-    private readonly AppServices _services;
-    private readonly MainViewModel _main;
+    private readonly AppPaths _paths;
+    private LauncherSettingsStore _launcher;
+    private MainViewModel _main;
+    private bool _started;
     private readonly UpdateClient _client;
     private readonly Version _current;
     private readonly DispatcherTimer _schedule;
@@ -31,11 +33,12 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
 
     public UpdateViewModel(AppServices services, MainViewModel main, UpdateClient client, Version current)
     {
-        _services = services;
+        _paths = services.Paths.Launcher;
+        _launcher = services.Launcher;
         _main = main;
         _client = client;
         _current = current;
-        Kind = UpdateInstaller.Detect(services.Paths.IsPortable);
+        Kind = UpdateInstaller.Detect(_paths.IsPortable);
         _schedule = new DispatcherTimer(CheckEvery, DispatcherPriority.Background, (_, _) =>
         {
             if (Settings.CheckForUpdates && Step is not (UpdateStep.Downloading or UpdateStep.Ready))
@@ -46,8 +49,8 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     public InstallKind Kind { get; }
     private readonly bool _canWrite = UpdateInstaller.CanWriteTo(AppContext.BaseDirectory);
     public string CurrentVersion => _current.ToString(3);
-    private string UpdatesDir => Path.Combine(_services.Paths.CacheDir, "updates");
-    private LauncherSettings Settings => _services.Launcher.Settings;
+    private string UpdatesDir => _paths.UpdatesDir;
+    private LauncherSettings Settings => _launcher.Settings;
 
     [ObservableProperty] private UpdateStep _step;
     [ObservableProperty] private Release? _release;
@@ -136,8 +139,18 @@ public sealed partial class UpdateViewModel : ObservableObject, IHoldable
     partial void OnProblemChanged(string? value) => OnPropertyChanged(nameof(Status));
     partial void OnCheckedAtChanged(DateTimeOffset? value) => OnPropertyChanged(nameof(Checked));
 
+    /// <summary>Updates belong to the launcher, not to a game: a check or download carries on when the game changes.</summary>
+    public void Attach(MainViewModel main, LauncherSettingsStore launcher)
+    {
+        _main = main;
+        _launcher = launcher;
+    }
+
     public async Task StartAsync()
     {
+        if (_started)
+            return;
+        _started = true;
         await ResumeOrCleanUpAsync();
         _schedule.Start();
         if (Step == UpdateStep.Ready)

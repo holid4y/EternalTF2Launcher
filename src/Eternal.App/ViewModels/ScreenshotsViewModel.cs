@@ -167,6 +167,16 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
 
     protected override void OnFirstActivation() => _ = LoadAsync();
 
+    public string EmptyTitle => $"No {_services.GameInfo.ShortName} screenshots yet";
+    public string UploadHint => $"Opens Steam's uploader for {_services.GameInfo.ShortName}";
+
+    public override void Close()
+    {
+        _reload.Stop();
+        _folderWatch?.Dispose();
+        _listWatch?.Dispose();
+    }
+
     protected override void OnReturn() => _ = LoadAsync();
 
     [RelayCommand]
@@ -211,7 +221,7 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
         Loading = Items.Count == 0;
         try
         {
-            var shots = await Task.Run(() => SteamScreenshots.Load(userDir));
+            var shots = await Task.Run(() => SteamScreenshots.Load(userDir, _services.GameInfo.AppId));
             var known = Items.ToDictionary(i => i.Shot.FullPath);
             var next = shots.Select(shot =>
             {
@@ -246,7 +256,7 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
         _folderWatch = _listWatch = null;
         try
         {
-            var folder = SteamScreenshots.Folder(userDir);
+            var folder = SteamScreenshots.Folder(userDir, _services.GameInfo.AppId);
             if (Directory.Exists(folder))
                 _folderWatch = StartWatch(folder, "*.*");
             var list = Path.Combine(userDir, "760");
@@ -381,7 +391,7 @@ public sealed partial class ScreenshotsViewModel : PageViewModel
             _main.Notify("Start Steam first: its uploader puts the screenshot on your profile.", isError: true);
             return;
         }
-        Shell.OpenSteam($"steam://open/screenshots/{SteamLocator.Tf2AppId}");
+        Shell.OpenSteam($"steam://open/screenshots/{_services.GameInfo.AppId}");
         _main.Notify("Steam's screenshot window is open. Pick the screenshot there and press Upload. Its link shows up here once Steam has it.");
     }
 

@@ -26,7 +26,7 @@ public abstract partial class SettingRowViewModel : ObservableObject
     public bool IsAdvanced => Definition.IsAdvanced;
     public bool Applies => !Definition.Tags.HasFlag(SettingTags.WindowsOnly) || OperatingSystem.IsWindows();
 
-    public string Origin => IsTouched ? "Set by Eternal" : Settings.Observed.ContainsKey(Definition.Id) ? "Read from TF2" : "TF2 default";
+    public string Origin => IsTouched ? "Set by Eternal" : Settings.Observed.ContainsKey(Definition.Id) ? $"Read from {Settings.Game.ShortName}" : $"{Settings.Game.ShortName} default";
 
     private static List<string> BuildTags(SettingDefinition d)
     {
@@ -110,12 +110,24 @@ public sealed class SliderRowViewModel(SliderSetting definition, GameSettings se
 public sealed class ChoiceRowViewModel(ChoiceSetting definition, GameSettings settings) : SettingRowViewModel(definition, settings)
 {
     private ChoiceSetting Choice => (ChoiceSetting)Definition;
+    private ChoiceOption? _ownDefault;
 
-    public IReadOnlyList<ChoiceOption> Options => Choice.Options;
+    /// <summary>The player's own sound plays from the game's default slot, so that slot is shown under its name.</summary>
+    public void ShowOwnDefault(string? label)
+    {
+        _ownDefault = label is null ? null : new ChoiceOption(label, "0", "Your own sound from Hit & Kill Sounds plays in this slot.");
+        OnPropertyChanged(nameof(Options));
+        OnPropertyChanged(nameof(Selected));
+        OnPropertyChanged(nameof(Hint));
+    }
+
+    private ChoiceOption Shown(ChoiceOption option) => _ownDefault is not null && option.Value == "0" ? _ownDefault : option;
+
+    public IReadOnlyList<ChoiceOption> Options => _ownDefault is null ? Choice.Options : [.. Choice.Options.Select(Shown)];
 
     public ChoiceOption? Selected
     {
-        get => Settings.Get(Choice);
+        get => Shown(Settings.Get(Choice));
         set
         {
             if (value is not null && value.Value != Selected?.Value)

@@ -44,8 +44,8 @@ public sealed partial class ThemeService : ObservableObject
 
     public void Apply(LauncherSettings settings)
     {
-        var theme = Theme.Find(settings.ThemeId);
-        var accent = settings.AccentOverride is { } hex && Color.TryParse(hex, out var custom) ? custom : theme.Accent;
+        var theme = Theme.Find(settings.Game.ThemeId);
+        var accent = settings.Game.AccentOverride is { } hex && Color.TryParse(hex, out var custom) ? custom : theme.Accent;
         Current = theme;
         Accent = accent;
         Scale = Math.Clamp(settings.UiScale, 0.8, 1.4);

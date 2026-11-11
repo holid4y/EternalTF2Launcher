@@ -82,8 +82,8 @@
           </Border>
           <Border Classes="card" VerticalAlignment="Top" IsVisible="{Binding IsEmpty}">
             <StackPanel Spacing="8">
-              <TextBlock Classes="title" Text="No TF2 screenshots yet" />
-              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Press F12 in game (or F5 with TF2's own key) and they show up here as soon as Steam saves them." />
+              <TextBlock Classes="title" Text="{Binding EmptyTitle}" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Press F12 in game (or F5, the game's own screenshot key) and they show up here as soon as Steam saves them." />
             </StackPanel>
           </Border>
           <ScrollViewer>
@@ -168,7 +168,7 @@
                   </Button>
                   <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                           Command="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).UploadCommand}"
-                          IsVisible="{Binding !Uploaded}" ToolTip.Tip="Opens Steam's uploader for TF2">
+                          IsVisible="{Binding !Uploaded}" ToolTip.Tip="{Binding $parent[UserControl].((vm:ScreenshotsViewModel)DataContext).UploadHint}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <PathIcon Data="{StaticResource IconUpload}" Width="13" Height="13" />
                       <TextBlock Text="Upload" />
@@ -228,7 +228,7 @@
               <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding HasChanges}" />
             </StackPanel>
           </Grid>
-          <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="True" IsVisible="{Binding Saving}" Margin="0,0,0,8" />
+          <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="{Binding Saving}" IsVisible="{Binding Saving}" Margin="0,0,0,8" />
           <Border Background="{DynamicResource GroundBrush}" CornerRadius="3" ClipToBounds="True">
             <Panel Name="Stage" Background="Transparent" Focusable="True">
               <Image Name="Picture" Source="{Binding Preview}" Stretch="Uniform" />

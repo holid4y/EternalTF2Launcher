@@ -5,14 +5,11 @@ namespace Eternal.Core.Steam;
 
 public static class GameProcess
 {
-    private static readonly string[] WindowsNames = ["tf_win64", "tf"];
-    private static readonly string[] LinuxNames = ["tf_linux64", "tf_win64.exe", "tf.exe"];
-
-    public static bool IsRunning()
+    public static bool IsRunning(Games.GameDefinition game)
     {
         if (OperatingSystem.IsWindows())
         {
-            foreach (var name in WindowsNames)
+            foreach (var name in game.WindowsProcesses)
             {
                 var processes = Process.GetProcessesByName(name);
                 var found = processes.Length > 0;
@@ -24,6 +21,6 @@ public static class GameProcess
             return false;
         }
 
-        return Proc.AnyNamed(LinuxNames);
+        return Proc.AnyNamed([.. game.LinuxProcesses]);
     }
 }

@@ -28,7 +28,7 @@ internal static class StartupErrorWindow
                 {
                     new TextBlock { Text = "The launcher couldn't start", FontSize = 22, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(Color.Parse("#EEE4CC")) },
                     new TextBlock { Text = error.Message, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Color.Parse("#B9AA90")) },
-                    new TextBlock { Text = "Your settings and mods were not touched. The log folder has the details.", TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Color.Parse("#8E8170")) },
+                    new TextBlock { Text = "Your settings and mods were not touched. The log folder has the details.", TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Color.Parse("#988B79")) },
                     open,
                 },
             },

@@ -23,6 +23,7 @@ public static class PreviewPlayer
     private static ISoundDataProvider? _provider;
     private static long _generation;
     private static float _volume = 0.7f;
+    private static float _gain = 1f;
     private const int MaxDownloadBytes = 32 * 1024 * 1024;
 
     public static string? PlayingUrl { get; private set; }
@@ -36,7 +37,7 @@ public static class PreviewPlayer
             lock (Gate)
             {
                 _volume = (float)Math.Clamp(value, 0, 1);
-                _player?.Volume = _volume;
+                _player?.Volume = _volume * _gain;
             }
         }
     }
@@ -44,7 +45,8 @@ public static class PreviewPlayer
     public static event Action? Changed;
 
     /// <summary>Starts <paramref name="source"/>, a URL or a file path, or stops it if it is already playing.</summary>
-    public static void Toggle(string source)
+    /// <param name="gain">Applied on top of the preview volume, so a sound can be heard as loud as it will be in game.</param>
+    public static void Toggle(string source, double gain = 1)
     {
         long generation;
         lock (Gate)
@@ -57,6 +59,7 @@ public static class PreviewPlayer
                 return;
             }
             PlayingUrl = source;
+            _gain = (float)Math.Clamp(gain, 0, 8);
             generation = ++_generation;
         }
         Changed?.Invoke();
@@ -111,7 +114,7 @@ public static class PreviewPlayer
                 var player = _player = new SoundPlayer(engine, format, provider);
                 _provider = provider;
                 player.PlaybackEnded += (_, _) => ThreadPool.QueueUserWorkItem(_ => Finished(generation));
-                player.Volume = _volume;
+                player.Volume = _volume * _gain;
                 device.MasterMixer.AddComponent(player);
                 device.Start();
                 player.Play();
@@ -119,7 +122,7 @@ public static class PreviewPlayer
         }
         catch (Exception ex)
         {
-            Log.Warn($"Couldn't play the preview: {ex.Message}");
+            Log.Warn($"Couldn't play the preview {source}", ex);
             provider?.Dispose();
             lock (Gate)
             {

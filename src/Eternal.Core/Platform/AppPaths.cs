@@ -12,6 +12,7 @@ public sealed class AppPaths
         DataDir = dataDir;
         CacheDir = cacheDir;
         IsPortable = portable;
+        Launcher = this;
     }
 
     public string ConfigDir { get; }
@@ -19,20 +20,35 @@ public sealed class AppPaths
     public string CacheDir { get; }
     public bool IsPortable { get; }
 
-    public string LogsDir => Path.Combine(DataDir, "logs");
+    /// <summary>Where the launcher keeps what isn't one game's: its own settings, logs, pictures and updates.</summary>
+    public AppPaths Launcher { get; private init; }
+
+    /// <summary>
+    /// Team Fortress 2 keeps the folders it always had. Every other game gets its own
+    /// under games/, so nothing of one game is read or written for another.
+    /// </summary>
+    public AppPaths ForGame(Games.GameDefinition game) => game == Games.GameCatalog.Tf2
+        ? this
+        : new AppPaths(Path.Combine(ConfigDir, "games", game.Id), Path.Combine(DataDir, "games", game.Id), Path.Combine(CacheDir, "games", game.Id), IsPortable)
+        {
+            Launcher = Launcher,
+        };
+
+    public string LogsDir => Path.Combine(Launcher.DataDir, "logs");
     public string EngineDataDir => Path.Combine(DataDir, "engine");
     public string EngineCacheDir => Path.Combine(CacheDir, "engine");
     public string ThumbnailsDir => Path.Combine(DataDir, "thumbnails");
     public string ProfilesDir => Path.Combine(ConfigDir, "profiles");
     public string ImportStagingDir => Path.Combine(CacheDir, "import");
-    public string ImageCacheDir => Path.Combine(CacheDir, "images");
+    public string ImageCacheDir => Path.Combine(Launcher.CacheDir, "images");
+    public string UpdatesDir => Path.Combine(Launcher.CacheDir, "updates");
 
     public string GameConfigFile => Path.Combine(ConfigDir, "game.json");
-    public string LauncherSettingsFile => Path.Combine(ConfigDir, "launcher.json");
+    public string LauncherSettingsFile => Path.Combine(Launcher.ConfigDir, "launcher.json");
     public string ModStateFile => Path.Combine(DataDir, "mods.json");
     public string PreloadStateFile => Path.Combine(DataDir, "preload-state.json");
-    public string SteamWritesFile => Path.Combine(DataDir, "steam-writes.json");
-    public string SteamBackupsDir => Path.Combine(DataDir, "steam-backups");
+    public string SteamWritesFile => Path.Combine(Launcher.DataDir, "steam-writes.json");
+    public string SteamBackupsDir => Path.Combine(Launcher.DataDir, "steam-backups");
     public string ServersFile => Path.Combine(ConfigDir, "servers.json");
     public string ScreenshotOriginalsDir => Path.Combine(DataDir, "screenshot-originals");
 

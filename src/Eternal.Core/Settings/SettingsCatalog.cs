@@ -45,7 +45,7 @@ public static class SettingsCatalog
 
     private static IReadOnlyList<SettingCategory> Build() =>
     [
-        Category("display", "Display", "Window mode, resolution and rendering level. Applied when TF2 starts.",
+        Category("display", "Display", "Window mode, resolution and rendering level. Applied when the game starts.",
             new ChoiceSetting
             {
                 Id = "DisplayMode", Title = "Window mode", Tags = Launch,
@@ -62,7 +62,7 @@ public static class SettingsCatalog
             new SliderSetting
             {
                 Id = "Width", Title = "Width", Cvar = "-w", Tags = Launch, Unit = "px",
-                Summary = "Horizontal resolution. Leave untouched to keep TF2's own video setting.",
+                Summary = "Horizontal resolution. Leave untouched to keep the game's own video setting.",
                 Min = 640, Max = 7680, Default = 1920, Keywords = ["resolution"],
             },
             new SliderSetting
@@ -74,17 +74,17 @@ public static class SettingsCatalog
             new SliderSetting
             {
                 Id = "RefreshRate", Title = "Refresh rate", Cvar = "-freq", Tags = Launch, Unit = "Hz",
-                Summary = "Refresh rate TF2 asks for in fullscreen. 0 uses whatever the display is set to.",
+                Summary = "Refresh rate the game asks for in fullscreen. 0 uses whatever the display is set to.",
                 Min = 0, Max = 500, Default = 0, SpecialValues = new Dictionary<double, string> { [0] = "Match display" },
                 Emitter = hz => hz > 0 ? ["-freq", hz.ToString(CultureInfo.InvariantCulture)] : [],
             },
             new ChoiceSetting
             {
                 Id = "DxLevel", Title = "Rendering level", Cvar = "-dxlevel", Tags = Launch | Perf,
-                Summary = "Forcing a level resets TF2's video options to that level's defaults on every launch. Only force one if you need it.",
+                Summary = "Forcing a level resets the game's video options to that level's defaults on every launch. Only force one if you need it.",
                 Options =
                 [
-                    new("Don't force", "0", "TF2 picks the best level for your GPU."),
+                    new("Don't force", "0", "The game picks the best level for your GPU."),
                     new("DirectX 8.1", "81", "Fastest. Hides skins, war paints and some effects."),
                     new("DirectX 9.0", "90"),
                     new("DirectX 9.5", "95"),
@@ -305,7 +305,7 @@ public static class SettingsCatalog
             new SliderSetting
             {
                 Id = "FpsMax", Title = "Frame rate cap", Cvar = "fps_max", Tags = Perf,
-                Summary = "Highest frame rate TF2 will render. A cap a little above your refresh rate keeps input smooth.",
+                Summary = "Highest frame rate the game will render. A cap a little above your refresh rate keeps input smooth.",
                 Min = 0, Max = 1000, Default = 300, Unit = "fps", SpecialValues = new Dictionary<double, string> { [0] = "Unlimited" },
             },
             new ToggleSetting
@@ -410,7 +410,7 @@ public static class SettingsCatalog
             new ChoiceSetting
             {
                 Id = "QueueMode", Title = "Multicore rendering", Cvar = "mat_queue_mode", Tags = Perf | Adv,
-                Summary = "Spreads rendering across CPU cores. Change only if TF2 crashes or stutters.",
+                Summary = "Spreads rendering across CPU cores. Change only if the game crashes or stutters.",
                 Options = [new("Automatic", "-1"), new("Single thread", "0"), new("Queued", "1"), new("Multithreaded", "2")], Default = "-1",
             },
             new ChoiceSetting
@@ -493,7 +493,7 @@ public static class SettingsCatalog
             new TextSetting
             {
                 Id = "DemoDir", Title = "Folder", Cvar = "ds_dir", Default = "Demos",
-                Summary = "Folder inside tf/ that receives the recordings.", DependsOn = "DemoSupport", MaxLength = 24,
+                Summary = "Folder next to cfg and custom that receives the recordings.", DependsOn = "DemoSupport", MaxLength = 24,
             },
             new ToggleSetting
             {
@@ -512,7 +512,7 @@ public static class SettingsCatalog
                 Summary = "Removes recordings that have no bookmarks or killstreaks.",
             }),
 
-        Category("startup", "Startup", "Launch options that change how TF2 boots.",
+        Category("startup", "Startup", "Launch options that change how the game boots.",
             new ToggleSetting
             {
                 Id = "SkipIntro", Title = "Skip intro video", Cvar = "-novid", Tags = Launch,
@@ -536,7 +536,7 @@ public static class SettingsCatalog
             new ToggleSetting
             {
                 Id = "HighPriority", Title = "High process priority", Cvar = "-high", Tags = Launch | SettingTags.WindowsOnly,
-                Summary = "Asks Windows to favour TF2 over background apps.",
+                Summary = "Asks Windows to favour the game over background apps.",
             }),
     ];
 }

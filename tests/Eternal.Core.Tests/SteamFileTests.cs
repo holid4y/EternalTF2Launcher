@@ -96,7 +96,7 @@ public sealed class SteamFileTests : IDisposable
     [Fact]
     public void Screenshot_library_reads_steam_records_and_ignores_unsafe_names()
     {
-        var folder = SteamScreenshots.Folder(UserDir);
+        var folder = SteamScreenshots.Folder(UserDir, 440);
         Directory.CreateDirectory(Path.Combine(folder, "thumbnails"));
         File.WriteAllBytes(Path.Combine(folder, "20261102205959_1.jpg"), [1]);
         File.WriteAllBytes(Path.Combine(folder, "20261103101010_1.jpg"), [1]);
@@ -111,7 +111,7 @@ public sealed class SteamFileTests : IDisposable
             }
             """);
 
-        var shots = SteamScreenshots.Load(UserDir);
+        var shots = SteamScreenshots.Load(UserDir, 440);
         Assert.Equal(2, shots.Count);
         var recorded = shots.Single(s => s.PublishedFileId is not null);
         Assert.Equal(1280, recorded.Width);

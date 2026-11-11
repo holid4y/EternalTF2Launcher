@@ -88,13 +88,48 @@ def status(tf_path: Path | None) -> dict:
     return result
 
 
-def install(tf_path: Path, order: list[str], particle_order: list[str], options: BuildOptions,
-            progress: Progress) -> tuple[dict, list[str]]:
+def _sourcemod(game: str):
     from core.constants import Sourcemods
+
+    return Sourcemods[game]
+
+
+def place_huds(custom: Path, selected: list[str]) -> None:
+    """casual-pre-loader sets HUD mods aside and copies them into custom/ as folders,
+    but only for TF2, so for the other games a HUD never reached the game. Same
+    placement and marker here, so its uninstall cleanup finds them."""
+    from core.services.install import InstallService
+
+    custom.mkdir(exist_ok=True)
+    InstallService.cleanup_huds(custom)
+    for name in selected:
+        source = _config().addons_dir / name
+        try:
+            info = json.loads((source / "mod.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        target = custom / name.lower()
+        if str(info.get("type", "")).lower() != "hud" or target.exists():
+            continue
+        shutil.copytree(source, target)
+        info["preloader_installed"] = True
+        (target / "mod.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
+
+
+def remove_huds(custom: Path) -> None:
+    from core.services.install import InstallService
+
+    if custom.is_dir():
+        InstallService.cleanup_huds(custom)
+
+
+def install(tf_path: Path, order: list[str], particle_order: list[str], options: BuildOptions,
+            progress: Progress, game: str = "TF2") -> tuple[dict, list[str]]:
     from core.services.conflicts import scan_for_legacy_conflicts
     from core.services.install import InstallService
     from core.util.pcf_path_walk import apply_particle_selections
 
+    sourcemod = _sourcemod(game)
     tf = validate_tf_path(tf_path)
     config = _config()
     try:
@@ -111,7 +146,8 @@ def install(tf_path: Path, order: list[str], particle_order: list[str], options:
     warnings = [f"Old preloader files in tf/custom may conflict: {item}"
                 for item in scan_for_legacy_conflicts(tf / "custom")]
 
-    skip_precache = options.skip_quickprecache
+    # QuickPrecache is part of TF2's build only.
+    skip_precache = options.skip_quickprecache or game != "TF2"
     if not skip_precache and wine_available() is False:
         skip_precache = True
         warnings.append("Wine is not installed, so QuickPrecache was skipped. Custom props, robots, pickups "
@@ -123,7 +159,7 @@ def install(tf_path: Path, order: list[str], particle_order: list[str], options:
     before = _snapshot(tf / "custom")
     precache.reset()
     entry = journal()
-    entry.begin("install", tf, addons=order, particles=particle_order)
+    entry.begin("install", tf, game=game, addons=order, particles=particle_order)
 
     try:
         service.install(
@@ -137,12 +173,16 @@ def install(tf_path: Path, order: list[str], particle_order: list[str], options:
             show_console_on_startup=options.show_console,
             fix_mdl_paths=options.fix_mdl_paths,
             skip_quickprecache=skip_precache,
-            sourcemod=Sourcemods.TF2,
+            sourcemod=sourcemod,
         )
+        if game != "TF2":
+            place_huds(tf / "custom", list(reversed(order)))
     except Exception as exc:
         log.exception("install failed, restoring vanilla files")
         try:
-            service.uninstall(tf, sourcemod=Sourcemods.TF2)
+            service.uninstall(tf, sourcemod=sourcemod)
+            if game != "TF2":
+                remove_huds(tf / "custom")
         except Exception as cleanup:
             log.exception("restore after failed install also failed")
             entry.finish("failed", error=str(exc), cleanup_error=str(cleanup))
@@ -212,16 +252,18 @@ def write_manifest(target: Path, custom: Path, before: dict[str, tuple[int, int]
     log.info("install wrote %d file(s), manifest at %s", len(files), target)
 
 
-def uninstall(tf_path: Path, progress: Progress) -> dict:
-    from core.constants import Sourcemods
+def uninstall(tf_path: Path, progress: Progress, game: str = "TF2") -> dict:
     from core.services.install import InstallService
 
+    sourcemod = _sourcemod(game)
     tf = validate_tf_path(tf_path)
     _prepare()
     entry = journal()
-    entry.begin("uninstall", tf)
+    entry.begin("uninstall", tf, game=game)
     try:
-        InstallService().uninstall(tf, on_progress=progress, sourcemod=Sourcemods.TF2)
+        InstallService().uninstall(tf, on_progress=progress, sourcemod=sourcemod)
+        if game != "TF2":
+            remove_huds(tf / "custom")
     except Exception as exc:
         log.exception("uninstall failed")
         entry.finish("failed", error=str(exc))
@@ -239,5 +281,5 @@ def recover(progress: Progress) -> dict:
         journal().finish("abandoned")
         return {"recovered": False, "abandoned": True}
     log.warning("recovering interrupted %s on %s", interrupted.get("operation"), tf_path)
-    uninstall(Path(tf_path), progress)
+    uninstall(Path(tf_path), progress, interrupted.get("game") or "TF2")
     return {"recovered": True, "operation": interrupted.get("operation"), "tf_path": tf_path}

@@ -53,12 +53,17 @@ public sealed class GameSettings
     private readonly GameConfig _config;
     private readonly Dictionary<string, JsonNode> _observed = new(StringComparer.Ordinal);
 
-    public GameSettings(GameConfig config, IReadOnlyDictionary<string, JsonNode>? observed = null)
+    public GameSettings(GameConfig config, IReadOnlyDictionary<string, JsonNode>? observed = null, Games.GameDefinition? game = null)
     {
         _config = config;
+        Game = game ?? Games.GameCatalog.Tf2;
         if (observed is not null)
             UpdateObserved(observed);
     }
+
+    public Games.GameDefinition Game { get; }
+
+    public bool Supports(SettingDefinition setting) => Game.Supports(setting);
 
     /// <summary>Raised with the setting id, or <see cref="AllChanged"/> for bulk changes.</summary>
     public event Action<string>? Changed;
@@ -69,8 +74,11 @@ public sealed class GameSettings
             return _config.Clone();
     }
 
+    /// <summary>Only a touched setting is written, so one the game doesn't have never counts as touched.</summary>
     public bool IsTouched(SettingDefinition setting)
     {
+        if (!Supports(setting))
+            return false;
         lock (_gate)
             return _config.Values.TryGetValue(setting.Id, out var v) && v is not null;
     }

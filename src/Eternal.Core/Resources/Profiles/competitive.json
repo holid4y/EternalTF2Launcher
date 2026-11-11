@@ -14,7 +14,6 @@
     "UpdateRate": 66,
     "Fov": 90,
     "HudFastSwitch": true,
-    "FpsMax": 240,
     "ViewmodelFov": 75,
     "MinViewmodels": true,
     "MedicAutocall": true,

@@ -2,8 +2,12 @@ namespace Eternal.Core.Platform;
 
 internal static class Proc
 {
+    /// <summary>Linux keeps only the first 15 characters of a process name in comm.</summary>
+    private const int CommLength = 15;
+
     public static bool AnyNamed(params string[] names)
     {
+        names = [.. names.Select(n => n.Length > CommLength ? n[..CommLength] : n)];
         try
         {
             foreach (var dir in Directory.EnumerateDirectories("/proc"))

@@ -95,7 +95,7 @@
           </StackPanel>
         </Grid>
 
-        <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" Margin="0,0,0,8" />
+        <ProgressBar DockPanel.Dock="Top" Classes="thin" IsIndeterminate="{Binding Loading}" IsVisible="{Binding Loading}" Margin="0,0,0,8" />
 
         <Panel>
           <ScrollViewer IsVisible="{Binding HasResults}" Opacity="{Binding Loading, Converter={x:Static views:Converters.Dimmed}}">

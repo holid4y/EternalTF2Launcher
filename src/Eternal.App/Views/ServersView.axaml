@@ -127,10 +127,10 @@
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
           <TextBlock Classes="meta" Text="{Binding SourcesNote}" VerticalAlignment="Center" />
           <Button Classes="link" FontSize="12" Content="Add a teamwork.tf key" Command="{Binding OpenTeamworkSettingsCommand}"
-                  IsVisible="{Binding !HasTeamworkKey}" />
+                  IsVisible="{Binding OffersTeamwork}" />
         </StackPanel>
       </Grid>
-      <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding Loading}" />
+      <ProgressBar Classes="thin" IsIndeterminate="{Binding Loading}" IsVisible="{Binding Loading}" />
     </StackPanel>
 
     <Grid Grid.Row="3" ColumnDefinitions="*,340" ColumnSpacing="20">
@@ -279,7 +279,7 @@
           <Border Classes="card" IsVisible="{Binding HasSelection}">
             <StackPanel Spacing="10">
               <TextBlock Classes="heading" Text="PLAYERS" />
-              <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding LoadingPlayers}" />
+              <ProgressBar Classes="thin" IsIndeterminate="{Binding LoadingPlayers}" IsVisible="{Binding LoadingPlayers}" />
               <TextBlock Classes="meta" Text="The server didn't list anyone." TextWrapping="Wrap"
                          IsVisible="{Binding NoPlayersListed}" />
               <ItemsControl ItemsSource="{Binding SelectedPlayers}">

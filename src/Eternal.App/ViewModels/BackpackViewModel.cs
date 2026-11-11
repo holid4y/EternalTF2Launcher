@@ -125,6 +125,8 @@ public sealed partial class BackpackViewModel : PageViewModel
 
     protected override void OnFirstActivation() => _ = LoadAsync(force: false);
 
+    public override void Close() => _retry?.Stop();
+
     [RelayCommand]
     private Task RefreshAsync()
     {

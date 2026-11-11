@@ -95,7 +95,8 @@ public static partial class ManagedBlock
             lines.AddRange(binds.Select(b => $"bind \"{b.Key.ToLowerInvariant()}\" \"{b.Command}\""));
         }
 
-        if (settings.Get(SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId)))
+        var seeThrough = SettingsCatalog.Get<ToggleSetting>(SettingsCatalog.TransparentViewmodelsId);
+        if (settings.Supports(seeThrough) && settings.Get(seeThrough))
         {
             lines.Add("");
             lines.Add("// See-through weapons");
@@ -120,7 +121,7 @@ public static class AutoexecFile
     public static AutoexecResult Write(string? tfPath, IReadOnlyList<string> managedLines, string? replaceUserContent = null)
     {
         if (string.IsNullOrWhiteSpace(tfPath) || !File.Exists(Path.Combine(tfPath, "gameinfo.txt")))
-            return new AutoexecResult(AutoexecStatus.NoGameFolder, Error: "TF2 folder not set or not found.");
+            return new AutoexecResult(AutoexecStatus.NoGameFolder, Error: "The game folder isn't set or wasn't found.");
 
         var path = Locate(tfPath);
         for (var attempt = 0; attempt < 3; attempt++)

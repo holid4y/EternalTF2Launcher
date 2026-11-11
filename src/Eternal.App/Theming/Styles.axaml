@@ -116,6 +116,55 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
   </Style>
+  <Style Selector="Button.gameswitch">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Button.gameswitch:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.gameswitch:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.gameswitch.open /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+  </Style>
+  <Style Selector="Button.gameswitch PathIcon#GameChevron">
+    <Setter Property="Foreground" Value="{DynamicResource FaintBrush}" />
+    <Setter Property="RenderTransform" Value="rotate(0deg)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.16" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.gameswitch:pointerover PathIcon#GameChevron, Button.gameswitch.open PathIcon#GameChevron">
+    <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+  </Style>
+  <Style Selector="Button.gameswitch.open PathIcon#GameChevron">
+    <Setter Property="RenderTransform" Value="rotate(180deg)" />
+  </Style>
+  <Style Selector="Border.gamemenu">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="BoxShadow" Value="0 12 32 0 #66000000" />
+  </Style>
+  <Style Selector="Button.gamechoice">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+  <Style Selector="Button.gamechoice:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.gamechoice:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.gamechoice.current /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource RaisedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+  </Style>
+  <Style Selector="Button.gamechoice.absent">
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
+  <Style Selector="Button.gamechoice.absent:pointerover">
+    <Setter Property="Opacity" Value="0.85" />
+  </Style>
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{DynamicResource InkBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource GroundBrush}" />

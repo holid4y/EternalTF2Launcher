@@ -44,6 +44,12 @@ public sealed class Profile : IJsonOnDeserialized
     public string? UserAutoexec { get; set; }
     public ProfileMods? Mods { get; set; }
 
+    /// <summary>The game the setup was made in; null is Team Fortress 2, which is what setups from earlier versions are.</summary>
+    public string? Game { get; set; }
+
+    [JsonIgnore]
+    public Games.GameDefinition MadeFor => Games.GameCatalog.Find(Game);
+
     [JsonIgnore]
     public bool BuiltIn { get; set; }
 

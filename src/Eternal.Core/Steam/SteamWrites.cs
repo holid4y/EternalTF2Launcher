@@ -201,8 +201,15 @@ public sealed class SteamWriteQueue
 
     internal static void ApplyScreenshots(VdfNode root, IEnumerable<SteamWrite> writes)
     {
-        if (root.Path("screenshots", SteamScreenshots.AppKey) is not { } app)
-            return;
+        foreach (var game in writes.GroupBy(w => SteamScreenshots.AppOf(w.Target)))
+        {
+            if (game.Key is { } key && root.Path("screenshots", key) is { } app)
+                ApplyToApp(app, game);
+        }
+    }
+
+    private static void ApplyToApp(VdfNode app, IEnumerable<SteamWrite> writes)
+    {
         foreach (var write in writes)
         {
             var key = app.Children.FirstOrDefault(c => c.Value is VdfNode n && n.Value("filename") == write.Target).Key;

@@ -2,7 +2,7 @@
 
 # Eternal TF2 Launcher
 
-A Team Fortress 2 launcher for Windows and Linux. It manages your mods, loads them in Casual, explains TF2's settings and shows your backpack with community prices.
+A Team Fortress 2 launcher for Windows and Linux. It manages your mods, loads them in Casual, explains TF2's settings and shows your backpack with community prices. It also runs Team Fortress 2 Classified and Team Fortress 2: Gold Rush, each with its own mods and settings.
 
 [Download](../../releases/latest) · [Website](https://holid4y.github.io/EternalTF2Launcher/) · [Discord](https://discord.gg/CD8mUDDuHr)
 
@@ -19,6 +19,20 @@ Mods are loaded by [casual-pre-loader](https://github.com/cueki/casual-pre-loade
 - **Screenshots:** crop, blur, annotate and upload the screenshots Steam keeps for TF2.
 - **Themes:** eight themes, any accent colour and custom backgrounds.
 - **Updates:** new versions download in the background and install when you quit or restart.
+
+## Games
+
+Pick the game from the bottom left of the window. Each one keeps its own mod list, settings, profiles, servers and theme, and nothing of one game is written into another.
+
+| | Team Fortress 2 | TF2 Classified | TF2: Gold Rush |
+|---|---|---|---|
+| Mods and GameBanana | Yes, loaded in Casual | Yes | Yes |
+| Settings | All | All the game has | All the game has |
+| Servers, screenshots, news | Yes | Yes | Yes |
+| Hit and kill sounds | Yes | Not yet | Not yet |
+| Backpack, see-through weapons | Yes | No | No |
+
+A game the launcher supports but you haven't installed shows in the list with a link to its Steam page. The settings list for each game only has what that game's own files contain.
 
 ## Install
 

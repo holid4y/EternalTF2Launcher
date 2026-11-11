@@ -63,8 +63,12 @@ public sealed partial class HitKillSoundsViewModel : ObservableObject
         _notify = notify;
         _enabled = services.CustomSounds.Enabled;
         Reload();
-        PreviewPlayer.Changed += () => Dispatcher.UIThread.Post(RefreshPlaying);
+        PreviewPlayer.Changed += OnPreviewChanged;
     }
+
+    private void OnPreviewChanged() => Dispatcher.UIThread.Post(RefreshPlaying);
+
+    public void Close() => PreviewPlayer.Changed -= OnPreviewChanged;
 
     public ObservableCollection<SoundRowViewModel> HitSounds { get; } = [];
     public ObservableCollection<SoundRowViewModel> KillSounds { get; } = [];
@@ -84,9 +88,9 @@ public sealed partial class HitKillSoundsViewModel : ObservableObject
     public string ListNote => Shown.Count switch
     {
         0 => "",
-        1 => "This one plays every time.",
+        1 => "This one plays every time. It's matched to the loudness of TF2's own sounds, and its slider works on top of that.",
         var n when n > 200 => $"TF2 picks one of these {n} at random. Long lists make maps take longer to load.",
-        var n => $"TF2 picks one of these {n} at random.",
+        var n => $"TF2 picks one of these {n} at random. Each is matched to the loudness of TF2's own sounds, and its slider works on top of that.",
     };
     public string LimitNote => ShowingKill ? "Sounds longer than 10 seconds get cut." : "Sounds longer than 3 seconds get cut, since a flamethrower plays one on every tick.";
     public string StatusText => Enabled
@@ -100,6 +104,24 @@ public sealed partial class HitKillSoundsViewModel : ObservableObject
         if (value)
             MatchGameSettings();
         ScheduleRebuild();
+        Changed?.Invoke();
+    }
+
+    /// <summary>Raised when what plays for hits or kills may have changed.</summary>
+    public event Action? Changed;
+
+    /// <summary>What plays from the default hit or kill slot instead of the game's own ding, or null when none of the player's sounds do.</summary>
+    public string? OwnSoundLabel(SoundKind kind)
+    {
+        if (!Enabled)
+            return null;
+        var playing = (kind == SoundKind.Hit ? HitSounds : KillSounds).Where(r => r.Enabled).ToList();
+        return playing.Count switch
+        {
+            0 => null,
+            1 => $"Your sound: {playing[0].Sound.Name}",
+            var n => $"Your {n} sounds, one at random",
+        };
     }
 
     partial void OnShowingKillChanged(bool value) => ListChanged();
@@ -184,8 +206,23 @@ public sealed partial class HitKillSoundsViewModel : ObservableObject
     [RelayCommand]
     private void Play(SoundRowViewModel? row)
     {
-        if (row is not null)
-            PreviewPlayer.Toggle(_services.CustomSounds.WavPath(row.Sound));
+        if (row is null)
+            return;
+        var path = _services.CustomSounds.WavPath(row.Sound);
+        if (PreviewPlayer.PlayingUrl == path)
+        {
+            PreviewPlayer.Stop();
+            return;
+        }
+        try
+        {
+            PreviewPlayer.Toggle(path, CustomSoundStore.MatchedGain(WaveFile.Read(path).Pcm) * row.Volume / 100);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            Log.Warn($"Couldn't preview {row.Name}", ex);
+            _notify($"{row.Name} couldn't be played: {ex.Message}", true);
+        }
     }
 
     [RelayCommand]
@@ -217,6 +254,7 @@ public sealed partial class HitKillSoundsViewModel : ObservableObject
     {
         _services.CustomSounds.Update(sound.Id, change);
         ScheduleRebuild();
+        Changed?.Invoke();
     }
 
     private void Reload()
@@ -239,6 +277,7 @@ public sealed partial class HitKillSoundsViewModel : ObservableObject
         foreach (var name in new[] { nameof(Shown), nameof(ShowingHit), nameof(IsEmpty), nameof(HitTabText), nameof(KillTabText), nameof(EmptyTitle), nameof(ListNote), nameof(LimitNote), nameof(StatusText) })
             OnPropertyChanged(name);
         RefreshPlaying();
+        Changed?.Invoke();
     }
 
     private void RefreshPlaying()

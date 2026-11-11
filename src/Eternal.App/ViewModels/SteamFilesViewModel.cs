@@ -23,6 +23,8 @@ public sealed partial class SteamFilesViewModel : ObservableObject
         _ = ApplyIfClosedAsync();
     }
 
+    public void Close() => _check.Stop();
+
     [ObservableProperty] private int _waiting;
     [ObservableProperty] private bool _restarting;
 
@@ -68,9 +70,10 @@ public sealed partial class SteamFilesViewModel : ObservableObject
     {
         if (Restarting || Waiting == 0)
             return;
-        if (GameProcess.IsRunning())
+        if (_services.GameRunning)
         {
-            await _main.AlertAsync("Close TF2 first", "Steam can't be restarted while TF2 is running.");
+            var game = _services.GameInfo.ShortName;
+            await _main.AlertAsync($"Close {game} first", $"Steam can't be restarted while {game} is running.");
             return;
         }
         if (!await _main.ConfirmAsync("Restart Steam",

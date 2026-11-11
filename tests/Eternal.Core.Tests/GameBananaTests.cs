@@ -382,6 +382,59 @@ public sealed class GameBananaTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task A_file_server_that_does_not_answer_is_tried_again()
+    {
+        var body = Encoding.UTF8.GetBytes("archive bytes");
+        var flaky = new Flaky(body, failures: 2, () => new TaskCanceledException("connect timed out", new TimeoutException()));
+        var client = new GameBananaClient(new HttpClient(flaky)) { RetryAfter = TimeSpan.Zero };
+
+        var path = await client.DownloadAsync(Offered(body), _dir, null);
+
+        Assert.Equal(body, await System.IO.File.ReadAllBytesAsync(path));
+        Assert.Equal(3, flaky.Calls);
+    }
+
+    [Fact]
+    public async Task A_download_that_keeps_failing_says_what_failed()
+    {
+        var body = Encoding.UTF8.GetBytes("archive bytes");
+        var flaky = new Flaky(body, failures: 9, () => new HttpRequestException("Connection refused"));
+        var client = new GameBananaClient(new HttpClient(flaky)) { RetryAfter = TimeSpan.Zero };
+
+        var ex = await Assert.ThrowsAsync<GameBananaException>(() => client.DownloadAsync(Offered(body), _dir, null));
+
+        Assert.Contains("gamebanana.com", ex.Message);
+        Assert.Contains("3 times", ex.Message);
+        Assert.DoesNotContain("stalled", ex.Message);
+        Assert.Equal(3, flaky.Calls);
+        Assert.Empty(Directory.EnumerateFiles(_dir, "*.part", SearchOption.AllDirectories));
+    }
+
+    [Fact]
+    public async Task A_bad_checksum_is_not_tried_again()
+    {
+        var body = Encoding.UTF8.GetBytes("archive bytes");
+        var flaky = new Flaky(body, failures: 0, () => new HttpRequestException("unused"));
+        var client = new GameBananaClient(new HttpClient(flaky)) { RetryAfter = TimeSpan.Zero };
+
+        await Assert.ThrowsAsync<GameBananaException>(() => client.DownloadAsync(Offered(body, md5: new string('0', 32)), _dir, null));
+        Assert.Equal(1, flaky.Calls);
+    }
+
+    private sealed class Flaky(byte[] body, int failures, Func<Exception> failure) : HttpMessageHandler
+    {
+        public int Calls { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (++Calls <= failures)
+                throw failure();
+            request.RequestUri = new Uri("https://files.gamebanana.com/mods/mod.zip");
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(body), RequestMessage = request });
+        }
+    }
+
     private sealed class Fake(byte[] body, string finalUrl, HttpStatusCode status) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

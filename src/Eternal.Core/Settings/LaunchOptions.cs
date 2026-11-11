@@ -117,7 +117,8 @@ public static class LaunchOptions
         }
 
         tokens.AddRange(StripManaged(Tokenize(settings.ExtraLaunchArgs)));
-        if (preloadInstalled)
+        // The preloader only writes the startup config it runs this way for TF2.
+        if (preloadInstalled && settings.Game == Games.GameCatalog.Tf2)
             tokens.AddRange(["+exec", PreloadExec]);
         return tokens;
     }

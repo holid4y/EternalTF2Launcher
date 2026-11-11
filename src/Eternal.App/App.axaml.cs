@@ -7,8 +7,11 @@ using Eternal.App.Services;
 using Eternal.App.Theming;
 using Eternal.App.ViewModels;
 using Eternal.App.Views;
+using Eternal.Core;
+using Eternal.Core.Games;
 using Eternal.Core.Logging;
 using Eternal.Core.Platform;
+using Eternal.Core.Steam;
 
 namespace Eternal.App;
 
@@ -22,6 +25,10 @@ public partial class App : Application
 
     private AppServices? _services;
     private MainViewModel? _main;
+    private MainWindow? _window;
+    private TrayIcon? _tray;
+    private IDisposable? _trayFollow;
+    private bool _switching;
     private static readonly TimeSpan CleanupLimit = TimeSpan.FromSeconds(10);
     private bool _shuttingDown;
 
@@ -33,22 +40,18 @@ public partial class App : Application
         {
             try
             {
-                _services = new AppServices(Paths);
-                RemoteImage.Cache = _services.Images;
                 var theme = new ThemeService(this);
-                theme.Apply(_services.Launcher.Settings);
-                _main = new MainViewModel(_services, theme);
+                _tray = TrayIconSetup.Setup(this, () => _window?.Reveal(), theme, () => Quit(desktop));
+                var main = Open(StartingGame(), theme, desktop, null);
                 Dispatcher.UIThread.UnhandledException += OnUnhandledException;
-                var window = new MainWindow { DataContext = _main };
+                var window = _window = new MainWindow { DataContext = main };
                 desktop.MainWindow = window;
                 desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 desktop.ShutdownRequested += OnShutdownRequested;
-                window.Opened += (_, _) => _ = _main.StartAsync();
+                window.Opened += (_, _) => _ = _main?.StartAsync();
                 window.ExitRequested += () => Quit(desktop);
-                _main.QuitRequested += () => Quit(desktop);
                 if (Instance is not null)
                     Instance.ActivationRequested += () => Dispatcher.UIThread.Post(window.Reveal);
-                TrayIconSetup.Setup(this, window, _services, theme, () => Quit(desktop));
             }
             catch (Exception ex)
             {
@@ -58,6 +61,63 @@ public partial class App : Application
             }
         }
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static GameDefinition StartingGame()
+    {
+        var settings = LauncherSettingsStore.Peek(Paths);
+        var game = GameCatalog.Find(settings.SelectedGame);
+        return SteamLocator.IsTf2Folder(settings.Game.Path) || SteamLocator.FindGame(game) is not null ? game : GameCatalog.Tf2;
+    }
+
+    /// <summary>Builds everything the launcher holds for <paramref name="game"/>. The updater is the one part that carries over.</summary>
+    private MainViewModel Open(GameDefinition game, ThemeService theme, IClassicDesktopStyleApplicationLifetime desktop, UpdateViewModel? updates)
+    {
+        var services = _services = new AppServices(Paths, game);
+        RemoteImage.Cache = services.Images;
+        theme.Apply(services.Launcher.Settings);
+        var main = _main = new MainViewModel(services, theme, updates);
+        main.QuitRequested += () => Quit(desktop);
+        main.GameSwitchRequested += async next => await SwitchGameAsync(next, desktop);
+        _trayFollow?.Dispose();
+        _trayFollow = TrayIconSetup.Follow(_tray, services.Launcher);
+        return main;
+    }
+
+    private async Task SwitchGameAsync(GameDefinition game, IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        if (_switching || _shuttingDown || _services is not { } services || _main is not { } leaving || _window is not { } window)
+            return;
+        _switching = true;
+        try
+        {
+            Log.Info($"Switching to {game.Name}");
+            await window.LeaveGameAsync();
+            PreviewPlayer.Stop();
+            leaving.Close();
+            await leaving.PrepareForExitAsync();
+            services.Launcher.Settings.SelectedGame = game.Id;
+            await services.DisposeAsync();
+
+            MainViewModel main;
+            try
+            {
+                main = Open(game, leaving.Theme, desktop, leaving.Updates);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Error($"{game.Name} couldn't be opened", ex);
+                main = Open(GameCatalog.Tf2, leaving.Theme, desktop, leaving.Updates);
+                main.Notify($"{game.Name} couldn't be opened, so the launcher went back to Team Fortress 2: {ex.Message}", isError: true);
+            }
+            window.DataContext = main;
+            _ = main.StartAsync();
+        }
+        finally
+        {
+            await window.EnterGameAsync();
+            _switching = false;
+        }
     }
 
     // A failing button (a feed that changed format, a download that broke) should

@@ -97,7 +97,7 @@
         <StackPanel Spacing="14" MaxWidth="640" HorizontalAlignment="Left">
           <TextBlock Classes="heading" FontSize="24" Text="MOD ENGINE" />
           <TextBlock Text="{Binding EngineMessage}" TextWrapping="Wrap" Classes="muted" />
-          <ProgressBar Classes="thin" IsIndeterminate="True" IsVisible="{Binding EngineChecking}" />
+          <ProgressBar Classes="thin" IsIndeterminate="{Binding EngineChecking}" IsVisible="{Binding EngineChecking}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Classes="primary" Content="Set up the engine" Command="{Binding SetupEngineCommand}" IsVisible="{Binding EngineNeedsSetup}" IsEnabled="{Binding !SettingUp}" />
             <Button Content="Get Python" Command="{Binding GetPythonCommand}" IsVisible="{Binding EngineBroken}" />
@@ -276,12 +276,14 @@
             <Border Classes="card">
               <StackPanel Spacing="12">
                 <TextBlock Classes="heading" Text="PRELOADER" />
-                <ToggleSwitch IsChecked="{Binding ShowConsole}" OnContent="Open the console on game start" OffContent="Open the console on game start" />
-                <ToggleSwitch IsChecked="{Binding FixModelPaths}" OnContent="Fix model material paths" OffContent="Fix model material paths" />
-                <ToggleSwitch IsChecked="{Binding DisablePaintColors}" OnContent="Hide paint colours" OffContent="Hide paint colours" />
-                <ToggleSwitch IsChecked="{Binding SkipQuickPrecache}" OnContent="Skip QuickPrecache" OffContent="Skip QuickPrecache" />
-                <TextBlock Classes="meta" TextWrapping="Wrap"
-                           Text="QuickPrecache keeps custom models loaded on map props. Skipping it builds faster." />
+                <StackPanel Spacing="12" IsVisible="{Binding HasBuildOptions}">
+                  <ToggleSwitch IsChecked="{Binding ShowConsole}" OnContent="Open the console on game start" OffContent="Open the console on game start" />
+                  <ToggleSwitch IsChecked="{Binding FixModelPaths}" OnContent="Fix model material paths" OffContent="Fix model material paths" />
+                  <ToggleSwitch IsChecked="{Binding DisablePaintColors}" OnContent="Hide paint colours" OffContent="Hide paint colours" />
+                  <ToggleSwitch IsChecked="{Binding SkipQuickPrecache}" OnContent="Skip QuickPrecache" OffContent="Skip QuickPrecache" />
+                  <TextBlock Classes="meta" TextWrapping="Wrap"
+                             Text="QuickPrecache keeps custom models loaded on map props. Skipping it builds faster." />
+                </StackPanel>
                 <Border Classes="notice" IsVisible="{Binding WineMissing}">
                   <TextBlock TextWrapping="Wrap" FontSize="13"
                              Text="Wine isn't installed, so QuickPrecache is skipped on Linux. Install wine with your package manager to enable it." />
@@ -292,7 +294,7 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="14">
                   <Button Classes="link" Content="Library folder" Command="{Binding OpenLibraryCommand}" />
-                  <Button Classes="link" Content="tf/custom" Command="{Binding OpenCustomFolderCommand}" />
+                  <Button Classes="link" Content="{Binding CustomFolderLabel}" Command="{Binding OpenCustomFolderCommand}" />
                 </StackPanel>
                 <TextBlock Classes="meta" Text="{Binding UpstreamVersion, StringFormat='Powered by cueki\'s {0}'}"
                            IsVisible="{Binding UpstreamVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" />

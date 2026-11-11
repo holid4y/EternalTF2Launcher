@@ -13,9 +13,9 @@ namespace Eternal.App.ViewModels;
 
 public sealed record NewsPostRow(string Date, string Url);
 
-public sealed record NewsRow(NewsItem Item)
+public sealed record NewsRow(NewsItem Item, string Game)
 {
-    public string Title => Item.Posts.Count > 1 ? $"{Item.Posts.Count} Team Fortress 2 updates" : Item.Title;
+    public string Title => Item.Posts.Count > 1 ? $"{Item.Posts.Count} {Game} updates" : Item.Title;
     public string Summary => Item.Summary;
     public string ImageUrl => Item.Picture;
     public bool IsGroup => Item.Posts.Count > 1;
@@ -50,6 +50,16 @@ public sealed partial class HomeViewModel : PageViewModel
     public string Tf2Folder => _services.TfPath ?? "Not found";
     public bool Tf2Found => SteamLocator.IsTf2Folder(_services.TfPath);
 
+    private Eternal.Core.Games.GameDefinition Game => _services.GameInfo;
+    public bool ShowsMods => Game.Has(Eternal.Core.Games.GameFeatures.GameBanana);
+    public bool ShowsNews => Game.Has(Eternal.Core.Games.GameFeatures.News);
+    public bool ShowsBackpack => Game.Has(Eternal.Core.Games.GameFeatures.Backpack);
+    public bool ShowsManageMods => Game.Has(Eternal.Core.Games.GameFeatures.Mods);
+    public bool ShowsConfig => Game.Has(Eternal.Core.Games.GameFeatures.Settings);
+    public string NewsHeading => $"{Game.ShortName.ToUpperInvariant()} NEWS";
+    public string FolderLabel => $"{Game.ShortName} folder";
+    public string FolderProblem => $"Not a {Game.ShortName} folder. Fix it in the Launcher tab.";
+
     protected override void OnFirstActivation() => _ = RefreshAsync();
 
     [RelayCommand]
@@ -60,14 +70,16 @@ public sealed partial class HomeViewModel : PageViewModel
 
     private async Task LoadNewsAsync()
     {
+        if (!ShowsNews)
+            return;
         LoadingNews = true;
         NewsError = null;
         try
         {
-            var news = await FeedService.SteamNewsAsync(8);
+            var news = await FeedService.SteamNewsAsync(Game, 8);
             News.Clear();
             foreach (var item in news)
-                News.Add(new NewsRow(item));
+                News.Add(new NewsRow(item, Game.Name));
         }
         catch (Exception ex)
         {
@@ -82,11 +94,13 @@ public sealed partial class HomeViewModel : PageViewModel
 
     private async Task LoadModsAsync()
     {
+        if (!ShowsMods)
+            return;
         LoadingMods = true;
         ModsError = null;
         try
         {
-            var page = await GameBananaClient.Shared.BrowseAsync(new BrowseQuery(Section.Mods, Sort: BrowseSort.RecentlyUpdated));
+            var page = await GameBananaClient.For(Game).BrowseAsync(new BrowseQuery(Section.Mods, Sort: BrowseSort.RecentlyUpdated));
             var installed = _main.Mods.InstalledSources();
             FreshMods.Clear();
             foreach (var submission in page.Items.Take(8))

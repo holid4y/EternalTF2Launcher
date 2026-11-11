@@ -881,6 +881,40 @@ class PrecacheGuardTest(unittest.TestCase):
         self.assertIs(precache_list.manage_vpk, first)
 
 
+class OtherGamesTest(unittest.TestCase):
+    def test_huds_reach_games_other_than_tf2_and_leave_with_the_preload(self):
+        addons, _ = library_dirs()
+        with tempfile.TemporaryDirectory() as tmp:
+            hud = make_mod(Path(tmp) / "src", "Some HUD", {"resource/clientscheme.res": b"x", "scripts/hudlayout.res": b"y"})
+            (hud / "mod.json").write_text(json.dumps({"addon_name": "Some HUD", "type": "Hud"}))
+            shutil.copytree(hud, addons / "Some HUD")
+            custom = Path(tmp) / "game" / "custom"
+            (custom / "player-hud").mkdir(parents=True)
+            (custom / "player-hud" / "keep.txt").write_text("mine")
+
+            build.place_huds(custom, ["Some HUD"])
+            placed = json.loads((custom / "some hud" / "mod.json").read_text())
+            build.remove_huds(custom)
+
+            self.assertTrue(placed["preloader_installed"])
+            self.assertFalse((custom / "some hud").exists())
+            self.assertEqual((custom / "player-hud" / "keep.txt").read_text(), "mine")
+        shutil.rmtree(addons / "Some HUD")
+
+    def test_an_interrupted_build_is_undone_for_the_game_it_was_for(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = Journal(Path(tmp) / "journal.json")
+            journal.begin("install", Path("/games/tf_goldrush"), game="TF2GR")
+            entry = json.loads(journal.path.read_text())
+            entry["pid"] = 2 ** 22 + 12345
+            journal.path.write_text(json.dumps(entry))
+            with mock.patch.object(build, "journal", return_value=journal), mock.patch.object(build, "uninstall") as undo:
+                build.recover(lambda *_: None)
+
+        undo.assert_called_once()
+        self.assertEqual(undo.call_args.args[2], "TF2GR")
+
+
 class ManifestTest(unittest.TestCase):
     def test_lists_only_what_the_install_wrote(self):
         with tempfile.TemporaryDirectory() as tmp:

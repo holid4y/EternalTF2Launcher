@@ -54,7 +54,7 @@ public sealed partial class GameBananaViewModel : ObservableObject
 {
     private readonly AppServices _services;
     private readonly ModsViewModel _mods;
-    private readonly GameBananaClient _client = GameBananaClient.Shared;
+    private readonly GameBananaClient _client;
     private CancellationTokenSource? _typing;
     private readonly Dictionary<(Section, long?), IReadOnlyList<Category>> _categories = [];
     private CancellationTokenSource? _query;
@@ -63,6 +63,7 @@ public sealed partial class GameBananaViewModel : ObservableObject
 
     public GameBananaViewModel(AppServices services, ModsViewModel mods)
     {
+        _client = GameBananaClient.For(services.GameInfo);
         _services = services;
         _mods = mods;
         _sort = Sorts[0];
@@ -71,8 +72,12 @@ public sealed partial class GameBananaViewModel : ObservableObject
         PreviewPlayer.Volume = services.Launcher.Settings.PreviewVolume;
         View = new ViewOptions(services.Launcher, s => s.GameBanana, textHeight: 114, thumbRatio: 140.0 / 216);
         services.Mods.Changed += () => Dispatcher.UIThread.Post(RefreshInstalled);
-        PreviewPlayer.Changed += () => Dispatcher.UIThread.Post(RefreshPlaying);
+        PreviewPlayer.Changed += OnPreviewChanged;
     }
+
+    private void OnPreviewChanged() => Dispatcher.UIThread.Post(RefreshPlaying);
+
+    public void Close() => PreviewPlayer.Changed -= OnPreviewChanged;
 
     private void RefreshPlaying()
     {

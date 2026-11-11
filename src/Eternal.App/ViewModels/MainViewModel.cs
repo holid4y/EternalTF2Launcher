@@ -7,6 +7,7 @@ using Eternal.App.Theming;
 using Eternal.Core;
 using Eternal.Core.Engine;
 using Eternal.Core.GameFiles;
+using Eternal.Core.Games;
 using Eternal.Core.Logging;
 using Eternal.Core.Mods;
 using Eternal.Core.Platform;
@@ -53,6 +54,18 @@ public sealed partial class NoticeViewModel : ObservableObject, IHoldable
 
 public enum PlayState { Ready, Preparing, Starting, Running, Unavailable }
 
+/// <summary>One entry of the game menu in the dock.</summary>
+public sealed partial class GameChoiceViewModel(GameDefinition game, bool installed, bool isCurrent) : ObservableObject
+{
+    public GameDefinition Game { get; } = game;
+    public bool Installed { get; } = installed;
+    public bool IsCurrent { get; } = isCurrent;
+    public string Name => Game.Name;
+    public string AccessibleName => IsCurrent ? $"{Game.Name}, selected" : Installed ? Game.Name : $"{Game.Name}, not installed. Opens its Steam page";
+
+    [ObservableProperty] private Avalonia.Media.Imaging.Bitmap? _logo;
+}
+
 public sealed partial class MainViewModel : ObservableObject, IDialogs
 {
     private readonly AppServices _services;
@@ -60,7 +73,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     private CancellationTokenSource? _launch;
     private DateTimeOffset? _launchedAt;
 
-    public MainViewModel(AppServices services, ThemeService theme)
+    public MainViewModel(AppServices services, ThemeService theme, UpdateViewModel? updates = null)
     {
         _services = services;
         Theme = theme;
@@ -71,8 +84,9 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         Backpack = new BackpackViewModel(services, this);
         Screenshots = new ScreenshotsViewModel(services, this);
         Config = new ConfigViewModel(services, this);
-        Updates = new UpdateViewModel(services, this, UpdateClient.Shared,
+        Updates = updates ?? new UpdateViewModel(services, this, UpdateClient.Shared,
             typeof(MainViewModel).Assembly.GetName().Version ?? new Version(2, 0, 0));
+        Updates.Attach(this, services.Launcher);
         Launcher = new LauncherViewModel(services, this, theme);
 
         BuildTabs();
@@ -87,6 +101,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         _gameWatch = new DispatcherTimer(TimeSpan.FromSeconds(3), DispatcherPriority.Background, (_, _) => WatchGame());
         _gameWatch.Start();
         RefreshDock();
+        _ = ShowGameLogoAsync();
     }
 
     public ThemeService Theme { get; }
@@ -101,6 +116,10 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     public string Version { get; } = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
 
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
+    public ObservableCollection<GameChoiceViewModel> Games { get; } = [];
+    public string GameName => _services.GameInfo.Name;
+    public bool ShowsModStatus => _services.GameInfo.Has(GameFeatures.Mods);
+    private string Short => _services.GameInfo.ShortName;
     public ObservableCollection<NoticeViewModel> Notices { get; } = [];
     private const string DiscordInvite = "https://discord.gg/CD8mUDDuHr";
     private const string Website = "https://holid4y.github.io/EternalTF2Launcher/";
@@ -121,6 +140,83 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
     [ObservableProperty] private double _dockProgress;
     [ObservableProperty] private bool _dockIndeterminate;
     [ObservableProperty] private string _launchSummary = "";
+    [ObservableProperty] private string? _playHint;
+    [ObservableProperty] private bool _gamesOpen;
+    [ObservableProperty] private Avalonia.Media.Imaging.Bitmap? _gameLogo;
+
+    public event Action<GameDefinition>? GameSwitchRequested;
+
+    [RelayCommand]
+    private void ToggleGames()
+    {
+        if (!GamesOpen)
+            RefreshGames();
+        GamesOpen = !GamesOpen;
+    }
+
+    /// <summary>Looked up each time the menu opens, so a game installed meanwhile shows as installed.</summary>
+    private void RefreshGames()
+    {
+        Games.Clear();
+        foreach (var game in GameCatalog.All)
+        {
+            var current = game == _services.GameInfo;
+            var remembered = _services.Launcher.Settings.KnownPath(game.Id);
+            var folder = current ? _services.TfPath : SteamLocator.IsTf2Folder(remembered) ? remembered : SteamLocator.FindGame(game);
+            var choice = new GameChoiceViewModel(game, current || folder is not null, current);
+            Games.Add(choice);
+            _ = ShowLogoAsync(choice, folder);
+        }
+    }
+
+    private async Task ShowLogoAsync(GameChoiceViewModel choice, string? folder) =>
+        choice.Logo = await GameLogos.GetAsync(choice.Game, folder, _services.Images);
+
+    private async Task ShowGameLogoAsync() =>
+        GameLogo = await GameLogos.GetAsync(_services.GameInfo, _services.TfPath, _services.Images);
+
+    [RelayCommand]
+    private void ChooseGame(GameChoiceViewModel? choice)
+    {
+        GamesOpen = false;
+        if (choice is null || choice.IsCurrent)
+            return;
+        if (!choice.Installed)
+            Shell.OpenSteam(choice.Game.StorePage);
+        else if (WhyGameCannotChange() is { } reason)
+            Notify(reason);
+        else
+            GameSwitchRequested?.Invoke(choice.Game);
+    }
+
+    /// <summary>One game at a time: nothing that writes into a game folder is left running behind a switch.</summary>
+    private string? WhyGameCannotChange()
+    {
+        if (_launch is not null)
+            return $"{GameName} is starting. Switch games once it has.";
+        if (_services.Preload.Status.Phase == PreloadPhase.Building)
+            return "Mods are being applied. Switch games once that's done.";
+        return Mods.Importing ? "A mod is being imported. Switch games once that's done." : null;
+    }
+
+    /// <summary>Stops what this game's pages keep running, before the launcher moves to another game.</summary>
+    public void Close()
+    {
+        _gameWatch.Stop();
+        SteamFiles.Close();
+        foreach (var page in new PageViewModel[] { Home, Servers, Mods, Backpack, Screenshots, Config, Launcher })
+            page.Close();
+    }
+
+    private bool Offers(string tab) => tab switch
+    {
+        "servers" => _services.GameInfo.Has(GameFeatures.Servers),
+        "mods" => _services.GameInfo.Has(GameFeatures.Mods),
+        "backpack" => _services.GameInfo.Has(GameFeatures.Backpack),
+        "screenshots" => _services.GameInfo.Has(GameFeatures.Screenshots),
+        "config" => _services.GameInfo.Has(GameFeatures.Settings),
+        _ => true,
+    };
 
     public bool CanPlay => PlayState is PlayState.Ready or PlayState.Preparing && _launch is null;
 
@@ -140,7 +236,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             ["config"] = Config,
             ["launcher"] = Launcher,
         };
-        var wanted = _services.Launcher.Settings.NormalizedTabs().Where(t => t.Visible).Select(t => t.Id).ToList();
+        var wanted = _services.Launcher.Settings.NormalizedTabs().Where(t => t.Visible && Offers(t.Id)).Select(t => t.Id).ToList();
         if (Tabs.Select(t => t.Id).SequenceEqual(wanted))
             return;
 
@@ -201,25 +297,25 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Warn($"Couldn't look through the game folder: {ex.Message}");
-            Notify("The TF2 folder couldn't be read, so nothing in it was changed. The launcher asks again next time it starts.", isError: true);
+            Notify($"The {Short} folder couldn't be read, so nothing in it was changed. The launcher asks again next time it starts.", isError: true);
             return null;
         }
         if (found.Count == 0)
         {
-            _services.Launcher.Update(s => s.ReviewedGameFolder = true);
+            _services.Launcher.Update(s => s.Game.ReviewedGameFolder = true);
             if (always)
-                Notify("There's nothing of yours in the TF2 folder to go through.");
+                Notify($"There's nothing of yours in the {Short} folder to go through.");
             return null;
         }
 
-        var review = new GameFolderReviewViewModel(tf, found, _services.Launcher.Settings.ManageAutoexec);
+        var review = new GameFolderReviewViewModel(tf, found, _services.Launcher.Settings.Game.ManageAutoexec, _services.GameInfo);
         FolderReview = review;
         var choices = await review.Result;
         FolderReview = null;
         _services.Launcher.Update(s =>
         {
-            s.ReviewedGameFolder = true;
-            s.ManageAutoexec = choices.ManageAutoexec;
+            s.Game.ReviewedGameFolder = true;
+            s.Game.ManageAutoexec = choices.ManageAutoexec;
         });
         return choices;
     }
@@ -239,9 +335,9 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             return;
         if (choices.ReadAutoexec && _services.ReadAutoexecIntoConfig() is > 0 and var read)
             Notify($"Read {read} settings from your autoexec.cfg into the Config tab.");
-        if (choices.Rows.Any(r => r.Choice.Action != FoundAction.Keep) && GameProcess.IsRunning())
+        if (choices.Rows.Any(r => r.Choice.Action != FoundAction.Keep) && _services.GameRunning)
         {
-            await AlertAsync("Close TF2 first", "TF2 is using these files, so nothing was moved. Close it and go through your folder again from the Launcher tab.");
+            await AlertAsync($"Close {Short} first", $"{Short} is using these files, so nothing was moved. Close it and go through your folder again from the Launcher tab.");
             return;
         }
         var aside = Path.Combine(_services.Paths.DataDir, "set-aside", DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss", System.Globalization.CultureInfo.InvariantCulture));
@@ -316,15 +412,19 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         var status = _services.Preload.Status;
         var engine = _services.Runtime.Status;
         var settings = _services.Game.Settings;
-        var running = GameProcess.IsRunning();
+        var running = _services.GameRunning;
 
-        DockBusy = status.Phase == PreloadPhase.Building || engine.State is EngineState.Checking or EngineState.SettingUp;
-        DockProblem = status.Phase is PreloadPhase.Failed or PreloadPhase.Blocked || engine.State is EngineState.Broken or EngineState.Missing;
+        var managed = _services.GameInfo.Has(GameFeatures.Mods);
+        var launchable = _services.GameInfo.Has(GameFeatures.Launch);
+
+        DockBusy = managed && (status.Phase == PreloadPhase.Building || engine.State is EngineState.Checking or EngineState.SettingUp);
+        DockProblem = managed && (status.Phase is PreloadPhase.Failed or PreloadPhase.Blocked || engine.State is EngineState.Broken or EngineState.Missing);
         DockIndeterminate = DockBusy && status.Percent <= 0;
         DockProgress = status.Percent;
 
         (DockTitle, DockDetail) = (status.Phase, engine.State) switch
         {
+            _ when !managed => (GameName, "Mods for this game come in a later version"),
             (PreloadPhase.Building, _) => ("Applying mods", status.Message),
             (PreloadPhase.Failed, _) => ("Mods not applied", status.Message),
             (PreloadPhase.Blocked, _) => ("Mods waiting", status.Message),
@@ -343,12 +443,19 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
         if (_launch is null)
         {
-            PlayState = running ? PlayState.Running : string.IsNullOrWhiteSpace(_services.TfPath) ? PlayState.Unavailable : PlayState.Ready;
+            PlayState = running ? PlayState.Running : !launchable || string.IsNullOrWhiteSpace(_services.TfPath) ? PlayState.Unavailable : PlayState.Ready;
             PlayLabel = PlayState switch
             {
                 PlayState.Running => "RUNNING",
-                PlayState.Unavailable => "SET UP TF2",
+                PlayState.Unavailable => launchable ? $"SET UP {Short.ToUpperInvariant()}" : "NOT YET",
                 _ => "PLAY",
+            };
+            PlayHint = PlayState switch
+            {
+                PlayState.Running => $"{GameName} is already running.",
+                PlayState.Unavailable when launchable => $"The launcher doesn't know where {GameName} is installed. Set its folder in the Launcher tab.",
+                PlayState.Unavailable => $"Starting {GameName} from the launcher comes in a later version.",
+                _ => null,
             };
         }
 
@@ -361,7 +468,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         var dx = settings.Get(SettingsCatalog.Get<ChoiceSetting>("DxLevel"));
         if (dx.Value != "0")
             parts.Add(dx.Label);
-        LaunchSummary = parts.Count > 0 ? string.Join(" · ", parts) : "TF2's own video settings";
+        LaunchSummary = parts.Count > 0 ? string.Join(" · ", parts) : $"{Short}'s own video settings";
     }
 
     [RelayCommand]
@@ -374,7 +481,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             await AlertAsync("Can't use that password", Eternal.Core.Servers.ServerJoin.PasswordRules);
             return false;
         }
-        if (GameProcess.IsRunning())
+        if (_services.GameRunning)
         {
             if (!Eternal.Core.Servers.ServerJoin.ConnectRunningGame(address, password))
             {
@@ -420,10 +527,10 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             var admission = await _services.Preload.AdmitLaunchAsync(allowStale: false, _launch.Token);
             if (!admission.Allowed)
             {
-                if (admission.Problem == "TF2 is already starting.")
+                if (admission.AlreadyStarting)
                     return false;
                 var anyway = await ConfirmAsync("Mods aren't ready",
-                    $"{admission.Problem}\n\nLaunch anyway? TF2 will start without your latest mod changes.",
+                    $"{admission.Problem}\n\nLaunch anyway? {Short} will start without your latest mod changes.",
                     "Launch anyway", "Cancel");
                 if (!anyway)
                     return false;
@@ -437,17 +544,17 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
                 PlayState = PlayState.Starting;
                 PlayLabel = "STARTING";
                 var arguments = LaunchOptions.Build(_services.Game.Settings, admission.PreloadInstalled).Concat(extra).ToList();
-                GameLauncher.Launch(SteamLocator.FindRoot(), arguments);
+                GameLauncher.Launch(SteamLocator.FindRoot(), _services.GameInfo, arguments);
                 if (_services.Launcher.Settings.MinimizeOnLaunch)
                     MinimizeRequested?.Invoke();
 
                 var deadline = DateTime.UtcNow.AddMinutes(2);
-                while (!GameProcess.IsRunning() && DateTime.UtcNow < deadline)
+                while (!_services.GameRunning && DateTime.UtcNow < deadline)
                     await Task.Delay(1000, _launch.Token);
-                if (GameProcess.IsRunning())
+                if (_services.GameRunning)
                     _launchedAt = DateTimeOffset.Now;
                 else
-                    Notify("Steam hasn't started TF2 after two minutes. Check the Steam window for a prompt or an update.", isError: true);
+                    Notify($"Steam hasn't started {Short} after two minutes. Check the Steam window for a prompt or an update.", isError: true);
                 return true;
             }
             finally
@@ -462,7 +569,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         catch (Exception ex)
         {
             Log.Error("Launch failed", ex);
-            await AlertAsync("Couldn't start TF2", ex.Message);
+            await AlertAsync($"Couldn't start {Short}", ex.Message);
             return false;
         }
         finally
@@ -480,7 +587,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
 
     private void WatchGame()
     {
-        var running = GameProcess.IsRunning();
+        var running = _services.GameRunning;
         if (_launch is null && (running != (PlayState == PlayState.Running)))
             RefreshDock();
 
@@ -497,7 +604,7 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
         }
     }
 
-    private static string EarlyExitNotice(TimeSpan after, PreloadRecord record)
+    private string EarlyExitNotice(TimeSpan after, PreloadRecord record)
     {
         var mods = record.Addons.Concat(record.Particles).ToList();
         var names = string.Join(", ", mods.Take(3)) + (mods.Count > 3 ? $" and {mods.Count - 3} more" : "");
@@ -507,8 +614,8 @@ public sealed partial class MainViewModel : ObservableObject, IDialogs
             1 => " Its last build reported a warning, shown on the Mods tab.",
             var n => $" Its last build reported {n} warnings, shown on the Mods tab.",
         };
-        return $"TF2 closed {Math.Round(after.TotalSeconds)} s after starting, with {mods.Count} mod{(mods.Count == 1 ? "" : "s")} applied ({names})."
-            + warnings + " To find out whether the mods are the cause, use Restore vanilla and start TF2 again.";
+        return $"{Short} closed {Math.Round(after.TotalSeconds)} s after starting, with {mods.Count} mod{(mods.Count == 1 ? "" : "s")} applied ({names})."
+            + warnings + $" To find out whether the mods are the cause, use Restore vanilla and start {Short} again.";
     }
 
     public async Task PrepareForExitAsync()
@@ -601,4 +708,7 @@ public abstract class PageViewModel : ObservableObject
 
     protected virtual void OnFirstActivation() { }
     protected virtual void OnReturn() { }
+
+    /// <summary>Stops timers, watchers and subscriptions that would outlive the page.</summary>
+    public virtual void Close() { }
 }

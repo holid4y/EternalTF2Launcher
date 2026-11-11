@@ -12,7 +12,6 @@
     "Rate": 196608,
     "CmdRate": 66,
     "UpdateRate": 66,
-    "FpsMax": 240,
     "ViewmodelFov": 75,
     "MatPhong": true,
     "MatSpecular": true,

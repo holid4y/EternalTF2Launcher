@@ -26,28 +26,37 @@ public sealed record SteamScreenshot(
 
 public static partial class SteamScreenshots
 {
-    public const string AppKey = "440";
     public const int ThumbnailWidth = 200;
 
-    [GeneratedRegex(@"^440/screenshots/[A-Za-z0-9_\-]{1,80}\.(?:jpg|jpeg|png)$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^(?<app>[1-9][0-9]{0,9})/screenshots/[A-Za-z0-9_\-]{1,80}\.(?:jpg|jpeg|png)$", RegexOptions.IgnoreCase)]
     private static partial Regex RecordedPattern();
 
-    public static bool IsRecordedName(string? name) => name is not null && RecordedPattern().IsMatch(name);
+    /// <summary>A screenshot of one of the launcher's games, by the name Steam records for it.</summary>
+    public static bool IsRecordedName(string? name) => AppOf(name) is not null;
 
-    public static string Folder(string userDir) => Path.Combine(userDir, "760", "remote", AppKey, "screenshots");
+    /// <summary>The app a recorded name belongs to, the key Steam files it under in screenshots.vdf; null for anything but the launcher's games.</summary>
+    public static string? AppOf(string? name) =>
+        name is not null && RecordedPattern().Match(name) is { Success: true } m
+        && Games.GameCatalog.All.Any(g => g.AppId.ToString(CultureInfo.InvariantCulture) == m.Groups["app"].Value)
+            ? m.Groups["app"].Value
+            : null;
 
-    public static IReadOnlyList<SteamScreenshot> Load(string userDir)
+    public static string Folder(string userDir, int appId) =>
+        Path.Combine(userDir, "760", "remote", appId.ToString(CultureInfo.InvariantCulture), "screenshots");
+
+    public static IReadOnlyList<SteamScreenshot> Load(string userDir, int appId)
     {
+        var app = appId.ToString(CultureInfo.InvariantCulture);
         var remote = Path.Combine(userDir, "760", "remote");
-        var folder = Folder(userDir);
+        var folder = Folder(userDir, appId);
         var result = new Dictionary<string, SteamScreenshot>(StringComparer.OrdinalIgnoreCase);
         try
         {
             var text = AtomicFile.ReadAllTextOrNull(Path.Combine(userDir, "760", "screenshots.vdf"));
-            var entries = text is null ? null : Vdf.Parse(text).Path("screenshots", AppKey);
+            var entries = text is null ? null : Vdf.Parse(text).Path("screenshots", app);
             foreach (var (_, value) in entries?.Children ?? [])
             {
-                if (value is not VdfNode entry || entry.Value("filename") is not { } name || !IsRecordedName(name))
+                if (value is not VdfNode entry || entry.Value("filename") is not { } name || AppOf(name) != app)
                     continue;
                 var full = Path.GetFullPath(Path.Combine(remote, name));
                 if (!AppPaths.IsInside(folder, full) || !File.Exists(full))
@@ -65,7 +74,7 @@ public static partial class SteamScreenshots
             {
                 foreach (var file in Directory.EnumerateFiles(folder))
                 {
-                    var name = $"440/screenshots/{Path.GetFileName(file)}";
+                    var name = $"{app}/screenshots/{Path.GetFileName(file)}";
                     var full = Path.GetFullPath(file);
                     if (!IsRecordedName(name) || result.ContainsKey(full))
                         continue;

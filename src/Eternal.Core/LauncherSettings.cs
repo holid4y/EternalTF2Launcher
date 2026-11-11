@@ -47,11 +47,45 @@ public sealed class ServerFilters
     }
 }
 
+/// <summary>What the launcher remembers separately for each game.</summary>
+public sealed class GamePreferences
+{
+    public string? Path { get; set; }
+    public string ThemeId { get; set; } = "mann-co";
+    public string? AccentOverride { get; set; }
+    public bool ReviewedGameFolder { get; set; }
+    public bool ManageAutoexec { get; set; } = true;
+}
+
 public sealed class LauncherSettings : IJsonOnDeserialized
 {
+    private readonly GamePreferences _tf2 = new();
+
     public int Version { get; set; } = 2;
 
-    public string? TfPath { get; set; }
+    /// <summary>The game the launcher is showing. <see cref="Game"/> holds what is remembered for it.</summary>
+    public string SelectedGame { get; set; } = Games.GameCatalog.Tf2.Id;
+
+    /// <summary>Every game but Team Fortress 2, whose values stay in the fields earlier versions read.</summary>
+    public Dictionary<string, GamePreferences> OtherGames { get; set; } = new(StringComparer.Ordinal);
+
+    [JsonIgnore]
+    public GamePreferences Game => PreferencesFor(SelectedGame);
+
+    public GamePreferences PreferencesFor(string gameId)
+    {
+        if (gameId == Games.GameCatalog.Tf2.Id)
+            return _tf2;
+        if (!OtherGames.TryGetValue(gameId, out var preferences))
+            OtherGames[gameId] = preferences = new GamePreferences { ThemeId = _tf2.ThemeId, AccentOverride = _tf2.AccentOverride };
+        return preferences;
+    }
+
+    /// <summary>Where a game was last found, without starting to remember anything for a game that was never opened.</summary>
+    public string? KnownPath(string gameId) =>
+        gameId == Games.GameCatalog.Tf2.Id ? _tf2.Path : OtherGames.GetValueOrDefault(gameId)?.Path;
+
+    public string? TfPath { get => _tf2.Path; set => _tf2.Path = value; }
     public string? SteamIdOverride { get; set; }
 
     public bool MinimizeOnLaunch { get; set; }
@@ -62,8 +96,8 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public string LogLevel { get; set; } = "Info";
     public bool ClearLogsOnStart { get; set; }
 
-    public string ThemeId { get; set; } = "mann-co";
-    public string? AccentOverride { get; set; }
+    public string ThemeId { get => _tf2.ThemeId; set => _tf2.ThemeId = value; }
+    public string? AccentOverride { get => _tf2.AccentOverride; set => _tf2.AccentOverride = value; }
     public BackgroundMode Background { get; set; } = BackgroundMode.Screenshots;
     public string? BackgroundImage { get; set; }
 
@@ -91,15 +125,20 @@ public sealed class LauncherSettings : IJsonOnDeserialized
     public string? PythonOverride { get; set; }
     public bool LegacyLibraryChecked { get; set; }
 
-    public bool ReviewedGameFolder { get; set; }
+    public bool ReviewedGameFolder { get => _tf2.ReviewedGameFolder; set => _tf2.ReviewedGameFolder = value; }
 
-    public bool ManageAutoexec { get; set; } = true;
+    public bool ManageAutoexec { get => _tf2.ManageAutoexec; set => _tf2.ManageAutoexec = value; }
 
     public double PreviewVolume { get; set; } = 0.7;
 
     void IJsonOnDeserialized.OnDeserialized()
     {
         JsonChecks.NoEmptyEntries(Tabs, "tabs");
+        if (Games.GameCatalog.All.All(g => g.Id != SelectedGame))
+            SelectedGame = Games.GameCatalog.Tf2.Id;
+        OtherGames = OtherGames
+            .Where(g => g.Value is not null && g.Key != Games.GameCatalog.Tf2.Id && Games.GameCatalog.All.Any(known => known.Id == g.Key))
+            .ToDictionary(g => g.Key, g => g.Value, StringComparer.Ordinal);
         foreach (var view in new[] { Library, GameBanana, ScreenshotView })
             view.Clamp();
         Servers.Clamp();

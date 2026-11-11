@@ -74,7 +74,7 @@ public sealed partial class ConfigViewModel : PageViewModel
                     TextSetting x => new TextRowViewModel(x, services.Game.Settings),
                     _ => throw new InvalidOperationException(definition.Id),
                 };
-                if (!row.Applies)
+                if (!row.Applies || !services.GameInfo.Supports(definition))
                     continue;
                 vm.Rows.Add(row);
                 _rows.Add(row);
@@ -82,9 +82,14 @@ public sealed partial class ConfigViewModel : PageViewModel
             Categories.Add(vm);
         }
         Sounds = new HitKillSoundsViewModel(services, main, (message, isError) => main.Notify(message, isError));
-        Categories.Add(new SettingCategoryViewModel("sounds", "Hit & Kill Sounds", "Your own audio files as hit and kill sounds."));
+        if (services.GameInfo.Has(Eternal.Core.Games.GameFeatures.HitKillSounds))
+        {
+            Sounds.Changed += ShowOwnSounds;
+            ShowOwnSounds();
+            Categories.Add(new SettingCategoryViewModel("sounds", "Hit & Kill Sounds", "Your own audio files as hit and kill sounds."));
+        }
         Categories.Add(new SettingCategoryViewModel("binds", "Binds", "Keys that run commands. Written after your settings, so they win."));
-        Categories.Add(new SettingCategoryViewModel("launch", "Launch Options", "Your own launch options and the full line TF2 starts with."));
+        Categories.Add(new SettingCategoryViewModel("launch", "Launch Options", $"Your own launch options and the full line {services.GameInfo.ShortName} starts with."));
         SelectedCategory = Categories[0];
 
         services.Game.Settings.Changed += _ => Dispatcher.UIThread.Post(OnSettingsChanged);
@@ -99,6 +104,17 @@ public sealed partial class ConfigViewModel : PageViewModel
     public ObservableCollection<BindRowViewModel> Binds { get; } = [];
     public ObservableCollection<Profile> Profiles { get; } = [];
     public HitKillSoundsViewModel Sounds { get; }
+
+    private void ShowOwnSounds()
+    {
+        foreach (var (id, kind) in new[] { ("HitSoundEffect", Eternal.Core.Sounds.SoundKind.Hit), ("KillSoundEffect", Eternal.Core.Sounds.SoundKind.Kill) })
+        {
+            if (_rows.OfType<ChoiceRowViewModel>().FirstOrDefault(r => r.Definition.Id == id) is { } row)
+                row.ShowOwnDefault(Sounds.OwnSoundLabel(kind));
+        }
+    }
+
+    public override void Close() => Sounds.Close();
 
     [ObservableProperty] private SettingCategoryViewModel? _selectedCategory;
     [ObservableProperty] private string _search = "";
@@ -146,13 +162,20 @@ public sealed partial class ConfigViewModel : PageViewModel
         get
         {
             var tokens = LaunchOptions.Build(_services.Game.Settings, _services.Preload.Record.Installed);
-            return tokens.Count == 0 ? "(no options, TF2 starts with its own settings)" : LaunchOptions.Join(tokens);
+            return tokens.Count == 0 ? $"(no options, {Short} starts with its own settings)" : LaunchOptions.Join(tokens);
         }
     }
 
     public string AutoexecPreview => string.Join(Environment.NewLine, ManagedBlock.Build(_services.Game.Settings));
 
-    public string AutoexecPath => _services.TfPath is { } tf ? AutoexecFile.Locate(tf) : "TF2 folder not set";
+    public string AutoexecPath => _services.TfPath is { } tf ? AutoexecFile.Locate(tf) : $"{Short} folder not set";
+
+    private string Short => _services.GameInfo.ShortName;
+    public string LaunchTitle => $"{Short} starts with";
+    public string LaunchNote => (_services.GameInfo == Eternal.Core.Games.GameCatalog.Tf2
+            ? "+exec w/config.cfg is added while mods are applied; it runs the preloader's setup when TF2 boots. "
+            : "")
+        + $"If you start {Short} from Steam instead of here, copy this line into {Short}'s launch options in Steam.";
 
     partial void OnSearchChanged(string value)
     {
@@ -218,7 +241,7 @@ public sealed partial class ConfigViewModel : PageViewModel
         {
             (false, _) => $"Settings not saved: {report.ConfigError}",
             (true, AutoexecStatus.Failed) => $"Saved, but autoexec.cfg wasn't updated: {report.Autoexec.Error}",
-            (true, AutoexecStatus.NoGameFolder) => "Saved. Set your TF2 folder in the Launcher tab to apply it to the game.",
+            (true, AutoexecStatus.NoGameFolder) => $"Saved. Set your {Short} folder in the Launcher tab to apply it to the game.",
             (true, AutoexecStatus.LeftAlone) => "Saved here only. Turn on writing to autoexec.cfg in the Launcher tab to apply it to the game.",
             _ => $"Saved and written to {Path.GetFileName(Path.GetDirectoryName(report.Autoexec.Path ?? "") ?? "")}/autoexec.cfg",
         };
@@ -438,7 +461,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     }
 
     private Task<bool> ConfirmAutoexecAsync(string text) => _main.ConfirmAsync("Autoexec lines",
-        "This setup carries its own autoexec.cfg lines. TF2 runs them as console commands every time it starts, so only take them from someone you trust.\n\n"
+        $"This setup carries its own autoexec.cfg lines. {Short} runs them as console commands every time it starts, so only take them from someone you trust.\n\n"
         + Shown(text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList(), 12, "\n")
         + "\n\nReplace the lines you wrote with these?",
         "Replace mine", "Keep mine");
@@ -498,6 +521,8 @@ public sealed partial class ConfigViewModel : PageViewModel
         try
         {
             var profile = import.Profile;
+            if (profile.MadeFor != _services.GameInfo)
+                profile.Mods = null;
             var wanted = profile.Mods is { } m
                 ? m.Addons.Select(n => (Name: n, Kind: ModKind.Addon)).Concat(m.Particles.Select(n => (Name: n, Kind: ModKind.Particle))).ToList()
                 : [];
@@ -519,6 +544,7 @@ public sealed partial class ConfigViewModel : PageViewModel
 
             if (!await _main.ConfirmAsync($"Import \"{profile.Name}\"", Describe(import, have, plan, missing), "Import and apply"))
                 return;
+            profile.Game = _services.GameInfo == Eternal.Core.Games.GameCatalog.Tf2 ? null : _services.GameInfo.Id;
 
             _services.Profiles.Save(profile);
             RefreshProfiles();
@@ -542,10 +568,13 @@ public sealed partial class ConfigViewModel : PageViewModel
         }
     }
 
-    private static string Describe(ProfileImport import, int have, IReadOnlyList<SharedModPlan> plan, IReadOnlyList<string> missing)
+    private string Describe(ProfileImport import, int have, IReadOnlyList<SharedModPlan> plan, IReadOnlyList<string> missing)
     {
         var p = import.Profile;
-        var lines = new List<string> { $"Replaces your settings with its {p.Values.Count} settings" + (p.Binds is { Count: > 0 } b ? $", {b.Count} binds" : "") + (string.IsNullOrWhiteSpace(p.ExtraLaunchArgs) ? "." : " and its launch options.") };
+        var lines = new List<string>();
+        if (p.MadeFor != _services.GameInfo)
+            lines.Add($"This setup was made for {p.MadeFor.Name}. Only the settings {_services.GameInfo.Name} also has are applied, and its mods are left out.");
+        lines.Add($"Replaces your settings with its {p.Values.Count} settings" + (p.Binds is { Count: > 0 } b ? $", {b.Count} binds" : "") + (string.IsNullOrWhiteSpace(p.ExtraLaunchArgs) ? "." : " and its launch options."));
         if (!string.IsNullOrWhiteSpace(p.ExtraLaunchArgs))
             lines.Add($"Launch options: {Shown([p.ExtraLaunchArgs], 1, "")}");
         if (p.Binds is { Count: > 0 } binds)
@@ -585,7 +614,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     [RelayCommand]
     private async Task ResetAllAsync()
     {
-        if (!await _main.ConfirmAsync("Reset everything", "Put every setting back to TF2's default? Binds and your own launch options are kept.", "Reset", danger: true))
+        if (!await _main.ConfirmAsync("Reset everything", $"Put every setting back to {Short}'s default? Binds and your own launch options are kept.", "Reset", danger: true))
             return;
         _services.Game.Settings.Apply(new Dictionary<string, System.Text.Json.Nodes.JsonNode?>(), complete: true);
     }
@@ -595,7 +624,7 @@ public sealed partial class ConfigViewModel : PageViewModel
     {
         if (_services.TfPath is null || AtomicFile.ReadAllTextOrNull(AutoexecFile.Locate(_services.TfPath)) is not { } text)
         {
-            await _main.AlertAsync("Nothing to read", "No autoexec.cfg was found in your TF2 folder.");
+            await _main.AlertAsync("Nothing to read", $"No autoexec.cfg was found in your {Short} folder.");
             return;
         }
         var values = ObservedSettings.ImportFromAutoexec(text);

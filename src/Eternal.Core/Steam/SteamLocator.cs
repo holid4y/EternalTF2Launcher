@@ -77,15 +77,20 @@ public static class SteamLocator
         return libraries;
     }
 
-    public static string? FindTf2()
+    public static string? FindTf2() => FindGame(Games.GameCatalog.Tf2);
+
+    /// <summary>The folder holding <paramref name="game"/>'s gameinfo.txt in any Steam library, or null when it isn't installed.</summary>
+    public static string? FindGame(Games.GameDefinition game) => FindGame(game, FindRoots());
+
+    internal static string? FindGame(Games.GameDefinition game, IEnumerable<string> roots)
     {
-        foreach (var root in FindRoots())
+        foreach (var root in roots)
         {
             foreach (var library in Libraries(root))
             {
                 var steamapps = Path.Combine(library, "steamapps");
-                var installDir = "Team Fortress 2";
-                var manifest = Path.Combine(steamapps, $"appmanifest_{Tf2AppId}.acf");
+                var installDir = game.InstallDir;
+                var manifest = Path.Combine(steamapps, $"appmanifest_{game.AppId.ToString(CultureInfo.InvariantCulture)}.acf");
                 if (File.Exists(manifest))
                 {
                     try
@@ -94,9 +99,9 @@ public static class SteamLocator
                     }
                     catch (IOException) { }
                 }
-                var tf = Path.Combine(steamapps, "common", installDir, "tf");
-                if (File.Exists(Path.Combine(tf, "gameinfo.txt")))
-                    return tf;
+                var folder = Path.Combine(steamapps, "common", installDir, game.ModDir);
+                if (game.ModDir.Length > 0 && File.Exists(Path.Combine(folder, "gameinfo.txt")))
+                    return folder;
             }
         }
         return null;

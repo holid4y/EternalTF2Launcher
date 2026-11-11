@@ -29,7 +29,10 @@
     <LayoutTransformControl Name="Zoom">
 
       <Panel>
-        <Grid RowDefinitions="*,Auto" ColumnDefinitions="236,*">
+        <Grid Name="Stage" RowDefinitions="*,Auto" ColumnDefinitions="236,*">
+          <Grid.RenderTransform>
+            <TranslateTransform />
+          </Grid.RenderTransform>
 
           <DockPanel Grid.Row="0" Grid.Column="0" LastChildFill="True">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="24,26,16,34">
@@ -80,19 +83,35 @@
                           Content="{Binding SelectedTab.Page}" />
 
           <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="{DynamicResource SurfaceBrush}" Margin="0,20,0,0">
-            <Grid ColumnDefinitions="236,*,Auto,Auto" Height="92">
+            <Grid ColumnDefinitions="320,*,Auto,Auto" Height="92">
               <ProgressBar Grid.ColumnSpan="4" Classes="thin" VerticalAlignment="Top"
                            IsVisible="{Binding DockBusy}" Value="{Binding DockProgress}" Maximum="100"
                            IsIndeterminate="{Binding DockIndeterminate}" />
-              <StackPanel Grid.Column="0" Margin="28,0,0,0" VerticalAlignment="Center" Spacing="2">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <PathIcon Data="{StaticResource IconWarning}" Width="14" Height="14" Foreground="{DynamicResource WarningBrush}"
-                            IsVisible="{Binding DockProblem}" />
-                  <TextBlock Classes="title" Text="{Binding DockTitle}" />
-                </StackPanel>
-                <TextBlock Classes="meta" Text="{Binding DockDetail}" TextTrimming="CharacterEllipsis" MaxWidth="200"
-                           ToolTip.Tip="{Binding DockDetail}" />
-              </StackPanel>
+              <Button Name="GameSwitch" Grid.Column="0" Classes="gameswitch" Classes.open="{Binding GamesOpen}"
+                      Margin="16,0,8,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                      Command="{Binding ToggleGamesCommand}"
+                      AutomationProperties.Name="{Binding GameName, StringFormat='Game: {0}. Choose another game'}">
+                <Grid Name="GameIdentity" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                  <Grid.RenderTransform>
+                    <TranslateTransform />
+                  </Grid.RenderTransform>
+                  <Image Source="{Binding GameLogo}" Width="34" Height="34" VerticalAlignment="Center"
+                         RenderOptions.BitmapInterpolationMode="HighQuality" />
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                      <TextBlock Classes="title" Text="{Binding GameName}" TextTrimming="CharacterEllipsis" MaxWidth="212" />
+                      <PathIcon Name="GameChevron" Data="{StaticResource IconDown}" Width="10" Height="10" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding ShowsModStatus}">
+                      <PathIcon Data="{StaticResource IconWarning}" Width="12" Height="12" Foreground="{DynamicResource WarningBrush}"
+                                IsVisible="{Binding DockProblem}" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding DockTitle}" TextTrimming="CharacterEllipsis" MaxWidth="212" />
+                    </StackPanel>
+                    <TextBlock Classes="meta" Text="{Binding DockDetail}" TextTrimming="CharacterEllipsis" MaxWidth="230"
+                               IsVisible="{Binding ShowsModStatus}" ToolTip.Tip="{Binding DockDetail}" />
+                  </StackPanel>
+                </Grid>
+              </Button>
               <StackPanel Grid.Column="1" Margin="8,0,24,0" VerticalAlignment="Center" Spacing="2">
                 <TextBlock Classes="meta" Text="Launches with" />
                 <TextBlock Classes="muted" Text="{Binding LaunchSummary}" TextTrimming="CharacterEllipsis" />
@@ -102,7 +121,8 @@
                       IsVisible="{Binding PlayState, Converter={x:Static views:Converters.IsPreparing}}" />
               <Button Grid.Column="3" Classes="play" Margin="0,0,32,0" VerticalAlignment="Center"
                       Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}"
-                      Content="{Binding PlayLabel}" HotKey="Ctrl+Enter" />
+                      Content="{Binding PlayLabel}" HotKey="Ctrl+Enter"
+                      ToolTip.Tip="{Binding PlayHint}" ToolTip.ShowOnDisabled="True" />
             </Grid>
           </Border>
 
@@ -162,6 +182,37 @@
             </ItemsControl>
           </StackPanel>
         </Grid>
+
+        <Panel IsVisible="{Binding GamesOpen}">
+          <Border Background="Transparent" PointerPressed="OnGamesDismissed" />
+          <Border Name="GameMenu" Classes="gamemenu" Width="320" Margin="16,0,0,100"
+                  HorizontalAlignment="Left" VerticalAlignment="Bottom" KeyboardNavigation.TabNavigation="Cycle">
+            <Border.RenderTransform>
+              <TranslateTransform />
+            </Border.RenderTransform>
+            <ItemsControl ItemsSource="{Binding Games}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:GameChoiceViewModel">
+                  <Button Classes="gamechoice" Classes.current="{Binding IsCurrent}" Classes.absent="{Binding !Installed}"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ChooseGameCommand}" CommandParameter="{Binding}"
+                          AutomationProperties.Name="{Binding AccessibleName}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                      <Image Source="{Binding Logo}" Width="26" Height="26" VerticalAlignment="Center"
+                             RenderOptions.BitmapInterpolationMode="HighQuality" />
+                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="2" Classes="meta" Text="Install on Steam" VerticalAlignment="Center"
+                                 IsVisible="{Binding !Installed}" />
+                      <PathIcon Grid.Column="2" Data="{StaticResource IconCheck}" Width="14" Height="14"
+                                Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding IsCurrent}" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </Panel>
 
         <Border Name="DropOverlay" Background="{DynamicResource ScrimBrush}" IsVisible="False">
           <Border Background="{DynamicResource SurfaceBrush}" Padding="40,32" CornerRadius="3"
@@ -224,7 +275,7 @@
                 <StackPanel Spacing="4">
                   <CheckBox IsChecked="{Binding ManageAutoexec}" Content="Let Eternal add its own block to autoexec.cfg when I change a setting" />
                   <CheckBox IsChecked="{Binding ReadAutoexec}" Content="Show the values from my autoexec.cfg in the Config tab" IsVisible="{Binding HasAutoexec}" />
-                  <TextBlock Classes="meta" TextWrapping="Wrap" Text="Move into Eternal adds a mod to your list so it loads in Casual too. Put aside moves it to a backup you can open from the Launcher tab. Nothing gets deleted." />
+                  <TextBlock Classes="meta" TextWrapping="Wrap" Text="{Binding Help}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
                   <Button Name="ReviewApply" Classes="ghost" Content="Apply my choices" Command="{Binding ApplyCommand}" IsEnabled="{Binding AnyChanged}" />
@@ -234,7 +285,7 @@
               <ScrollViewer>
                 <StackPanel Spacing="14" Margin="0,0,12,0">
                   <StackPanel Spacing="4" IsVisible="{Binding HasMods}">
-                    <TextBlock Classes="meta" Text="In tf/custom" Margin="0,0,0,2" />
+                    <TextBlock Classes="meta" Text="{Binding CustomLabel}" Margin="0,0,0,2" />
                     <ItemsControl ItemsSource="{Binding Mods}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:FoundRowViewModel">
@@ -257,7 +308,7 @@
                     </ItemsControl>
                   </StackPanel>
                   <StackPanel Spacing="4" IsVisible="{Binding HasConfigs}">
-                    <TextBlock Classes="meta" Text="In tf/cfg" Margin="0,0,0,2" />
+                    <TextBlock Classes="meta" Text="{Binding ConfigLabel}" Margin="0,0,0,2" />
                     <ItemsControl ItemsSource="{Binding Configs}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:FoundRowViewModel">
