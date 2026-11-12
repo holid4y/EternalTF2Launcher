@@ -21,9 +21,8 @@ public static partial class GameFolderScan
     {
         "config.cfg", "config_default.cfg", "botmaxconfig.cfg", "sixense_bindings.cfg", "undo.cfg", "listenserver.cfg", "server.cfg", "valve.rc",
         "360controller.cfg", "360controller-linux.cfg", "undo360controller.cfg", "mtp.cfg", "replay_example.cfg", "sourcevr_tf.cfg",
-        "default.cfg", "randomizer_default.cfg", "vplugins_default.cfg", "birbexec.cfg",
+        "default.cfg", "randomizer_default.cfg", "vplugins_default.cfg",
     };
-    private static readonly HashSet<string> IgnoredCfgFolders = new(StringComparer.OrdinalIgnoreCase) { "w", "addons" };
     private static readonly EnumerationOptions TopLevel = new() { IgnoreInaccessible = true, AttributesToSkip = 0 };
     private static readonly EnumerationOptions Everything = new() { IgnoreInaccessible = true, AttributesToSkip = 0, RecurseSubdirectories = true };
     private static readonly string[] OldPreloaderPrefixes = ["_casual_preloader", "_quickprecache", "quickprecache", "zz_run_preloader_again"];
@@ -115,7 +114,7 @@ public static partial class GameFolderScan
         foreach (var folder in Directory.EnumerateDirectories(cfg, "*", TopLevel))
         {
             var name = Path.GetFileName(folder);
-            if (!IgnoredCfgFolders.Contains(name) && Directory.EnumerateFiles(folder, "*.cfg", Everything).Any())
+            if (!name.Equals("w", StringComparison.OrdinalIgnoreCase) && Directory.EnumerateFiles(folder, "*.cfg", Everything).Any())
                 found.Add(new FoundItem(name, FoundKind.Config, FolderSize(folder), "cfg", [folder], true, ""));
         }
     }

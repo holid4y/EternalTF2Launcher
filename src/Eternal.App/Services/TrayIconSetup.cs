@@ -46,20 +46,13 @@ internal static class TrayIconSetup
         }
     }
 
-    /// <summary>Each game's context loads the launcher settings anew, so the tray follows whichever is current. Dispose the previous follow before following another store.</summary>
-    public static IDisposable Follow(TrayIcon? tray, LauncherSettingsStore launcher)
+    /// <summary>Each game's context loads the launcher settings anew, so the tray follows whichever is current.</summary>
+    public static void Follow(TrayIcon? tray, LauncherSettingsStore launcher)
     {
         if (tray is null)
-            return new Unsubscriber(null);
+            return;
         tray.IsVisible = launcher.Settings.CloseToTray;
         // Settings can change from background work (start-up migration); the tray is a UI object.
-        void Handler() => Dispatcher.UIThread.Post(() => tray.IsVisible = launcher.Settings.CloseToTray);
-        launcher.Changed += Handler;
-        return new Unsubscriber(() => launcher.Changed -= Handler);
-    }
-
-    private sealed class Unsubscriber(Action? onDispose) : IDisposable
-    {
-        public void Dispose() => onDispose?.Invoke();
+        launcher.Changed += () => Dispatcher.UIThread.Post(() => tray.IsVisible = launcher.Settings.CloseToTray);
     }
 }

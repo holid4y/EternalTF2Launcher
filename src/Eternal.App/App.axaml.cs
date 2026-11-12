@@ -27,7 +27,6 @@ public partial class App : Application
     private MainViewModel? _main;
     private MainWindow? _window;
     private TrayIcon? _tray;
-    private IDisposable? _trayFollow;
     private bool _switching;
     private static readonly TimeSpan CleanupLimit = TimeSpan.FromSeconds(10);
     private bool _shuttingDown;
@@ -79,8 +78,7 @@ public partial class App : Application
         var main = _main = new MainViewModel(services, theme, updates);
         main.QuitRequested += () => Quit(desktop);
         main.GameSwitchRequested += async next => await SwitchGameAsync(next, desktop);
-        _trayFollow?.Dispose();
-        _trayFollow = TrayIconSetup.Follow(_tray, services.Launcher);
+        TrayIconSetup.Follow(_tray, services.Launcher);
         return main;
     }
 
