@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
-<title>Eternal, a TF2 launcher for your mods</title>
-<meta name="description" content="A free, open-source Team Fortress 2 launcher for Windows and Linux. It keeps your mods in one list, loads them in Casual, browses GameBanana and community servers, explains TF2's settings, edits your screenshots and prices your backpack.">
+<title>Eternal | Your TF2 setup, together</title>
+<meta name="description" content="Eternal brings Team Fortress 2, TF2 Classified and TF2: Gold Rush together with their own settings, mods and servers, plus GameBanana, screenshots and more. Free for Windows and Linux.">
 <link rel="icon" type="image/png" href="assets/logos/mann-co.png">
 <link rel="preload" href="assets/fonts/BarlowCondensed-ExtraBold.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="site.css">
@@ -24,10 +24,11 @@
 <header class="bar">
   <a class="wordmark" href="#top"><img data-logo src="assets/logos/mann-co.png" alt="" width="40" height="40">Eternal</a>
   <nav aria-label="Sections">
+    <a href="#games">Games</a>
     <a href="#mods">Mods</a>
     <a href="#gamebanana">GameBanana</a>
     <a href="#servers">Servers</a>
-    <a href="#config">Config</a>
+    <a href="#config">Settings</a>
     <a href="#backpack">Backpack</a>
     <a href="#screenshots">Screenshots</a>
     <a href="#themes">Themes</a>
@@ -39,9 +40,9 @@
 <main id="top">
 
   <section class="hero" aria-labelledby="title">
-    <h1 id="title">A launcher <br class="phone-break">for TF2 mods</h1>
+    <h1 id="title">Your TF2 setup, <br class="phone-break">together</h1>
     <div class="hero-text">
-      <p class="lead">Eternal is a free Team Fortress 2 launcher for Windows and Linux. It keeps your mods in one list and loads them in Casual with cueki's casual-pre-loader. Team Fortress 2 Classified and Team Fortress 2: Gold Rush get their own mods and settings too.</p>
+      <p class="lead">Eternal brings Team Fortress 2, TF2 Classified and TF2: Gold Rush into one familiar place. Each game keeps its own mods, settings and servers. Browse GameBanana, edit screenshots, then press Play when you're ready.</p>
       <div class="hero-actions">
         <a class="button button-ink" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest">Download</a>
         <a class="link" href="https://github.com/holid4y/EternalTF2Launcher">Source on GitHub</a>
@@ -50,14 +51,25 @@
       <p class="facts">Version 2.4.0 · Windows and Linux · Free and open source</p>
     </div>
     <figure class="hero-shot">
-      <a href="assets/screens/themes/mann-co-2x.webp" aria-label="Open the screenshot at full size"><img data-shot src="assets/screens/themes/mann-co-1x.webp" srcset="assets/screens/themes/mann-co-1x.webp 1366w, assets/screens/themes/mann-co-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Mods tab on the GameBanana browser: categories on the left, search and sort on top, and a grid of popular TF2 mods with their pictures, likes, views and update dates"></a>
+      <a href="assets/screens/themes/mann-co-2x.webp" aria-label="Open the screenshot at full size"><img data-shot src="assets/screens/themes/mann-co-1x.webp" srcset="assets/screens/themes/mann-co-1x.webp 1366w, assets/screens/themes/mann-co-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The GameBanana tab shows categories, search and sort controls, and a grid of TF2 mods with thumbnails and community stats"></a>
+    </figure>
+  </section>
+
+  <section id="games" class="screens" aria-labelledby="games-title">
+    <div class="screens-text">
+      <h2 id="games-title" data-reveal>Three games, each with its own setup</h2>
+      <p data-reveal>Choose Team Fortress 2, TF2 Classified or TF2: Gold Rush from the menu at the lower left. The window follows your choice: mods, GameBanana, settings, profiles, servers, screenshots and news all belong to that game, along with its saved theme.</p>
+      <p data-reveal>Your games stay separate, and each one only shows settings its own files support. If a game isn't installed yet, the menu links to its Steam page. Backpack prices, hit and kill sounds, and see-through weapons are available for TF2 only.</p>
+    </div>
+    <figure class="screens-shot" data-reveal data-from="left">
+      <a class="shot" href="assets/screens/games-2x.webp"><img src="assets/screens/games-1x.webp" srcset="assets/screens/games-1x.webp 1366w, assets/screens/games-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The game menu open above the bottom bar, listing Team Fortress 2, Team Fortress 2 Classified and Team Fortress 2: Gold Rush with their icons." loading="lazy"></a>
     </figure>
   </section>
 
   <section id="mods" class="mods" aria-labelledby="mods-title">
     <div class="section-head">
-      <h2 id="mods-title" data-reveal>Your mod list</h2>
-      <p class="statement" data-reveal>Casual servers ignore most custom files. Eternal runs cueki's casual-pre-loader for you, so most hitsounds, skins, particles and HUDs still show up there.</p>
+      <h2 id="mods-title" data-reveal>Your mods, ready when you play</h2>
+      <p class="statement" data-reveal>Many custom files won't load in TF2 Casual on their own. Eternal includes cueki's casual-pre-loader to prepare supported mods before launch, though Valve's whitelist still decides what appears in a match.</p>
     </div>
     <div class="story">
       <div class="story-stage" aria-hidden="true">
@@ -68,24 +80,24 @@
       </div>
       <ol class="steps">
         <li class="step" data-step="drop">
-          <a class="shot" href="assets/screens/drop-2x.webp"><img src="assets/screens/drop-1x.webp" srcset="assets/screens/drop-1x.webp 1366w, assets/screens/drop-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="A file being dragged onto the launcher, which shows Drop to import" loading="lazy"></a>
+          <a class="shot" href="assets/screens/drop-2x.webp"><img src="assets/screens/drop-1x.webp" srcset="assets/screens/drop-1x.webp 1366w, assets/screens/drop-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="Dragging a mod file over the window shows a Drop to import prompt" loading="lazy"></a>
           <h3>Add a mod</h3>
-          <p>Drag a VPK, a folder, or a ZIP, RAR or 7z download onto the window. Loose files, like a lightwarp or a hitsound with no folders around it, are placed by matching their names against the game's own files.</p>
+          <p>Drop a VPK, folder or ZIP, RAR or 7z archive onto the window. You can add loose files too, such as a lightwarp or hit sound; Eternal matches them to the game's own files.</p>
         </li>
         <li class="step" data-step="conflict">
-          <a class="shot" href="assets/screens/conflict-2x.webp"><img src="assets/screens/conflict-1x.webp" srcset="assets/screens/conflict-1x.webp 1366w, assets/screens/conflict-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="Two animation mods switched on that change the same files, with the lower one marked as losing them to the one above it" loading="lazy"></a>
+          <a class="shot" href="assets/screens/conflict-2x.webp"><img src="assets/screens/conflict-1x.webp" srcset="assets/screens/conflict-1x.webp 1366w, assets/screens/conflict-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="Two enabled animation mods change the same files; the lower mod loses to the one above it" loading="lazy"></a>
           <h3>Set the order</h3>
-          <p>When two mods change the same file, the one higher up wins. Each mod lists the files it wins and loses, so you can see why a skin didn't show up.</p>
+          <p>If two mods change the same file, the one higher in your list takes priority. Each mod shows which files it wins or loses, so you can see why a skin didn't appear.</p>
         </li>
         <li class="step" data-step="applying">
-          <a class="shot" href="assets/screens/applying-2x.webp"><img src="assets/screens/applying-1x.webp" srcset="assets/screens/applying-1x.webp 1366w, assets/screens/applying-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The launcher applying mods, with a progress bar over the Play button" loading="lazy"></a>
+          <a class="shot" href="assets/screens/applying-2x.webp"><img src="assets/screens/applying-1x.webp" srcset="assets/screens/applying-1x.webp 1366w, assets/screens/applying-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="A progress bar over Play while Eternal prepares mods for launch" loading="lazy"></a>
           <h3>Press Play</h3>
-          <p>Your mods are applied a moment after each change. Nothing is written while the game is running, and Play waits until they're done.</p>
+          <p>Eternal prepares your enabled mods before launch. It never changes game files while that game is running, and Play waits for the work to finish.</p>
         </li>
         <li class="step" data-step="restore">
-          <a class="shot" href="assets/screens/restore-2x.webp"><img src="assets/screens/restore-1x.webp" srcset="assets/screens/restore-1x.webp 1366w, assets/screens/restore-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The Restore vanilla question, asking to turn every mod off while keeping the library" loading="lazy"></a>
-          <h3>Turning them off</h3>
-          <p>Restore vanilla takes your mods out of the game and leaves them in the library for next time.</p>
+          <a class="shot" href="assets/screens/restore-2x.webp"><img src="assets/screens/restore-1x.webp" srcset="assets/screens/restore-1x.webp 1366w, assets/screens/restore-2x.webp 2732w" sizes="100vw" width="1366" height="820" alt="The Restore vanilla confirmation explains that mods will be turned off and the library kept" loading="lazy"></a>
+          <h3>Take them out</h3>
+          <p>Restore vanilla removes Eternal's changes from the game and keeps your library ready for next time.</p>
         </li>
       </ol>
     </div>
@@ -93,80 +105,80 @@
 
   <section id="gamebanana" class="gamebanana" aria-labelledby="gamebanana-title">
     <div class="section-head">
-      <h2 id="gamebanana-title" data-reveal>GameBanana in the Mods tab</h2>
-      <p class="statement" data-reveal>Browse GameBanana's mods and sounds by category, search and sort them, and install what you like without leaving the launcher. TF2, Classified and Gold Rush each show their own section.</p>
+      <h2 id="gamebanana-title" data-reveal>Browse GameBanana without leaving Eternal</h2>
+      <p class="statement" data-reveal>Search, sort and browse mods and sounds for your selected game, then choose what to install.</p>
     </div>
     <div class="gb-browse">
       <figure class="gb-shot" data-reveal>
-        <a class="shot" href="assets/screens/browse-2x.webp"><img src="assets/screens/browse-1x.webp" srcset="assets/screens/browse-1x.webp 1366w, assets/screens/browse-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The GameBanana browser in the Mods tab: categories on the left, a search box and sort menu, and a grid of popular TF2 mods with their pictures, likes, views and update dates" loading="lazy"></a>
+        <a class="shot" href="assets/screens/browse-2x.webp"><img src="assets/screens/browse-1x.webp" srcset="assets/screens/browse-1x.webp 1366w, assets/screens/browse-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The GameBanana tab shows categories, search and sort controls, and a grid of TF2 mods with thumbnails and community stats" loading="lazy"></a>
       </figure>
       <dl class="points">
-        <div data-reveal><dt>You pick the files</dt><dd>Plenty of uploads come as several files, like standard and high-quality builds. You tick the ones you want before anything downloads.</dd></div>
-        <div data-reveal><dt>Checked before installing</dt><dd>Files only come from gamebanana.com, and each has to match the size, MD5 checksum and virus scan GameBanana lists for it.</dd></div>
-        <div data-reveal><dt>Versions in one archive</dt><dd>If a download holds alternatives, like a 54 and a 70 FOV build, you choose which to install. Versions that change the same files are marked.</dd></div>
-        <div data-reveal><dt>18+ content, opt-in</dt><dd>Adult-marked submissions stay hidden until you flip the 18+ NSFW toggle; when listed, they carry an 18+ badge.</dd></div>
-        <div data-reveal><dt>Previews and videos, in place</dt><dd>Sound mods carry an audio preview you can play right from a card or the mod's page. One plays at a time, pressing it again stops it, and a slider sets how loud they play. Videos linked in a post, YouTube or a direct video file, sit in the mod's picture slot with a play button that opens them in your browser.</dd></div>
+        <div data-reveal><dt>Choose what to download</dt><dd>Some uploads offer separate files, such as standard and high-quality versions. Pick the ones you want before the download starts.</dd></div>
+        <div data-reveal><dt>Checked before download</dt><dd>Downloads come from gamebanana.com. Eternal checks the listed size and checksum, and skips files GameBanana flagged or hasn't finished scanning.</dd></div>
+        <div data-reveal><dt>Pick a version</dt><dd>An archive may include alternatives, like 54 and 70 FOV builds. Choose what you want; Eternal flags versions that replace the same files.</dd></div>
+        <div data-reveal><dt>18+ uploads stay hidden</dt><dd>Turn on the 18+ setting to see adult-marked submissions. They'll carry an 18+ badge.</dd></div>
+        <div data-reveal><dt>Listen or watch</dt><dd>Sound previews play in Eternal, one at a time. Video links open in your browser.</dd></div>
       </dl>
     </div>
     <div class="gb-pair">
       <figure data-reveal>
-        <a class="shot" href="assets/screens/details-2x.webp"><img src="assets/screens/details-1x.webp" srcset="assets/screens/details-1x.webp 1366w, assets/screens/details-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 48vw" width="1366" height="820" alt="The page of an Engineer animation mod in the launcher: its picture and thumbnails, download and like counts, and its two files, the installed one ticked, above a Reinstall button" loading="lazy"></a>
-        <figcaption>A mod's page, with two of its files ticked.</figcaption>
+        <a class="shot" href="assets/screens/details-2x.webp"><img src="assets/screens/details-1x.webp" srcset="assets/screens/details-1x.webp 1366w, assets/screens/details-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 48vw" width="1366" height="820" alt="An Engineer animation mod page with its preview, download and like counts, and two file options; one is installed" loading="lazy"></a>
+        <figcaption>A mod page with both available files selected.</figcaption>
       </figure>
       <figure data-reveal>
-        <a class="shot" href="assets/screens/parts-2x.webp"><img src="assets/screens/parts-1x.webp" srcset="assets/screens/parts-1x.webp 1366w, assets/screens/parts-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 48vw" width="1366" height="820" alt="A dialog asking what to install from a Scout animation download, with the 54 FOV version ticked and the 70+ FOV version marked as changing the same files" loading="lazy"></a>
-        <figcaption>A download with two versions of the same animations.</figcaption>
+        <a class="shot" href="assets/screens/parts-2x.webp"><img src="assets/screens/parts-1x.webp" srcset="assets/screens/parts-1x.webp 1366w, assets/screens/parts-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 48vw" width="1366" height="820" alt="Choose between 54 and 70 FOV Scout animations; the dialog notes that both versions change the same files" loading="lazy"></a>
+        <figcaption>Two animation versions that change the same files.</figcaption>
       </figure>
     </div>
     <figure class="gb-wide" data-reveal>
-      <a class="shot" href="assets/screens/grid-2x.webp"><img src="assets/screens/grid-1x.webp" srcset="assets/screens/grid-1x.webp 1366w, assets/screens/grid-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The mod library as a grid of cards, each with its GameBanana picture, its place in the load order and an on/off switch, with a slider above it for the card size" loading="lazy"></a>
-      <figcaption>Your library and GameBanana both switch between a list and a grid, with a slider for the card size. Mods installed from GameBanana bring their picture with them.</figcaption>
+      <a class="shot" href="assets/screens/grid-2x.webp"><img src="assets/screens/grid-1x.webp" srcset="assets/screens/grid-1x.webp 1366w, assets/screens/grid-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The mod library in grid view, with GameBanana images, load order, enable switches and a card-size slider" loading="lazy"></a>
+      <figcaption>Switch between a list and a grid, adjust the card size, and keep GameBanana's pictures with the mods you install.</figcaption>
     </figure>
   </section>
 
   <section id="servers" class="servers" aria-labelledby="servers-title">
     <div class="section-head">
-      <h2 id="servers-title" data-reveal>Servers near you</h2>
-      <p class="statement" data-reveal>The Servers tab lists community servers in your region and asks each one for its map, players and ping. Double-click to join. If TF2 isn't open yet, it starts with your mods and settings and goes straight in.</p>
+      <h2 id="servers-title" data-reveal>Find and join a server</h2>
+      <p class="statement" data-reveal>Browse community servers for the game you selected, with each listing's map, players and ping. Double-click to join. If the game isn't running, Eternal starts it with your setup and joins for you.</p>
     </div>
     <div class="gb-browse">
       <figure class="gb-shot" data-reveal>
-        <a class="shot" href="assets/screens/servers-2x.webp"><img src="assets/screens/servers-1x.webp" srcset="assets/screens/servers-1x.webp 1366w, assets/screens/servers-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The Servers tab: community servers sorted by ping, each with its game mode, map and player count" loading="lazy"></a>
+      <a class="shot" href="assets/screens/servers-2x.webp"><img src="assets/screens/servers-1x.webp" srcset="assets/screens/servers-1x.webp 1366w, assets/screens/servers-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 64vw" width="1366" height="820" alt="The Servers tab lists community servers with their ping, map and player count" loading="lazy"></a>
       </figure>
       <dl class="points">
-        <div data-reveal><dt>Fake players stay out</dt><dd>Some servers claim a crowd their own player list doesn't have. Those are marked and hidden until you ask for them.</dd></div>
-        <div data-reveal><dt>Honest pings</dt><dd>When a server answers through a relay near you, its ping is shown as what the distance allows, not the number the relay sends back.</dd></div>
-        <div data-reveal><dt>Your favorites, everywhere</dt><dd>Favorites and history are the game's own, so a server you star in TF2 shows up here and the other way round.</dd></div>
-        <div data-reveal><dt>Classified and Gold Rush too</dt><dd>Switch games from the bottom left and the list shows that game's servers.</dd></div>
-        <div data-reveal><dt>Join when free</dt><dd>On a full server it keeps checking for ten minutes and joins as soon as a slot opens.</dd></div>
-        <div data-reveal><dt>Region or everywhere</dt><dd>"Near me" keeps it local. "Everywhere" searches the whole list, not just your region.</dd></div>
+        <div data-reveal><dt>Spot fake player counts</dt><dd>Some servers show more players than their own list contains. Eternal flags them and hides them unless you choose to see them.</dd></div>
+        <div data-reveal><dt>A more useful ping</dt><dd>Some servers reply through a nearby relay. Eternal estimates the ping from the relay's distance instead of showing its artificially low number.</dd></div>
+        <div data-reveal><dt>Favorites stay with the game</dt><dd>Each game keeps its own favorites and history, just as it does in Steam.</dd></div>
+        <div data-reveal><dt>One list per game</dt><dd>Switch to Classified or Gold Rush to see that game's servers, favorites and history.</dd></div>
+        <div data-reveal><dt>Wait for a free slot</dt><dd>If a server is full, Eternal can keep checking for up to ten minutes and join when a slot opens.</dd></div>
+        <div data-reveal><dt>Nearby or worldwide</dt><dd>Choose Near me for local servers or Everywhere to search across regions.</dd></div>
       </dl>
     </div>
-    <p class="source-note" data-reveal>The list comes from GameMonitoring, Valve's own master server list, plus teamwork.tf's community lists if you add your own key in the launcher's settings.</p>
+    <p class="source-note" data-reveal>Eternal combines GameMonitoring's listings with Steam's server list for TF2. Add a teamwork.tf API key in Settings to include its community lists.</p>
   </section>
 
   <section id="config" class="config" aria-labelledby="config-title">
     <div class="config-text">
-      <h2 id="config-title" data-reveal>Settings, explained</h2>
-      <p class="statement" data-reveal>Every option says what it does, whether it costs frames and what TF2's default is. Anything you leave alone stays with TF2.</p>
+      <h2 id="config-title" data-reveal>Settings that make sense</h2>
+      <p class="statement" data-reveal>Each setting explains what it changes, its default and any effect on frame rate. Leave it alone and the game keeps its own value.</p>
       <dl class="points">
-        <div data-reveal><dt>Binds by pressing the key</dt><dd>Click, press the key, mouse button or scroll wheel, then type the command.</dd></div>
-        <div data-reveal><dt>Profiles to start from</dt><dd>Competitive, Max Performance, Max Quality and Balanced, or your own.</dd></div>
-        <div data-reveal><dt>Share your setup</dt><dd>Copy it as a code to paste in any chat, or save one file that also carries mods that aren't on GameBanana. Your own autoexec lines only go along if you say so. Importing shows the launch options, binds and autoexec lines a setup brings before anything changes, then downloads the GameBanana mods by their exact file and puts everything in order.</dd></div>
-        <div data-reveal><dt>See-through weapons</dt><dd>One switch, with any HUD. The launcher adds what it needs on top of your HUD instead of editing it.</dd></div>
-        <div data-reveal><dt>Search by name or cvar</dt><dd>Type "fov" or "viewmodel_fov", either finds it.</dd></div>
+        <div data-reveal><dt>Set a bind by pressing a key</dt><dd>Choose a bind, press a key, mouse button or scroll wheel, then enter the command.</dd></div>
+        <div data-reveal><dt>Start with a profile</dt><dd>Choose Competitive, Max Performance, Max Quality or Balanced, then adjust it or make your own.</dd></div>
+        <div data-reveal><dt>Share your setup</dt><dd>Send a short code or a file. Before import, review its launch options and binds; shared autoexec lines replace yours only if you agree. A file can also include mods that aren't on GameBanana.</dd></div>
+        <div data-reveal><dt>See-through weapons</dt><dd>In TF2, make viewmodels transparent with one switch. Eternal adds what it needs alongside your HUD without editing it.</dd></div>
+        <div data-reveal><dt>Search the way you think</dt><dd>Search by a setting's name or cvar, such as “field of view” or “viewmodel_fov”.</dd></div>
       </dl>
     </div>
     <figure class="config-shot" data-reveal data-from="left">
-      <a class="shot" href="assets/screens/config-2x.webp"><img src="assets/screens/config-1x.webp" srcset="assets/screens/config-1x.webp 1366w, assets/screens/config-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Config tab on its Performance page: a frame rate cap slider and switches for shiny models, reflections and surface detail" loading="lazy"></a>
+      <a class="shot" href="assets/screens/config-2x.webp"><img src="assets/screens/config-1x.webp" srcset="assets/screens/config-1x.webp 1366w, assets/screens/config-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Config tab shows a frame-rate slider and switches for reflections, model detail and surface detail" loading="lazy"></a>
     </figure>
   </section>
 
   <section class="autoexec" aria-labelledby="autoexec-title">
     <div class="autoexec-text">
-      <h2 id="autoexec-title" data-reveal>Your autoexec is left alone</h2>
-      <p data-reveal>What you change goes into one marked block at the end of autoexec.cfg. Everything outside it stays as you wrote it, and the original is kept as autoexec.cfg.eternal-backup. If you never change a setting, the file is never opened for writing.</p>
-      <p data-reveal>This is the block after setting a field of view, fast weapon switch, damage numbers, a frame cap and one voice bind:</p>
+      <h2 id="autoexec-title" data-reveal>Your autoexec stays yours</h2>
+      <p data-reveal>Eternal writes only the settings you change, in one marked block at the end of autoexec.cfg. The rest stays as you wrote it, and a backup is kept. If you leave every setting alone, Eternal doesn't write to the file.</p>
+      <p data-reveal>Here's what that block can look like after changing a few settings and adding a voice bind:</p>
     </div>
     <div class="slip slip-code" data-reveal>
       <pre><code>// === ETERNAL LAUNCHER MANAGED BLOCK — do not edit between these markers ===
@@ -180,9 +192,6 @@ hud_combattext 1
 // Weapon View
 viewmodel_fov 70
 
-// Performance
-fps_max 240
-
 // Binds
 bind "f" "voicemenu 0 0"
 // === ETERNAL LAUNCHER MANAGED BLOCK END ===</code></pre>
@@ -191,65 +200,54 @@ bind "f" "voicemenu 0 0"
 
   <section class="backpack" aria-labelledby="keep-title">
     <figure class="backpack-shot" data-reveal data-from="right">
-      <a class="shot" href="assets/screens/review-2x.webp"><img src="assets/screens/review-1x.webp" srcset="assets/screens/review-1x.webp 1366w, assets/screens/review-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The first-start dialog listing the VPKs, HUDs, hitsounds, mastercomfig and config files found in the TF2 folder, each with a choice to keep it, move it into Eternal or put it aside" loading="lazy"></a>
+      <a class="shot" href="assets/screens/review-2x.webp"><img src="assets/screens/review-1x.webp" srcset="assets/screens/review-1x.webp 1366w, assets/screens/review-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The first-run review shows files already in a game folder and lets you choose what to keep, import or move to a backup" loading="lazy"></a>
     </figure>
     <div class="backpack-text">
-      <h2 id="keep-title" data-reveal>What you already have stays yours</h2>
-      <p data-reveal>The first time it opens, Eternal reads tf/custom and tf/cfg and shows you what it found: VPKs, mod folders, HUDs, hitsounds, mastercomfig and your .cfg files. It writes nothing to the game until you've answered.</p>
-      <p data-reveal>Everything stays where it is unless you say otherwise. You can move a mod into your list so it loads in Casual, or put something aside in a backup folder. Nothing gets deleted.</p>
+      <h2 id="keep-title" data-reveal>Your files stay yours</h2>
+      <p data-reveal>The first time you open a game, Eternal checks its custom and cfg folders and shows you the files it finds, from VPKs and HUDs to mastercomfig and your own configs. Nothing changes until you choose what to do.</p>
+      <p data-reveal>Keep files where they are, import a mod into your library or move it to a backup folder. Eternal doesn't delete them.</p>
     </div>
-  </section>
-
-  <section id="games" class="screens" aria-labelledby="games-title">
-    <div class="screens-text">
-      <h2 id="games-title" data-reveal>Three games, one launcher</h2>
-      <p data-reveal>Team Fortress 2 Classified and Team Fortress 2: Gold Rush sit next to TF2 in the bottom left corner. Pick one and the launcher shows that game's mod list, GameBanana section, settings, profiles, servers, screenshots and news, in the theme you chose for it.</p>
-      <p data-reveal>Nothing of one game is written into another. The settings list only has what each game's own files contain, and a game you haven't installed is listed with a link to its Steam page. The backpack, hit and kill sounds and see-through weapons stay with TF2 for now.</p>
-    </div>
-    <figure class="screens-shot" data-reveal data-from="left">
-      <a class="shot" href="assets/screens/games-2x.webp"><img src="assets/screens/games-1x.webp" srcset="assets/screens/games-1x.webp 1366w, assets/screens/games-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The game menu open above the bottom bar, listing Team Fortress 2, Team Fortress 2 Classified and Team Fortress 2: Gold Rush with their icons." loading="lazy"></a>
-    </figure>
   </section>
 
   <section id="sounds" class="screens" aria-labelledby="sounds-title">
     <div class="screens-text">
-      <h2 id="sounds-title" data-reveal>Hit and kill sounds</h2>
-      <p data-reveal>Pick any audio file you have, or a whole folder of them. Eternal converts it to the format TF2 reads, cuts the silence at the start so it plays on the hit, and packs it as a mod that loads in Casual.</p>
-      <p data-reveal>Add more than one and TF2 plays a random one each time. Every sound has its own volume and switch, and you can listen to it before taking it into a match.</p>
+      <h2 id="sounds-title" data-reveal>Make hit and kill sounds yours</h2>
+      <p data-reveal>Choose an audio file or a folder of sounds. Eternal converts them to TF2's format, trims silence at the start and prepares them for Casual.</p>
+      <p data-reveal>Add several and TF2 picks one at random for each hit or kill. Eternal matches each sound to TF2's usual volume. Adjust it with its own slider, and preview it at the same level you'll hear in game.</p>
     </div>
     <figure class="screens-shot" data-reveal data-from="left">
-      <a class="shot" href="assets/screens/sounds-2x.webp"><img src="assets/screens/sounds-1x.webp" srcset="assets/screens/sounds-1x.webp 1366w, assets/screens/sounds-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Hit and Kill Sounds page in Config: a list of sounds, each with a play button, a volume slider and an on/off switch" loading="lazy"></a>
+      <a class="shot" href="assets/screens/sounds-2x.webp"><img src="assets/screens/sounds-1x.webp" srcset="assets/screens/sounds-1x.webp 1366w, assets/screens/sounds-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Hit and Kill Sounds settings show sound previews, volume sliders and on/off switches" loading="lazy"></a>
     </figure>
   </section>
 
   <section id="backpack" class="backpack" aria-labelledby="backpack-title">
     <figure class="backpack-shot" data-reveal data-from="right">
-      <a class="shot" href="assets/screens/backpack-2x.webp"><img src="assets/screens/backpack-1x.webp" srcset="assets/screens/backpack-1x.webp 1366w, assets/screens/backpack-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Backpack tab: a grid of items with their names and prices, and the selected item open on the right with its buy and sell prices" loading="lazy"></a>
+      <a class="shot" href="assets/screens/backpack-2x.webp"><img src="assets/screens/backpack-1x.webp" srcset="assets/screens/backpack-1x.webp 1366w, assets/screens/backpack-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The Backpack tab shows item names and prices, with buy and sell details for the selected item" loading="lazy"></a>
     </figure>
     <div class="backpack-text">
-      <h2 id="backpack-title" data-reveal>Backpack prices</h2>
-      <p data-reveal>Eternal reads your public TF2 inventory from Steam and prices it with backpack.tf data from pricedb.io, in keys and refined.</p>
-      <p data-reveal>Pick an item to see what sellers ask, what buyers offer and its Steam Market price in your currency. You can sort by value and filter by quality, class or tradability.</p>
-      <p data-reveal>Renamed items show their new name, with the original above it, and their custom description. Add your own Steam Web API key and items with a decal show it too.</p>
+      <h2 id="backpack-title" data-reveal>Know what your backpack is worth</h2>
+      <p data-reveal>See your public TF2 inventory with backpack.tf prices from pricedb.io, shown in keys and refined.</p>
+      <p data-reveal>Select an item to compare seller prices, buyer offers and its Steam Market price in your currency. Sort by value or filter by quality, class and tradability.</p>
+      <p data-reveal>Renamed items show their new name, original name and custom description. Add your Steam Web API key to see decals on items that have them.</p>
     </div>
   </section>
 
   <section id="screenshots" class="screens" aria-labelledby="screens-title">
     <div class="screens-text">
       <h2 id="screens-title" data-reveal>Your screenshots</h2>
-      <p data-reveal>Every TF2 screenshot Steam keeps for you, in one place. Crop or turn one, blur out names, fix the light, add text, arrows or a picture from your computer, then copy it or put it on your Steam profile.</p>
-      <p data-reveal>Anything you place can be dragged around, resized from its handles and turned, or set to exact values in the side panel. You can also set a screenshot as the launcher's background.</p>
-      <p data-reveal>An edit is saved over the same file, so Steam can still upload it, and the original is kept for Revert. Once Steam has uploaded a screenshot, Copy link gives you its steamcommunity.com page.</p>
+      <p data-reveal>Browse the screenshots Steam saves for each game. Crop or rotate one, blur names, adjust the light, add text, arrows or another picture, then copy it or post it to your Steam profile.</p>
+      <p data-reveal>Move, resize and rotate anything you add, or set its exact values in the side panel. You can also use a screenshot as Eternal's background.</p>
+      <p data-reveal>Save your edits over the screenshot Steam uses for uploads; the original stays available with Revert. Once Steam uploads it, use Copy link to open its Steam Community page.</p>
     </div>
     <figure class="screens-shot" data-reveal data-from="left">
-      <a class="shot" href="assets/screens/editor-2x.webp"><img src="assets/screens/editor-1x.webp" srcset="assets/screens/editor-1x.webp 1366w, assets/screens/editor-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The screenshot editor: a box, an arrow and a piece of text placed on a TF2 map, the text selected with handles around it and its position, size, turn and opacity in the side panel" loading="lazy"></a>
+      <a class="shot" href="assets/screens/editor-2x.webp"><img src="assets/screens/editor-1x.webp" srcset="assets/screens/editor-1x.webp 1366w, assets/screens/editor-2x.webp 2732w" sizes="(max-width: 900px) 100vw, 58vw" width="1366" height="820" alt="The screenshot editor has a box, arrow and text on a TF2 map. The text is selected, with its position, size, rotation and opacity in the side panel" loading="lazy"></a>
     </figure>
   </section>
 
   <section id="themes" class="themes" aria-labelledby="themes-title">
     <div class="themes-head">
-      <h2 id="themes-title" data-reveal>Eight themes</h2>
-      <p id="themes-note" data-reveal>Click one and this page switches to it. The launcher also takes any accent colour, which the hat icon follows, your own TF2 screenshots as a background (a random one, a slideshow or one you pick) and a bigger or smaller interface.</p>
+      <h2 id="themes-title" data-reveal>Make it feel like yours</h2>
+      <p id="themes-note" data-reveal>Choose from eight themes and set an accent color; the hat icon follows it. Use TF2 screenshots as a background: choose one, let Eternal pick at random or start a slideshow. You can also make the interface larger or smaller.</p>
     </div>
     <div class="tiles" role="group" aria-labelledby="themes-note">
       <button type="button" class="tile" data-pick="mann-co" aria-pressed="true">
@@ -289,49 +287,50 @@ bind "f" "voicemenu 0 0"
 
   <section id="install" class="install" aria-labelledby="install-title">
     <div class="install-text">
-      <h2 id="install-title" data-reveal>Installing</h2>
-      <p data-reveal>Both downloads include everything they need, so there's no .NET or Python to install first.</p>
-      <p data-reveal>Coming from 1.x? Your settings, profiles and mods carry over on the first start.</p>
-      <p data-reveal>From 2.1.1 on it updates itself: new versions download in the background and install when you quit, or right away with Restart to update. You can turn that off in its settings.</p>
+      <h2 id="install-title" data-reveal>Install Eternal</h2>
+      <p data-reveal>The Windows and Linux downloads include what they need. You don't have to install .NET or Python first.</p>
+      <p data-reveal>Upgrading from version 1? Your settings, profiles and mod library carry over the first time you open Eternal.</p>
+      <p data-reveal>Eternal downloads updates in the background and installs them when you quit. Choose Restart to update if you want to install one right away, or turn automatic updates off in Settings.</p>
       <a class="button" href="https://github.com/holid4y/EternalTF2Launcher/releases/latest" data-reveal>Download 2.4.0</a>
     </div>
     <div class="slip slip-steps" data-reveal>
       <h3>Windows</h3>
       <ul>
-        <li><span>Run EternalLauncher-2.4.0-win-x64-setup.exe</span><span>no admin rights</span></li>
-        <li><span>Or unzip the portable build anywhere</span><span>keeps its data next to it</span></li>
+        <li><span>Run EternalLauncher-2.4.0-win-x64-setup.exe</span><span>no admin rights needed</span></li>
+        <li><span>Or unzip the portable build anywhere</span><span>data stays beside it</span></li>
       </ul>
       <h3>Linux</h3>
       <ul>
         <li><code>tar xf EternalLauncher-2.4.0-linux-x64.tar.gz</code></li>
         <li><code>cd EternalLauncher &amp;&amp; ./install.sh</code><span>adds a menu entry</span></li>
-        <li><span>Install wine too, for custom props and robots</span><span>optional</span></li>
-        <li><span>Changed your mind? <code>./install.sh --remove</code></span><span>keeps your settings</span></li>
+        <li><span>Install Wine for custom props, robots, pickups and flags</span><span>optional</span></li>
+        <li><span>To uninstall: <code>./install.sh --remove</code></span><span>keeps your settings</span></li>
       </ul>
-      <p class="slip-end"><span>Open Eternal, pick your mods, press Play</span></p>
+      <p class="slip-end"><span>Choose a game, set it up, press Play</span></p>
     </div>
   </section>
 
   <section id="faq" class="faq" aria-labelledby="faq-title">
     <h2 id="faq-title" data-reveal>Questions</h2>
     <div class="answers">
-      <p data-reveal><strong>Do mods load in Casual?</strong> Most visual ones do: particles and unusual effects, weapon and cosmetic skins, war paints, map textures, props and HUDs. Full player-model swaps are hit or miss, because the server often forces the original model back. The Mods tab warns you about models with a known problem before you launch.</p>
-      <p data-reveal><strong>Is downloading from GameBanana safe?</strong> Eternal only downloads files that GameBanana's virus scan passed, only from gamebanana.com, and checks each one against the size and MD5 checksum GameBanana lists. It's still someone else's upload, so the usual care applies.</p>
-      <p data-reveal><strong>Does it change the game itself?</strong> No. Eternal never touches the game's code or memory. It writes the packed mods into tf/custom and one marked block into autoexec.cfg, the same places any HUD or hitsound goes.</p>
-      <p data-reveal><strong>Can I still start TF2 from Steam?</strong> Yes. Copy the launch line from Config, Launch Options into TF2's launch options in Steam so the preloader's setup still runs when the game boots.</p>
-      <p data-reveal><strong>Where do my mods live?</strong> In the launcher's own folder, not in tf/custom. Restore vanilla removes what was put in the game and keeps your library.</p>
-      <p data-reveal><strong>Does it cost anything?</strong> No. It's free and open source under the MIT license, with no account to make.</p>
-      <p data-reveal><strong>Need a hand?</strong> Ask in the <a class="link" href="https://discord.gg/CD8mUDDuHr">Discord server</a>, which has a support forum and announces new versions.</p>
-      <p data-reveal><strong>Something broke?</strong> <a class="link" href="https://github.com/holid4y/EternalTF2Launcher/issues">Open an issue on GitHub</a> and attach your logs. They're in ~/.local/share/eternal-launcher/logs on Linux and %LOCALAPPDATA%\Eternal TF2 Launcher\logs on Windows.</p>
+      <p data-reveal><strong>Which games can I use?</strong> Team Fortress 2, TF2 Classified and TF2: Gold Rush. Switch games from the lower-left menu; each keeps its own mods, settings, profiles and servers. Backpack prices, hit and kill sounds, and see-through weapons are TF2-only.</p>
+      <p data-reveal><strong>Will my mods show up in Casual?</strong> Many visual mods work, including particles, skins, war paints, map textures, props and HUDs, but Valve's whitelist still applies. Full player-model replacements may be reset by the server. Eternal flags known problem models before you launch.</p>
+      <p data-reveal><strong>Are GameBanana downloads checked?</strong> Eternal only downloads from gamebanana.com, checks each file's size and checksum, and requires a passed GameBanana virus scan. These are still community uploads, so choose what you trust.</p>
+      <p data-reveal><strong>Does Eternal patch the game?</strong> No. It doesn't change the game's code or memory. It prepares mod files in the selected game's custom folder and writes only its own marked block to autoexec.cfg.</p>
+      <p data-reveal><strong>Can I start a game from Steam?</strong> Yes. Copy the launch line shown in Config → Launch Options into Steam's launch options for that game.</p>
+      <p data-reveal><strong>Where are my mods stored?</strong> Your library stays in Eternal's data folder. Enabled mods are packed into the game's custom folder before launch; Restore vanilla removes those game files but keeps your library.</p>
+      <p data-reveal><strong>Is Eternal free?</strong> Yes. It's free, open source under the MIT license, and doesn't need an account.</p>
+      <p data-reveal><strong>Need a hand?</strong> Visit the <a class="link" href="https://discord.gg/CD8mUDDuHr">Discord server</a> for help and release news.</p>
+      <p data-reveal><strong>Found a bug?</strong> <a class="link" href="https://github.com/holid4y/EternalTF2Launcher/issues">Open an issue on GitHub</a> and attach your logs. On Linux, find them in <code>~/.local/share/eternal-launcher/logs</code>. On Windows, look in <code>%LOCALAPPDATA%\Eternal TF2 Launcher\logs</code>.</p>
     </div>
   </section>
 
   <section class="credits" aria-labelledby="credits-title">
     <img class="credits-hat" data-logo src="assets/logos/mann-co.png" alt="The Eternal top hat" width="376" height="376" loading="lazy">
     <div class="credits-text">
-      <h2 id="credits-title" data-reveal>Built on cueki's preloader</h2>
-      <p data-reveal>The part that gets mods into Casual is cueki's casual-pre-loader. Eternal ships it unchanged and builds the launcher around it, so the credit for that part goes to cueki and its contributors. If all you want is the preloader, use the original.</p>
-      <p data-reveal>Thanks also to backpack.tf and pricedb.io for prices, GameBanana and its creators, Deadlock Mod Manager for ideas on recovery and conflicts, and Jeremy Tribby for the Barlow typeface.</p>
+      <h2 id="credits-title" data-reveal>Casual mod support, thanks to cueki</h2>
+      <p data-reveal>TF2 Casual mod support comes from cueki's casual-pre-loader, which Eternal bundles unchanged. Eternal brings it together with your settings, servers, GameBanana and the rest of your setup. If you only need the preloader, get it from the original project.</p>
+      <p data-reveal>Thanks to backpack.tf and pricedb.io for prices, GameBanana and its creators for their work, Deadlock Mod Manager for ideas on recovery and file conflicts, and Jeremy Tribby for the Barlow typeface.</p>
       <a class="button button-ink" href="https://github.com/cueki/casual-pre-loader" data-reveal>casual-pre-loader on GitHub</a>
     </div>
   </section>
@@ -347,7 +346,7 @@ bind "f" "voicemenu 0 0"
       <li><a href="https://discord.gg/CD8mUDDuHr">Discord</a></li>
       <li><a href="https://github.com/holid4y/EternalTF2Launcher/issues">Report a problem</a></li>
     </ul>
-    <p>Eternal TF2 Launcher 2.4.0 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
+    <p>Eternal 2.4.0 for Windows and Linux. Free and open source under the MIT license. Set in Barlow, SIL Open Font License.</p>
   </div>
   <div class="foot-legal">
     <p>Not affiliated with Valve. Team Fortress 2 is a trademark of Valve Corporation.</p>

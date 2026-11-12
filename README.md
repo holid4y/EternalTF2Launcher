@@ -2,43 +2,45 @@
 
 # Eternal TF2 Launcher
 
-A Team Fortress 2 launcher for Windows and Linux. It manages your mods, loads them in Casual, explains TF2's settings and shows your backpack with community prices. It also runs Team Fortress 2 Classified and Team Fortress 2: Gold Rush, each with its own mods and settings.
+Manage settings, mods, servers and screenshots for Team Fortress 2, TF2 Classified and TF2: Gold Rush in one place. Each game keeps its own setup. Browse GameBanana, tune your settings or find a server, then press Play. Free for Windows and Linux.
 
 [Download](../../releases/latest) · [Website](https://holid4y.github.io/EternalTF2Launcher/) · [Discord](https://discord.gg/CD8mUDDuHr)
 
-Mods are loaded by [casual-pre-loader](https://github.com/cueki/casual-pre-loader), made by cueki and its contributors and bundled here without changes. If the preloader is all you need, use the original project.
+For TF2 Casual, mod support is powered by [casual-pre-loader](https://github.com/cueki/casual-pre-loader), made by cueki and its contributors and bundled here unchanged.
 
-## Features
+## What you can do
 
-- **Mods:** drag in a VPK, folder, ZIP, RAR or 7z. When two mods change the same file, the one higher in the list wins.
-- **GameBanana:** browse, search and install TF2 mods and sounds from inside the launcher.
-- **Hit and kill sounds:** turn your own audio files into hit and kill sounds that work in Casual.
-- **Config:** every setting explained, binds set by pressing the key, and profiles you can share as a code.
-- **Servers:** community servers near you, with servers that fake their player count flagged.
-- **Backpack:** your public inventory with backpack.tf and Steam Market prices.
-- **Screenshots:** crop, blur, annotate and upload the screenshots Steam keeps for TF2.
-- **Themes:** eight themes, any accent colour and custom backgrounds.
-- **Updates:** new versions download in the background and install when you quit or restart.
+- **Switch between three games:** TF2, TF2 Classified and TF2: Gold Rush. Each has its own mods, settings, profiles, servers and theme.
+- **Keep your mods in order:** add a VPK, folder, ZIP, RAR or 7z archive. When mods change the same file, the one higher in your list takes priority.
+- **Browse GameBanana:** search and install mods and sounds for the game you have selected.
+- **Set hit and kill sounds:** use your own audio files in TF2 Casual. Eternal matches them to TF2's volume; each sound has its own slider, and its preview uses the level you'll hear in game.
+- **Make settings your own:** get plain-language descriptions, performance notes, key binding and shareable setups.
+- **Find a server:** browse community servers, check their map, players and ping, then join from the list.
+- **Check your TF2 backpack:** see your public inventory with community and Steam Market prices.
+- **Edit Steam screenshots:** crop, blur, annotate and upload screenshots for the selected game.
+- **Change the look:** choose from eight themes, set an accent color and use your screenshots as the background.
+- **Stay up to date:** Eternal downloads updates in the background and installs them when you quit or choose Restart to update.
 
-## Games
+## Supported games
 
-Pick the game from the bottom left of the window. Each one keeps its own mod list, settings, profiles, servers and theme, and nothing of one game is written into another.
+Choose a game from the lower-left menu. Its settings, mods, profiles, servers, screenshots and news stay with it; the games' files are kept separate.
 
-| | Team Fortress 2 | TF2 Classified | TF2: Gold Rush |
+| Feature | Team Fortress 2 | TF2 Classified | TF2: Gold Rush |
 |---|---|---|---|
-| Mods and GameBanana | Yes, loaded in Casual | Yes | Yes |
-| Settings | All | All the game has | All the game has |
-| Servers, screenshots, news | Yes | Yes | Yes |
-| Hit and kill sounds | Yes | Not yet | Not yet |
-| Backpack, see-through weapons | Yes | No | No |
+| Mods and GameBanana | Yes | Yes | Yes |
+| Settings | Full TF2 catalog | Options supported by the game | Options supported by the game |
+| Servers, screenshots and news | Yes | Yes | Yes |
+| Backpack prices | Yes | No | No |
+| Hit and kill sounds | Yes | Not available | Not available |
+| See-through weapons | Yes | No | No |
 
-A game the launcher supports but you haven't installed shows in the list with a link to its Steam page. The settings list for each game only has what that game's own files contain.
+Many visual mods can load in Casual, but Valve's whitelist still applies. Hit and kill sounds, backpack prices and see-through weapons are currently TF2-only. A supported game that isn't installed yet appears in the menu with a link to its Steam page.
 
 ## Install
 
-Get the latest version from the [releases page](../../releases/latest). Release builds include .NET and the mod engine, and admin rights aren't needed.
+Download the latest release from the [releases page](../../releases/latest). The release builds include .NET and the mod engine, so you don't need to install either one separately. No admin rights are needed.
 
-**Windows:** run `EternalLauncher-<version>-win-x64-setup.exe`, or extract the portable zip and run `EternalLauncher.exe`.
+**Windows:** run `EternalLauncher-<version>-win-x64-setup.exe`, or extract the portable ZIP and open `EternalLauncher.exe`.
 
 **Linux:**
 
@@ -47,25 +49,25 @@ tar xf EternalLauncher-*-linux-x64.tar.gz
 cd EternalLauncher && ./install.sh
 ```
 
-Run `./install.sh --remove` to uninstall. Your settings and mods are kept. Custom props, robots, pickups and flags need `wine` on Linux.
+To uninstall, run `./install.sh --remove`. Your settings and mods stay on your computer. Install Wine on Linux if you want to use custom props, robots, pickups or flags.
 
 ## How it works
 
-Your mods are packed into VPKs in `tf/custom` and the preloader sets them up before the game starts. TF2 is launched through Steam and its executables aren't changed. Nothing is written while the game is running, and an interrupted build is detected and rolled back on the next start.
+Your mod library stays in Eternal's data folder. Before the game starts, Eternal packs enabled mods into VPK files in that game's `custom` folder and prepares them with the preloader. The game starts through Steam; its executable isn't patched. Eternal won't change game files while that game is running. If a build is interrupted, Eternal restores the original files the next time it starts.
 
-Casual still enforces Valve's whitelist. Most visual content gets through, including particles, skins, war paints, lightwarps, map textures, props and HUDs. Full player model replacements often revert to the default model.
+Valve's Casual whitelist still applies. Many visual mods can appear in Casual, including particles, skins, war paints, lightwarps, map textures, props and HUDs. Full player-model replacements may be reset by the server.
 
-A mod that brings particles along with models, sounds or scripts appears twice in the list, once as a particle mod and once for everything else, because the preloader installs the two in different ways.
+A mod that includes particles alongside models, sounds or scripts can appear as two entries. The preloader handles particle files separately, so you can enable those parts independently.
 
-If you start TF2 from Steam instead of the launcher, copy the line from Config, Launch Options into TF2's launch options. Restore vanilla takes every mod out of the game and keeps your library.
+You can also start a game from Steam. Copy the launch line shown in Config → Launch Options into that game's Steam launch options. **Restore vanilla** removes Eternal's changes from the game and keeps your library ready for next time.
 
 ## Your files and settings
 
-The first time it opens, the launcher lists what's already in `tf/custom` and `tf/cfg` and asks what to do with each item. It writes nothing to the game until you've answered.
+The first time you open a game, Eternal checks its `custom` and `cfg` folders and shows you the files it found. Choose what to keep, import into your library or move to a backup. Nothing changes until you decide.
 
-Settings you change are written to one marked block at the end of `autoexec.cfg`, and the rest of the file is left alone. The previous version is kept as `autoexec.cfg.eternal-backup`. With mastercomfig installed, the block goes to `cfg/overrides/autoexec.cfg`.
+Settings you change go into one marked block at the end of `autoexec.cfg`; the rest of the file stays as it is. Eternal saves a backup as `autoexec.cfg.eternal-backup`. If mastercomfig is installed, the block goes in `cfg/overrides/autoexec.cfg`.
 
-A setup someone shares with you shows its launch options, binds and autoexec lines before it's applied, and its autoexec lines only replace yours if you agree. When you share your own, the lines you wrote in `autoexec.cfg` only go along if you say so.
+Before you import a shared setup, Eternal shows its launch options, binds and autoexec lines. Those lines replace yours only if you agree. When sharing your own setup, you choose whether your autoexec lines are included.
 
 | | Windows | Linux |
 |---|---|---|
@@ -73,15 +75,15 @@ A setup someone shares with you shows its launch options, binds and autoexec lin
 | Mod library and logs | `%LOCALAPPDATA%\Eternal TF2 Launcher` | `~/.local/share/eternal-launcher` |
 | Caches | `%LOCALAPPDATA%\Eternal TF2 Launcher\cache` | `~/.cache/eternal-launcher` |
 
-The portable build keeps everything in a `userdata` folder next to the executable.
+The portable build keeps its files in a `userdata` folder beside the executable.
 
 ## Support
 
-Questions and help are on [Discord](https://discord.gg/CD8mUDDuHr). To report a bug, open an [issue](../../issues) and attach `logs/launcher.log`.
+Ask for help on [Discord](https://discord.gg/CD8mUDDuHr). If something breaks, [open a GitHub issue](../../issues) and attach `logs/launcher.log`.
 
-## Building from source
+## Build from source
 
-You need the .NET 10 SDK, and Python 3.12 or newer for the engine.
+You'll need the .NET 10 SDK and Python 3.12 or newer for the engine.
 
 ```sh
 dotnet run --project src/Eternal.App
@@ -99,28 +101,28 @@ python scripts/package.py --rid win-x64 --freeze-engine --portable   # on Window
 iscc installer/installer.iss                                         # Windows installer
 ```
 
-Pushing a `v*` tag builds both packages and the Windows installer.
+Pushing a `v*` tag builds the packages and Windows installer.
 
 ```
 src/Eternal.Core            settings, autoexec, profiles, Steam, mods, inventory, pricing
 src/Eternal.App             Avalonia UI
-engine/eternal_engine       the launcher's adapter over the preloader
+engine/eternal_engine       Eternal's adapter for the preloader
 engine/vendor               casual-pre-loader, unmodified (UPSTREAM has the commit)
 packaging, installer        Linux archive and Windows installer
 ```
 
-`engine/vendor` is never edited by hand. To update it, run `python scripts/sync-preloader.py` and then the engine tests.
+Never edit `engine/vendor` by hand. To update it, run `python scripts/sync-preloader.py`, then run the engine tests.
 
 ## Credits
 
-- [cueki](https://github.com/cueki) and the [casual-pre-loader](https://github.com/cueki/casual-pre-loader) contributors, for the preloading engine this launcher is built around.
-- [backpack.tf](https://backpack.tf) for the community prices, served through [pricedb.io](https://pricedb.io).
-- [GameBanana](https://gamebanana.com) and its TF2 creators for the mods, sounds and downloads.
-- Valve, for TF2 and the Steam Web APIs used for news, inventories and market prices.
-- [Deadlock Mod Manager](https://github.com/deadlock-mod-manager/deadlock-mod-manager), whose interrupted-install recovery, conflict model and game guard shaped how mods are applied here.
+- [cueki](https://github.com/cueki) and the [casual-pre-loader](https://github.com/cueki/casual-pre-loader) contributors for the preloader.
+- [backpack.tf](https://backpack.tf) and [pricedb.io](https://pricedb.io) for community prices.
+- [GameBanana](https://gamebanana.com) and its creators for mods, sounds and downloads.
+- Valve for TF2 and the Steam APIs used for news, inventories and Market prices.
+- [Deadlock Mod Manager](https://github.com/deadlock-mod-manager/deadlock-mod-manager) for ideas on recovery and file conflicts.
 - Jeremy Tribby and the Barlow Project Authors for the [Barlow](https://github.com/jpt/barlow) typeface.
 - Built with [Avalonia](https://avaloniaui.net), [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet), [SharpCompress](https://github.com/adamhathcock/sharpcompress), [valve-parsers](https://pypi.org/project/valve-parsers/) and [PyInstaller](https://pyinstaller.org).
 
 ## License
 
-The launcher is MIT licensed (see `LICENSE`). The bundled casual-pre-loader is GPL-3.0 and ships with its own license. The Barlow fonts are under the SIL Open Font License. Not affiliated with Valve.
+Eternal is MIT licensed (see `LICENSE`). The bundled casual-pre-loader is GPL-3.0 and includes its own license. Barlow is under the SIL Open Font License. Eternal is not affiliated with Valve.
