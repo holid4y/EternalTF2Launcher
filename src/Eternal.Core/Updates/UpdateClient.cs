@@ -119,7 +119,7 @@ public sealed partial class UpdateClient(HttpClient http)
         {
             throw new UpdateException("The update download stalled for a minute, so it was stopped.", ex);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException or HttpIOException)
         {
             throw new UpdateException("The update download lost its connection to GitHub.", ex);
         }

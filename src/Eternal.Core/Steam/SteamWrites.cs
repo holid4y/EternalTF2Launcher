@@ -20,12 +20,14 @@ public sealed class SteamWrite
     internal bool IsServer => Kind is SteamWriteKind.AddFavorite or SteamWriteKind.RemoveFavorite or SteamWriteKind.AddHistory;
 }
 
-public sealed class SteamWriteList
+public sealed class SteamWriteList : IJsonOnDeserialized
 {
     public List<SteamWrite> Writes { get; set; } = [];
+
+    void IJsonOnDeserialized.OnDeserialized() => JsonChecks.NoEmptyEntries(Writes, "writes");
 }
 
-[JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true)]
+[JsonSourceGenerationOptions(RespectNullableAnnotations = true, WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(SteamWriteList))]
 internal sealed partial class SteamWriteJson : JsonSerializerContext;
 

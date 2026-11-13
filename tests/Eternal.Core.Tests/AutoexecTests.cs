@@ -91,6 +91,24 @@ public sealed class AutoexecTests : IDisposable
     }
 
     [Fact]
+    public void A_file_that_is_not_utf8_keeps_its_letters_and_an_exact_backup()
+    {
+        byte[] original = [.. "// configura"u8, 0xE7, 0xE3, .. "o\nfps_max 144\n"u8];
+        File.WriteAllBytes(AutoexecPath, original);
+
+        AutoexecFile.Write(_tf, ["hud_fastswitch 1"]);
+
+        Assert.Equal(original, File.ReadAllBytes(AutoexecPath + ".eternal-backup"));
+        Assert.Contains("// configuração", File.ReadAllText(AutoexecPath));
+
+        AutoexecFile.Write(_tf, ["hud_fastswitch 0"]);
+
+        var text = File.ReadAllText(AutoexecPath);
+        Assert.Contains("// configuração", text);
+        Assert.Single(text.Split('\n'), l => l.Trim() == AutoexecDocument.BeginMarker);
+    }
+
+    [Fact]
     public void Half_deleted_block_keeps_all_text_as_the_players()
     {
         var doc = AutoexecDocument.Parse($"echo a\n{AutoexecDocument.BeginMarker}\nfps_max 1\n");

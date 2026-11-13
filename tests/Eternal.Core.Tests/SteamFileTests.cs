@@ -183,6 +183,40 @@ public sealed class ServerBookTests : IDisposable
     public void Dispose() => Directory.Delete(_root, recursive: true);
 
     [Fact]
+    public void A_game_list_that_cannot_be_read_still_shows_the_launchers_own_favorites()
+    {
+        var file = Path.Combine(UserDir, SteamWriteQueue.ServerHistoryFile);
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.WriteAllText(file, "\"Filters\" { }");
+        var queue = new SteamWriteQueue(Path.Combine(_root, "writes.json"), Path.Combine(_root, "backups"), () => true);
+        var book = new Eternal.Core.Servers.ServerBook(Path.Combine(_root, "servers.json"), queue, () => UserDir);
+        Eternal.Core.Servers.ServerAddress.TryParse("1.2.3.4:27015", out var added);
+        book.AddFavorite(added, "Added here");
+
+        using var held = new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        Assert.Equal("Added here", Assert.Single(book.Favorites()).Name);
+    }
+
+    [Fact]
+    public void A_saved_list_that_could_not_be_read_is_not_overwritten()
+    {
+        const string saved = """{"favorites":[{"address":"1.2.3.4:27015","name":"Kept","at":1}]}""";
+        var file = Path.Combine(_root, "servers.json");
+        File.WriteAllText(file, saved);
+        var queue = new SteamWriteQueue(Path.Combine(_root, "writes.json"), Path.Combine(_root, "backups"), () => true);
+        Eternal.Core.Servers.ServerBook book;
+        using (new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            book = new Eternal.Core.Servers.ServerBook(file, queue, () => null);
+        Eternal.Core.Servers.ServerAddress.TryParse("5.6.7.8:27015", out var other);
+
+        book.AddFavorite(other, "Added while the list was unreadable");
+
+        Assert.False(book.LoadOutcome.CanSave);
+        Assert.Equal(saved, File.ReadAllText(file));
+    }
+
+    [Fact]
     public void Favorites_merge_the_launcher_list_with_the_game_list_and_hide_pending_removals()
     {
         var file = Path.Combine(UserDir, SteamWriteQueue.ServerHistoryFile);

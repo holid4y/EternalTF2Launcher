@@ -108,6 +108,25 @@ public static partial class ManagedBlock
 
 public static class AutoexecFile
 {
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+    /// <summary>
+    /// Older editors saved config files in the Windows code page. Read as UTF-8, their accented
+    /// letters become replacement characters, and a rewrite would save them that way.
+    /// </summary>
+    public static string Decode(byte[] bytes)
+    {
+        try
+        {
+            using var reader = new StreamReader(new MemoryStream(bytes), StrictUtf8);
+            return reader.ReadToEnd();
+        }
+        catch (DecoderFallbackException)
+        {
+            return CodePagesEncodingProvider.Instance.GetEncoding(1252)!.GetString(bytes);
+        }
+    }
+
     public static string Locate(string tfPath)
     {
         var custom = Path.Combine(tfPath, "custom");
@@ -126,29 +145,30 @@ public static class AutoexecFile
         var path = Locate(tfPath);
         for (var attempt = 0; attempt < 3; attempt++)
         {
-            string? original;
+            byte[]? original;
             try
             {
-                original = AtomicFile.ReadAllTextOrNull(path);
+                original = AtomicFile.ReadAllBytesOrNull(path);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 return new AutoexecResult(AutoexecStatus.Failed, path, $"Couldn't read {Path.GetFileName(path)}, so it was left untouched: {ex.Message}");
             }
 
-            var document = AutoexecDocument.Parse(original);
+            var originalText = original is null ? null : Decode(original);
+            var document = AutoexecDocument.Parse(originalText);
             if (managedLines.Count == 0 && !document.HasManagedBlock && replaceUserContent is null)
                 return new AutoexecResult(AutoexecStatus.Unchanged, path);
             var text = AutoexecDocument.Render(replaceUserContent ?? document.UserContent, managedLines);
-            if (original == text)
+            if (originalText == text)
                 return new AutoexecResult(AutoexecStatus.Unchanged, path);
 
             try
             {
-                if (AtomicFile.ReadAllTextOrNull(path) != original)
+                if (!(AtomicFile.ReadAllBytesOrNull(path) ?? []).AsSpan().SequenceEqual(original ?? []))
                     continue;
                 if (original is not null)
-                    AtomicFile.WriteAllText(path + ".eternal-backup", original, keepBackup: false);
+                    AtomicFile.WriteAllBytes(path + ".eternal-backup", original, keepBackup: false);
                 AtomicFile.WriteAllText(path, text, keepBackup: false);
                 return new AutoexecResult(AutoexecStatus.Written, path);
             }

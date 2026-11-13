@@ -2,6 +2,8 @@ using Eternal.Core.Inventory;
 using Eternal.Core.Mods;
 using Eternal.Core.Persistence;
 using Eternal.Core.Platform;
+using Eternal.Core.Servers;
+using Eternal.Core.Steam;
 
 namespace Eternal.Core.Tests;
 
@@ -85,6 +87,34 @@ public sealed class DamagedFileTests : IDisposable
         JsonFile.Load(file, InventoryJson.Default.InventoryCacheFile, () => new InventoryCacheFile(), out var outcome);
 
         Assert.Equal(LoadState.Reset, outcome.State);
+    }
+
+    [Theory]
+    [InlineData("""{"favorites": null}""")]
+    [InlineData("""{"favorites": [null]}""")]
+    [InlineData("""{"recent": [null]}""")]
+    public void A_server_list_with_an_empty_entry_falls_back_to_the_backup(string json)
+    {
+        var file = Path.Combine(_dir, "servers.json");
+        File.WriteAllText(file + ".bak", """{"favorites": [{"address": "1.2.3.4:27015", "name": "Kept", "at": 1}]}""");
+        File.WriteAllText(file, json);
+        var queue = new SteamWriteQueue(Path.Combine(_dir, "writes.json"), Path.Combine(_dir, "backups"), () => true);
+
+        var book = new ServerBook(file, queue, () => null);
+
+        Assert.Equal(LoadState.RestoredFromBackup, book.LoadOutcome.State);
+        Assert.Equal("Kept", Assert.Single(book.Favorites()).Name);
+    }
+
+    [Theory]
+    [InlineData("""{"writes": null}""")]
+    [InlineData("""{"writes": [null]}""")]
+    public void A_steam_write_queue_with_an_empty_entry_starts_empty(string json)
+    {
+        var file = Path.Combine(_dir, "writes.json");
+        File.WriteAllText(file, json);
+
+        Assert.Equal(0, new SteamWriteQueue(file, Path.Combine(_dir, "backups"), () => false).Count);
     }
 
     [Fact]

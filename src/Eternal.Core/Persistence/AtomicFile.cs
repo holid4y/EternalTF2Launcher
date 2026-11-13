@@ -54,6 +54,17 @@ public static class AtomicFile
         catch (DirectoryNotFoundException) { return null; }
     }
 
+    /// <summary>Reads a file, retrying transient locks. Missing files return null.</summary>
+    public static byte[]? ReadAllBytesOrNull(string path)
+    {
+        try
+        {
+            return Retry(() => File.ReadAllBytes(path));
+        }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
+    }
+
     public static void Retry(Action action) => Retry(() => { action(); return true; });
 
     public static T Retry<T>(Func<T> action, int attempts = 5)

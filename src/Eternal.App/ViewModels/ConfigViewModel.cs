@@ -643,8 +643,8 @@ public sealed partial class ConfigViewModel : PageViewModel
     }
 
     private string? ReadUserAutoexec() =>
-        _services.TfPath is { } tf && AtomicFile.ReadAllTextOrNull(AutoexecFile.Locate(tf)) is { } text
-            ? AutoexecDocument.Parse(text).UserContent
+        _services.TfPath is { } tf && AtomicFile.ReadAllBytesOrNull(AutoexecFile.Locate(tf)) is { } bytes
+            ? AutoexecDocument.Parse(AutoexecFile.Decode(bytes)).UserContent
             : null;
 
     private ProfileMods CurrentMods()

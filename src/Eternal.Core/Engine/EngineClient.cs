@@ -114,6 +114,8 @@ public sealed class EngineClient
             }
             if (errors.Length > 0)
                 Log.Debug($"engine {command} stderr:\n{errors}");
+            if (!result.Success)
+                Log.Warn($"engine {command} failed (exit code {process.ExitCode}): {string.Join(" | ", result.Errors)}");
 
             return new EngineResult
             {

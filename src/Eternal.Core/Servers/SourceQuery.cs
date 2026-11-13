@@ -39,11 +39,12 @@ public static class SourceQuery
 
     public static async Task<(ServerInfo Info, int Ping)?> InfoAsync(IPEndPoint server, TimeSpan timeout, CancellationToken cancellation = default)
     {
-        using var socket = Open(server);
+        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         limit.CancelAfter(timeout);
         try
         {
+            socket.Connect(server);
             var watch = Stopwatch.StartNew();
             var reply = await ExchangeAsync(socket, InfoRequest, limit.Token).ConfigureAwait(false);
             for (var tries = 0; reply.Length >= 5 && reply[0] == 0x41 && tries < 2; tries++)
@@ -74,11 +75,12 @@ public static class SourceQuery
 
     private static async Task<byte[]?> ChallengedAsync(IPEndPoint server, byte request, byte expected, TimeSpan timeout, CancellationToken cancellation)
     {
-        using var socket = Open(server);
+        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         limit.CancelAfter(timeout);
         try
         {
+            socket.Connect(server);
             byte[] challenge = [0xFF, 0xFF, 0xFF, 0xFF];
             for (var tries = 0; tries < 3; tries++)
             {
@@ -96,13 +98,6 @@ public static class SourceQuery
         {
             return null;
         }
-    }
-
-    private static Socket Open(IPEndPoint server)
-    {
-        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        socket.Connect(server);
-        return socket;
     }
 
     private static async Task<byte[]> ExchangeAsync(Socket socket, byte[] request, CancellationToken cancellation)

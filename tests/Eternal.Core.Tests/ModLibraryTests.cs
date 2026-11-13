@@ -38,6 +38,23 @@ public sealed class ModLibraryTests : IDisposable
     }
 
     [Fact]
+    public void A_mod_list_that_could_not_be_read_is_not_overwritten()
+    {
+        const string saved = """{"order": [{"name": "Hitsound", "kind": "Addon", "enabled": true}]}""";
+        var paths = new AppPaths(Path.Combine(_dir, "config"), Path.Combine(_dir, "data"), Path.Combine(_dir, "cache"));
+        paths.EnsureCreated();
+        File.WriteAllText(paths.ModStateFile, saved);
+        ModLibrary library;
+        using (new FileStream(paths.ModStateFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            library = new ModLibrary(new PreloaderEngine(new EngineClient(new EngineRuntime(paths, () => null))), paths, new ThumbnailStore(paths.ThumbnailsDir));
+
+        library.SetOptions(new ModBuildOptions { SkipQuickPrecache = true });
+
+        Assert.False(library.LoadOutcome.CanSave);
+        Assert.Equal(saved, File.ReadAllText(paths.ModStateFile));
+    }
+
+    [Fact]
     public void A_shared_gamebanana_mod_is_found_by_its_file_even_under_another_name()
     {
         var library = Create("""

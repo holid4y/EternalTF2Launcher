@@ -64,7 +64,13 @@ public sealed class AppServices : IAsyncDisposable
         SteamWrites = new SteamWriteQueue(paths.SteamWritesFile, paths.SteamBackupsDir);
         Servers = new ServerBook(paths.ServersFile, SteamWrites, () => game == GameCatalog.Tf2 ? SteamUserDir : null);
 
-        foreach (var (store, name) in new (LoadOutcome Outcome, string Name)[] { (Game.LoadOutcome, $"{game.ShortName} settings"), (Launcher.LoadOutcome, "Launcher settings") })
+        foreach (var (store, name) in new (LoadOutcome Outcome, string Name)[]
+                 {
+                     (Game.LoadOutcome, $"{game.ShortName} settings"),
+                     (Launcher.LoadOutcome, "Launcher settings"),
+                     (Mods.LoadOutcome, "Your mod choices"),
+                     (Servers.LoadOutcome, "Your saved servers"),
+                 })
         {
             if (store.State == LoadState.RestoredFromBackup)
                 _notices.Add($"{name} were damaged and the previous version was restored.");

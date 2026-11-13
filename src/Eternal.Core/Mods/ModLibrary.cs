@@ -53,10 +53,12 @@ public sealed class ModLibrary
         _paths = paths;
         _thumbnails = thumbnails;
         _tfPath = tfPath ?? (() => null);
-        State = JsonFile.Load(paths.ModStateFile, ModJson.Default.ModState, () => new ModState(), out _);
+        State = JsonFile.Load(paths.ModStateFile, ModJson.Default.ModState, () => new ModState(), out var outcome);
+        LoadOutcome = outcome;
     }
 
     public ModState State { get; }
+    public LoadOutcome LoadOutcome { get; }
     public bool Loaded { get; private set; }
     public IReadOnlyList<ModItem> Items { get; private set; } = [];
 
@@ -355,6 +357,8 @@ public sealed class ModLibrary
 
     private void SaveState()
     {
+        if (!LoadOutcome.CanSave)
+            return;
         try
         {
             lock (_gate)

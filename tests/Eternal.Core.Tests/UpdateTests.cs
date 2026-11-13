@@ -183,6 +183,35 @@ public sealed class UpdateTests : IDisposable
     }
 
     [Fact]
+    public async Task A_download_the_connection_drops_is_not_blamed_on_saving()
+    {
+        var asset = (await ReleaseWith(new byte[4096])).AssetFor(InstallKind.LinuxInstall)!;
+
+        var ex = await Assert.ThrowsAsync<UpdateException>(() =>
+            Serving(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new Dropped()) }).DownloadAsync(asset, _dir, null));
+
+        Assert.Contains("connection", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("saved", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(Directory.EnumerateFiles(_dir, "*", SearchOption.AllDirectories));
+    }
+
+    /// <summary>A response body whose connection closes before the announced length arrived.</summary>
+    private sealed class Dropped : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new HttpIOException(HttpRequestError.ResponseEnded, "The response ended prematurely.");
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    [Fact]
     public async Task A_download_bigger_than_announced_is_cut_off()
     {
         var asset = (await ReleaseWith(Encoding.UTF8.GetBytes("short"))).AssetFor(InstallKind.LinuxInstall)!;

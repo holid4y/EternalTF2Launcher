@@ -50,6 +50,15 @@ public class ServerTests
     }
 
     [Fact]
+    public async Task An_address_the_system_refuses_to_reach_gives_no_answer()
+    {
+        var refused = new IPEndPoint(IPAddress.Broadcast, 27015);
+
+        Assert.Null(await SourceQuery.InfoAsync(refused, TimeSpan.FromMilliseconds(300)));
+        Assert.Null(await SourceQuery.PlayersAsync(refused, TimeSpan.FromMilliseconds(300)));
+    }
+
+    [Fact]
     public void Truncated_or_foreign_replies_give_nothing()
     {
         var reply = Info("Server", "ctf_2fort", 1, 24, 0, false, true, "");

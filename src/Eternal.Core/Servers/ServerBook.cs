@@ -13,13 +13,19 @@ public sealed class SavedServer
     public long At { get; set; }
 }
 
-public sealed class ServerBookData
+public sealed class ServerBookData : IJsonOnDeserialized
 {
     public List<SavedServer> Favorites { get; set; } = [];
     public List<SavedServer> Recent { get; set; } = [];
+
+    void IJsonOnDeserialized.OnDeserialized()
+    {
+        JsonChecks.NoEmptyEntries(Favorites, "favorites");
+        JsonChecks.NoEmptyEntries(Recent, "recent");
+    }
 }
 
-[JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSourceGenerationOptions(RespectNullableAnnotations = true, WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(ServerBookData))]
 internal sealed partial class ServerBookJson : JsonSerializerContext;
 
@@ -41,10 +47,13 @@ public sealed class ServerBook
         _file = file;
         _steam = steam;
         _userDir = userDir;
-        _data = JsonFile.Load(file, ServerBookJson.Default.ServerBookData, () => new ServerBookData(), out _);
+        _data = JsonFile.Load(file, ServerBookJson.Default.ServerBookData, () => new ServerBookData(), out var outcome);
+        LoadOutcome = outcome;
         Clean(_data.Favorites);
         Clean(_data.Recent);
     }
+
+    public LoadOutcome LoadOutcome { get; }
 
     public event Action? Changed;
 
@@ -161,7 +170,16 @@ public sealed class ServerBook
     {
         if (_userDir() is not { } dir)
             return ([], []);
-        var text = AtomicFile.ReadAllTextOrNull(Path.Combine(dir, SteamWriteQueue.ServerHistoryFile));
+        string? text;
+        try
+        {
+            text = AtomicFile.ReadAllTextOrNull(Path.Combine(dir, SteamWriteQueue.ServerHistoryFile));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Warn($"Couldn't read Steam's own server lists, so only the launcher's are shown: {ex.Message}");
+            return ([], []);
+        }
         if (text is null)
             return ([], []);
         var filters = Vdf.Parse(text).Section("Filters");
@@ -204,6 +222,8 @@ public sealed class ServerBook
 
     private void Save()
     {
+        if (!LoadOutcome.CanSave)
+            return;
         try
         {
             JsonFile.Save(_file, _data, ServerBookJson.Default.ServerBookData);
