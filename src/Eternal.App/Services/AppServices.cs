@@ -70,6 +70,7 @@ public sealed class AppServices : IAsyncDisposable
                      (Launcher.LoadOutcome, "Launcher settings"),
                      (Mods.LoadOutcome, "Your mod choices"),
                      (Servers.LoadOutcome, "Your saved servers"),
+                     (CustomSounds.LoadOutcome, "Your hit and kill sounds"),
                  })
         {
             if (store.State == LoadState.RestoredFromBackup)

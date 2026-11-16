@@ -189,7 +189,7 @@ public sealed partial class UpdateClient(HttpClient http)
         var assets = root.TryGetProperty("assets", out var list) && list.ValueKind == JsonValueKind.Array
             ? list.EnumerateArray().Select(Asset).OfType<ReleaseAsset>().ToArray()
             : [];
-        return new Release(version, page, Notes(Text(root, "body")), assets);
+        return new Release(Normal(version), page, Notes(Text(root, "body")), assets);
     }
 
     private static ReleaseAsset? Asset(JsonElement a)

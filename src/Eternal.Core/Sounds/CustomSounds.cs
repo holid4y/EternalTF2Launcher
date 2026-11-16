@@ -53,8 +53,11 @@ public sealed class CustomSoundStore
     {
         _folder = Path.Combine(paths.DataDir, "custom-sounds");
         _listFile = Path.Combine(_folder, "sounds.json");
-        _set = JsonFile.Load(_listFile, CustomSoundJson.Default.CustomSoundSet, () => new CustomSoundSet(), out _);
+        _set = JsonFile.Load(_listFile, CustomSoundJson.Default.CustomSoundSet, () => new CustomSoundSet(), out var outcome);
+        LoadOutcome = outcome;
     }
+
+    public LoadOutcome LoadOutcome { get; }
 
     public int Limit { get; init; } = MaxSounds;
 
@@ -216,6 +219,8 @@ public sealed class CustomSoundStore
 
     private void Save()
     {
+        if (!LoadOutcome.CanSave)
+            return;
         Directory.CreateDirectory(_folder);
         AtomicFile.WriteAllBytes(_listFile, JsonSerializer.SerializeToUtf8Bytes(_set, CustomSoundJson.Default.CustomSoundSet));
     }

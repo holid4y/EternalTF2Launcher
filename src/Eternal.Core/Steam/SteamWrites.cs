@@ -44,13 +44,15 @@ public sealed class SteamWriteQueue
     private readonly Func<bool> _steamRunning;
     private readonly object _gate = new();
     private readonly SteamWriteList _list;
+    private readonly bool _canSave;
 
     public SteamWriteQueue(string file, string backups, Func<bool>? steamRunning = null)
     {
         _file = file;
         _backups = backups;
         _steamRunning = steamRunning ?? SteamProcess.IsRunning;
-        _list = JsonFile.Load(file, SteamWriteJson.Default.SteamWriteList, () => new SteamWriteList(), out _);
+        _list = JsonFile.Load(file, SteamWriteJson.Default.SteamWriteList, () => new SteamWriteList(), out var outcome);
+        _canSave = outcome.CanSave;
         _list.Writes.RemoveAll(w => !IsValid(w));
     }
 
@@ -252,6 +254,8 @@ public sealed class SteamWriteQueue
 
     private void Save()
     {
+        if (!_canSave)
+            return;
         try
         {
             JsonFile.Save(_file, _list, SteamWriteJson.Default.SteamWriteList);

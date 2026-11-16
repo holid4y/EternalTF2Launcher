@@ -118,6 +118,43 @@ public sealed class DamagedFileTests : IDisposable
     }
 
     [Fact]
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    public void A_sound_list_that_cannot_be_read_is_not_replaced_by_an_empty_one()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Read access is taken away with Unix permission bits.");
+        var file = Path.Combine(_dir, "custom-sounds", "sounds.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        var list = """{"sounds": [{"id": "abc", "kind": "Hit", "name": "Ding"}]}""";
+        File.WriteAllText(file, list);
+        File.SetUnixFileMode(file, UnixFileMode.None);
+
+        var store = new Eternal.Core.Sounds.CustomSoundStore(new AppPaths(_dir, _dir, _dir));
+        store.Enabled = false;
+
+        File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        Assert.Equal(LoadState.Unreadable, store.LoadOutcome.State);
+        Assert.Equal(list, File.ReadAllText(file));
+    }
+
+    [Fact]
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    public void Steam_changes_that_cannot_be_read_are_not_replaced_by_newer_ones()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Read access is taken away with Unix permission bits.");
+        var file = Path.Combine(_dir, "writes.json");
+        var userDir = Path.Combine(_dir, "Steam", "userdata", "123");
+        var waiting = $$"""{"writes": [{"kind": "AddFavorite", "userDir": {{System.Text.Json.JsonSerializer.Serialize(userDir)}}, "target": "1.2.3.4:27015", "time": 1}]}""";
+        File.WriteAllText(file, waiting);
+        File.SetUnixFileMode(file, UnixFileMode.None);
+
+        var queue = new SteamWriteQueue(file, Path.Combine(_dir, "backups"), () => true);
+        queue.Add(new SteamWrite { Kind = SteamWriteKind.AddFavorite, UserDir = userDir, Target = "5.6.7.8:27015", Time = 2 });
+
+        File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        Assert.Equal(waiting, File.ReadAllText(file));
+    }
+
+    [Fact]
     public void A_price_cache_with_an_empty_price_is_damaged()
     {
         var file = Path.Combine(_dir, "prices.json");

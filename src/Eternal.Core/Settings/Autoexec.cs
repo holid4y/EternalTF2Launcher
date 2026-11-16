@@ -30,12 +30,15 @@ public sealed class AutoexecDocument
     public static AutoexecDocument Parse(string? text)
     {
         var lines = (text ?? "").Replace("\r\n", "\n").Split('\n');
-        var begin = Array.FindIndex(lines, l => l.Trim() == BeginMarker);
-        var end = begin < 0 ? -1 : Array.FindIndex(lines, begin + 1, l => l.Trim() == EndMarker);
+        // The launcher writes its block last, so the last begin marker that is closed is its
+        // own. One left open by a hand edit stays the player's text, with the lines under it.
+        var lastEnd = Array.FindLastIndex(lines, l => l.Trim() == EndMarker);
+        var begin = lastEnd < 0 ? -1 : Array.FindLastIndex(lines, lastEnd, l => l.Trim() == BeginMarker);
 
-        if (begin < 0 || end < 0)
+        if (begin < 0)
             return new AutoexecDocument(string.Join('\n', lines).TrimEnd(), [], false);
 
+        var end = Array.FindIndex(lines, begin + 1, l => l.Trim() == EndMarker);
         var user = lines.Take(begin).Concat(lines.Skip(end + 1));
         return new AutoexecDocument(string.Join('\n', user).TrimEnd(), lines[(begin + 1)..end], true);
     }

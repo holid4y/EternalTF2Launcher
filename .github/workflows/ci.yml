@@ -49,6 +49,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # The updater looks for files named after the tag, and those names come from these versions.
+      - name: Tag matches the version in the sources
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          check() { [ "$2" = "$tag" ] || { echo "::error::$1 says $2, the tag says $tag"; exit 1; }; }
+          check Directory.Build.props "$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)"
+          check installer/installer.iss "$(sed -n 's/^#define AppVersion *"\(.*\)".*/\1/p' installer/installer.iss)"
+          check engine/eternal_engine/__init__.py "$(sed -n 's/^ADAPTER_VERSION = "\(.*\)".*/\1/p' engine/eternal_engine/__init__.py)"
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json

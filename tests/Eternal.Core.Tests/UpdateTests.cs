@@ -86,6 +86,15 @@ public sealed class UpdateTests : IDisposable
     }
 
     [Fact]
+    public async Task A_tag_without_a_patch_number_is_still_a_release()
+    {
+        var release = await Serving(_ => Ok(ReleaseJson("v2.5", [1]))).NewerThanAsync(new Version(2, 4, 1));
+
+        Assert.NotNull(release);
+        Assert.Equal("2.5.0", release.VersionText);
+    }
+
+    [Fact]
     public async Task A_prerelease_is_no_update()
     {
         Assert.Null(await Serving(_ => Ok(ReleaseJson("v9.0.0", [1], prerelease: true))).NewerThanAsync(new Version(2, 1, 1)));

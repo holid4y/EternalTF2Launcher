@@ -260,6 +260,22 @@ public sealed class PreloadCoordinatorTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_failed_build_is_not_repeated_for_changes_it_already_covered()
+    {
+        var coordinator = Create(debounce: TimeSpan.FromMilliseconds(400));
+        _builder.AutoComplete = true;
+        _builder.NextSucceeds = false;
+
+        coordinator.RequestBuild();
+        await Task.Delay(100);
+        coordinator.RequestBuild();
+        await WaitUntil(() => coordinator.Status.Phase == PreloadPhase.Failed);
+        await Task.Delay(1200);
+
+        Assert.Equal(1, _builder.Builds);
+    }
+
+    [Fact]
     public async Task A_removal_that_fails_halfway_stays_pending_until_it_works()
     {
         var coordinator = Create();

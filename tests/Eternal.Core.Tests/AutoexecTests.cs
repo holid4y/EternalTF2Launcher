@@ -118,6 +118,34 @@ public sealed class AutoexecTests : IDisposable
     }
 
     [Fact]
+    public void Player_lines_below_a_block_that_lost_its_end_marker_survive_later_saves()
+    {
+        File.WriteAllText(AutoexecPath, $"echo a\n{AutoexecDocument.BeginMarker}\nfps_max 1\necho mine\n");
+
+        AutoexecFile.Write(_tf, ["hud_fastswitch 1"]);
+        AutoexecFile.Write(_tf, ["hud_fastswitch 0"]);
+
+        var text = File.ReadAllText(AutoexecPath);
+        Assert.Contains("echo mine", text);
+        Assert.Contains("hud_fastswitch 0", text);
+        Assert.DoesNotContain("hud_fastswitch 1", text);
+    }
+
+    [Fact]
+    public void A_begin_marker_pasted_below_the_block_does_not_take_the_lines_after_it()
+    {
+        AutoexecFile.Write(_tf, ["hud_fastswitch 1"]);
+        File.AppendAllText(AutoexecPath, $"{AutoexecDocument.BeginMarker}\necho mine\n");
+
+        AutoexecFile.Write(_tf, ["hud_fastswitch 0"]);
+        AutoexecFile.Write(_tf, ["hud_fastswitch 1"]);
+
+        var text = File.ReadAllText(AutoexecPath);
+        Assert.Contains("echo mine", text);
+        Assert.DoesNotContain("hud_fastswitch 0", text);
+    }
+
+    [Fact]
     public void Only_touched_settings_are_written()
     {
         var settings = new GameSettings(new GameConfig());

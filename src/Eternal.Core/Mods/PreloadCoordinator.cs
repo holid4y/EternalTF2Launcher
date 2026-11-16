@@ -335,6 +335,11 @@ public sealed class PreloadCoordinator : IAsyncDisposable
             }
         }
 
+        // This pass covers every request made while it waited. Left in place, their
+        // wake-ups would start another pass and run a build that just failed again.
+        while (_wake.CurrentCount > 0)
+            await _wake.WaitAsync(token).ConfigureAwait(false);
+
         lock (_gate)
         {
             // Checked and claimed together, so a launch can't be admitted in between.
