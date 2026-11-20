@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Eternal.App.Services;
@@ -31,7 +32,18 @@ public partial class App : Application
     private static readonly TimeSpan CleanupLimit = TimeSpan.FromSeconds(10);
     private bool _shuttingDown;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        // A tooltip in a window of its own makes Hyprland take the pointer off the launcher's window
+        // and give it back, and Avalonia closes and reopens the tooltip on every round, dozens a second.
+        if (OperatingSystem.IsLinux())
+            Popup.ChildProperty.Changed.AddClassHandler<Popup>((popup, e) =>
+            {
+                if (e.NewValue is ToolTip)
+                    popup.ShouldUseOverlayLayer = true;
+            });
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

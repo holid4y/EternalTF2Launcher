@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using Avalonia.Media.Imaging;
@@ -9,10 +10,13 @@ namespace Eternal.App.Services;
 
 public sealed class ImageCache(string directory)
 {
-    private const int MemoryLimit = 300;
+    public const long DiskBudget = 64L * 1024 * 1024;
+    private const long MemoryBudget = 128L * 1024 * 1024;
     private const int MaxImageBytes = 16 * 1024 * 1024;
+    private static readonly ConditionalWeakTable<Bitmap, NativePixels> Pixels = new();
     private readonly ConcurrentDictionary<string, Bitmap> _memory = new();
-    private readonly ConcurrentQueue<string> _order = new();
+    private readonly Queue<string> _order = new();
+    private long _memoryBytes;
     private readonly SemaphoreSlim _downloads = new(6, 6);
     private readonly ConcurrentDictionary<string, Task<Bitmap?>> _inflight = new();
 
@@ -46,10 +50,19 @@ public sealed class ImageCache(string directory)
                 throw;
             }
 
-            _memory[key] = bitmap;
-            _order.Enqueue(key);
-            while (_order.Count > MemoryLimit && _order.TryDequeue(out var old))
-                _memory.TryRemove(old, out _);
+            var bytes = PixelBytes(bitmap);
+            Pixels.Add(bitmap, new NativePixels(bytes));
+            lock (_order)
+            {
+                _memory[key] = bitmap;
+                _order.Enqueue(key);
+                _memoryBytes += bytes;
+                while (_memoryBytes > MemoryBudget && _order.TryDequeue(out var old))
+                {
+                    if (_memory.TryRemove(old, out var dropped))
+                        _memoryBytes -= PixelBytes(dropped);
+                }
+            }
             return bitmap;
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException or ArgumentException or InvalidOperationException)
@@ -92,6 +105,49 @@ public sealed class ImageCache(string directory)
         {
             _downloads.Release();
         }
+    }
+
+    /// <summary>Deletes the pictures downloaded longest ago until the folder fits <see cref="DiskBudget"/>.</summary>
+    public void Trim()
+    {
+        if (!Directory.Exists(directory))
+            return;
+        var kept = 0L;
+        foreach (var file in new DirectoryInfo(directory).EnumerateFiles("*.img").OrderByDescending(f => f.LastWriteTimeUtc))
+        {
+            kept += file.Length;
+            if (kept <= DiskBudget)
+                continue;
+            // Windows refuses to delete a picture another load still has open; it goes on a later trim.
+            try
+            {
+                file.Delete();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Debug($"Cached picture {file.Name} kept: {ex.Message}");
+            }
+        }
+    }
+
+    private static long PixelBytes(Bitmap bitmap) => 4L * bitmap.PixelSize.Width * bitmap.PixelSize.Height;
+
+    /// <summary>
+    /// A decoded picture's pixels sit in native memory the GC doesn't see, so a bitmap the cache drops is only
+    /// freed when a collection happens to run, and browsing allocates too little managed memory for one to run.
+    /// Reporting the pixels as pressure makes the GC collect them.
+    /// </summary>
+    private sealed class NativePixels
+    {
+        private readonly long _bytes;
+
+        public NativePixels(long bytes)
+        {
+            _bytes = bytes;
+            GC.AddMemoryPressure(bytes);
+        }
+
+        ~NativePixels() => GC.RemoveMemoryPressure(_bytes);
     }
 
     private static async Task<byte[]> DownloadAsync(string url, CancellationToken cancellation)

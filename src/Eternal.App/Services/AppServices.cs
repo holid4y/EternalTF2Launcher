@@ -239,5 +239,6 @@ public sealed class AppServices : IAsyncDisposable
         Launcher.Dispose();
         Game.Dispose();
         await Preload.DisposeAsync().ConfigureAwait(false);
+        Images.Trim();
     }
 }
